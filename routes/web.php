@@ -42,7 +42,7 @@ Route::inertia('/terms', 'terms')->name('terms');
 
 Route::get('request-access', [AccessRequestController::class, 'create'])->name('access-requests.create');
 Route::post('access-requests', [AccessRequestController::class, 'store'])
-    ->middleware('throttle:5,1')
+    ->middleware('throttle:access-requests')
     ->name('access-requests.store');
 Route::redirect('register', '/request-access');
 

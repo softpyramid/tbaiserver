@@ -18,16 +18,19 @@ export default function Privacy() {
                 </h1>
                 <div className="mt-6 space-y-4 text-base leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
                     <p>
-                        This page will describe what TB-AI collects, why it is
-                        kept, who can see it, and how long it is held. It is a
-                        placeholder. It is not a finished privacy notice.
+                        This page is a draft, pending legal review. It is not a
+                        finished privacy notice.
                     </p>
                     <p>
-                        Until legal review is complete, do not treat this page
-                        as the programme's privacy policy. A request for access
-                        stores your name, role, organisation, district, and
-                        email so the request can be reviewed. It does not
+                        When you request access, we collect your name, role,
+                        organisation, district, and email. We use this only to
+                        review your request. Submitting the form does not
                         create an account.
+                    </p>
+                    <p>
+                        Retention is 12 months. That period is a draft, pending
+                        legal review. TB-AI and Soft Pyramid administrators can
+                        see an access request.
                     </p>
                     <p>
                         Questions about this draft: {contactName},{' '}

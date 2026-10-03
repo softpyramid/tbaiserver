@@ -8,6 +8,12 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreAccessRequest extends FormRequest
 {
     /**
+     * Honeypot field. The React form must use this same name.
+     * A filled value is discarded and is not stored.
+     */
+    public const string HONEYPOT = 'website';
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -20,6 +26,7 @@ class StoreAccessRequest extends FormRequest
             'organisation' => ['required', 'string', 'max:255'],
             'district' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
+            'consent' => ['accepted'],
         ];
     }
 }

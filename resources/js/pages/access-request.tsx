@@ -1,25 +1,34 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import { MarketingShell } from '@/components/marketing-shell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { privacy } from '@/routes';
 import { store } from '@/routes/access-requests';
 
 const fields = [
     { name: 'name', label: 'Name', type: 'text', autoComplete: 'name' },
-    { name: 'role', label: 'Role', type: 'text', autoComplete: 'organization-title' },
+    {
+        name: 'role',
+        label: 'Role',
+        type: 'text',
+        autoComplete: 'organization-title',
+        placeholder: 'e.g. Lab technician, BMU',
+    },
     {
         name: 'organisation',
         label: 'Organisation',
         type: 'text',
         autoComplete: 'organization',
+        placeholder: 'e.g. District TB programme',
     },
     {
         name: 'district',
         label: 'District',
         type: 'text',
         autoComplete: 'address-level2',
+        placeholder: 'e.g. Larkana',
     },
     {
         name: 'email',
@@ -49,6 +58,7 @@ export default function AccessRequest({ status }: { status?: string }) {
                     <p
                         className="mt-6 rounded-md border border-[#1A237E]/15 bg-white px-4 py-3 text-sm leading-relaxed dark:border-white/15 dark:bg-[#121858]"
                         role="status"
+                        data-test="access-request-status"
                     >
                         {status}
                     </p>
@@ -57,10 +67,25 @@ export default function AccessRequest({ status }: { status?: string }) {
                 <Form
                     {...store.form()}
                     resetOnSuccess
-                    className="mt-8 flex flex-col gap-5"
+                    className="relative mt-8 flex flex-col gap-5"
                 >
                     {({ processing, errors }) => (
                         <>
+                            <div
+                                className="absolute -left-[10000px] h-px w-px overflow-hidden"
+                                aria-hidden="true"
+                            >
+                                <label htmlFor="website">Website</label>
+                                <input
+                                    id="website"
+                                    name="website"
+                                    type="text"
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                    defaultValue=""
+                                />
+                            </div>
+
                             {fields.map((field) => (
                                 <div key={field.name} className="grid gap-2">
                                     <Label htmlFor={field.name}>
@@ -71,9 +96,48 @@ export default function AccessRequest({ status }: { status?: string }) {
                                         name={field.name}
                                         type={field.type}
                                         autoComplete={field.autoComplete}
+                                        placeholder={
+                                            'placeholder' in field
+                                                ? field.placeholder
+                                                : undefined
+                                        }
+                                        maxLength={255}
                                         required
                                     />
                                     <InputError message={errors[field.name]} />
+                                    {field.name === 'email' && (
+                                        <>
+                                            <div className="flex items-start gap-3">
+                                                <input
+                                                    id="consent"
+                                                    name="consent"
+                                                    type="checkbox"
+                                                    value="1"
+                                                    required
+                                                    className="mt-1 size-4 shrink-0 rounded border border-[#1A237E]/30 accent-[#1A237E]"
+                                                />
+                                                <p className="text-sm leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
+                                                    <label
+                                                        htmlFor="consent"
+                                                        className="cursor-pointer"
+                                                    >
+                                                        We use this only to
+                                                        review your request.
+                                                    </label>{' '}
+                                                    See{' '}
+                                                    <Link
+                                                        href={privacy()}
+                                                        className="underline decoration-[#1E88E5] underline-offset-4 hover:text-[#1A237E] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5] dark:hover:text-white"
+                                                    >
+                                                        {'Privacy.'}
+                                                    </Link>
+                                                </p>
+                                            </div>
+                                            <InputError
+                                                message={errors.consent}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             ))}
 

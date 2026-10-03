@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { Menu, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
-import { dashboard, login, privacy, terms } from '@/routes';
+import { dashboard, home, login, privacy, terms } from '@/routes';
 import { create as requestAccess } from '@/routes/access-requests';
 import type { RouteDefinition } from '@/wayfinder';
 
@@ -13,9 +13,13 @@ export const contactName = 'Dr. Hira Fareed';
 export const contactEmail = 'dochirafarid@gmail.com';
 
 export function MarketingShell({ children }: { children: ReactNode }) {
-    const { auth, currentTeam } = usePage().props;
+    const page = usePage();
+    const { auth, currentTeam } = page.props;
     const signedIn = Boolean(auth.user);
     const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
+    const onRequestAccess =
+        page.url === '/request-access' ||
+        page.url.startsWith('/request-access?');
     const [menuOpen, setMenuOpen] = useState(false);
 
     function closeMenu() {
@@ -65,6 +69,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                             signedIn={signedIn}
                             dashboardUrl={dashboardUrl}
                             tone="dark"
+                            backHome={onRequestAccess}
                         />
                     </div>
 
@@ -123,6 +128,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                                 dashboardUrl={dashboardUrl}
                                 tone="dark"
                                 stacked
+                                backHome={onRequestAccess}
                             />
                         </div>
                     </div>
@@ -189,11 +195,13 @@ export function AuthActions({
     dashboardUrl,
     tone,
     stacked = false,
+    backHome = false,
 }: {
     signedIn: boolean;
     dashboardUrl: string | RouteDefinition<'get'>;
     tone: 'dark' | 'hero';
     stacked?: boolean;
+    backHome?: boolean;
 }) {
     const primary =
         tone === 'hero'
@@ -222,9 +230,18 @@ export function AuthActions({
             <Link href={login()} className={secondary}>
                 Sign in
             </Link>
-            <Link href={requestAccess()} className={primary}>
-                Request access
-            </Link>
+            {backHome ? (
+                <Link
+                    href={home()}
+                    className="inline-flex items-center text-sm font-medium text-[#E8EAF6] underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
+                >
+                    Back to home
+                </Link>
+            ) : (
+                <Link href={requestAccess()} className={primary}>
+                    Request access
+                </Link>
+            )}
         </div>
     );
 }

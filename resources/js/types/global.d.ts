@@ -19,6 +19,7 @@ declare module '@inertiajs/core' {
                 showValidatedClaims: boolean;
                 showSupporterLogos: boolean;
                 showPartnerLine: boolean;
+                showTelehealth: boolean;
                 developmentNotice: string | null;
                 partnerLine: string | null;
                 contact: {

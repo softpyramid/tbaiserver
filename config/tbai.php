@@ -25,6 +25,12 @@ return [
 
     'show_partner_line' => $flag('TBAI_SHOW_PARTNER_LINE'),
 
+    /*
+    | Telehealth is not part of the current product. Leave it off.
+    */
+
+    'show_telehealth' => $flag('TBAI_SHOW_TELEHEALTH'),
+
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',
 
     'partner_line' => 'Technical partner: Soft Pyramid',

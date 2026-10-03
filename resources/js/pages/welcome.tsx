@@ -33,17 +33,17 @@ const services: {
 }[] = [
     {
         title: 'TB Diagnosis',
-        body: 'AI-powered smear microscopy analysis for rapid, high-accuracy tuberculosis detection.',
+        body: 'AI-assisted smear microscopy analysis under development, to support the microscopist.',
         icon: Microscope,
     },
     {
         title: 'AI Diagnostic Platform',
-        body: 'Cloud-based platform: upload slides from any smartphone, receive results in minutes.',
+        body: 'Cloud-based platform in development: upload slides from a smartphone and review AI-assisted results.',
         icon: Cloud,
     },
     {
         title: 'Lab Integration',
-        body: 'Seamless integration with existing lab infrastructure and staff training programs.',
+        body: 'Designed to work with existing lab infrastructure and staff training.',
         icon: MonitorSmartphone,
     },
     {
@@ -66,9 +66,12 @@ export default function Welcome({
     testimonials,
     supporters,
 }: WelcomeProps) {
-    const { auth, currentTeam } = usePage().props;
+    const { auth, currentTeam, tbai } = usePage().props;
     const signedIn = Boolean(auth.user);
     const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
+    const visibleServices = tbai.showTelehealth
+        ? services
+        : services.filter((service) => service.title !== 'Telehealth');
 
     return (
         <>
@@ -86,11 +89,10 @@ export default function Welcome({
                                     Saving A Life Every 20 Seconds.
                                 </h1>
                                 <p className="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
-                                    TB-AI is a point-of-care, smartphone-based
-                                    platform for rapid, accurate, and
-                                    affordable diagnosis of Tuberculosis,
-                                    bringing AI to the frontline of global
-                                    health.
+                                    TB-AI is a smartphone-based platform in
+                                    development that aims to support rapid,
+                                    affordable tuberculosis microscopy and give
+                                    programmes a daily TB register.
                                 </p>
                                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                                     <AuthActions
@@ -99,6 +101,10 @@ export default function Welcome({
                                         tone="hero"
                                     />
                                 </div>
+                                <p className="mt-4 text-sm text-white/70">
+                                    Decision support in development. Not a
+                                    diagnostic device.
+                                </p>
                             </div>
                             <div className="flex justify-center">
                                 <img
@@ -172,7 +178,7 @@ export default function Welcome({
                                 </p>
                             </div>
                             <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-                                {services.map((service) => {
+                                {visibleServices.map((service) => {
                                     const Icon = service.icon;
 
                                     return (
@@ -233,7 +239,7 @@ export default function Welcome({
                                     Why choose us
                                 </p>
                                 <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-                                    Empowering Health Line Systems
+                                    Empowering Health Care Systems
                                     Internationally
                                 </h2>
                                 <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
@@ -344,13 +350,11 @@ export default function Welcome({
                         <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 py-16 sm:px-8 lg:flex-row lg:items-center lg:py-20">
                             <div className="max-w-xl">
                                 <h2 className="font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-                                    Ready to Transform TB Diagnostics at Your
-                                    Facility?
+                                    Interested in TB-AI for your facility or
+                                    programme?
                                 </h2>
                                 <p className="mt-4 text-base leading-relaxed text-white/85">
-                                    Request a live demo to see TB-AI in action
-                                    or speak with our integration specialists
-                                    today.
+                                    Request access and we will be in touch.
                                 </p>
                             </div>
                             <AuthActions

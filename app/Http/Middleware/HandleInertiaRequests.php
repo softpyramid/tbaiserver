@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
                 'showValidatedClaims' => $showValidatedClaims,
                 'showSupporterLogos' => (bool) config('tbai.show_supporter_logos'),
                 'showPartnerLine' => (bool) config('tbai.show_partner_line'),
+                'showTelehealth' => (bool) config('tbai.show_telehealth'),
                 'developmentNotice' => $showValidatedClaims
                     ? null
                     : config('tbai.development_notice'),

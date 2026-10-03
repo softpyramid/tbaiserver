@@ -85,6 +85,7 @@ test('validated claims and optional strips stay off by default', function () {
         ->where('tbai.showValidatedClaims', false)
         ->where('tbai.showSupporterLogos', false)
         ->where('tbai.showPartnerLine', false)
+        ->where('tbai.showTelehealth', false)
         ->where('tbai.partnerLine', null)
         ->where('tbai.developmentNotice', 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.')
         ->where('tbai.contact.email', 'contact-us@dhub-ai.info')
@@ -105,6 +106,38 @@ test('validated claims and optional strips stay off by default', function () {
     $response->assertDontSee('What Clinical Leaders Say', false);
     $response->assertDontSee('Falling Walls Foundation', false);
     $response->assertDontSee('Technical partner: Soft Pyramid', false);
+});
+
+test('telehealth stays off unless the config flag is on', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('tbai.showTelehealth', false));
+
+    config(['tbai.show_telehealth' => true]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('tbai.showTelehealth', true));
+});
+
+test('public marketing copy stays within the development claim', function () {
+    $welcome = preg_replace('/\s+/', ' ', (string) file_get_contents(resource_path('js/pages/welcome.tsx')));
+
+    expect($welcome)
+        ->toContain('TB-AI is a smartphone-based platform in development that aims to support rapid, affordable tuberculosis microscopy and give programmes a daily TB register.')
+        ->toContain('Decision support in development. Not a diagnostic device.')
+        ->toContain('AI-assisted smear microscopy analysis under development, to support the microscopist.')
+        ->toContain('Cloud-based platform in development: upload slides from a smartphone and review AI-assisted results.')
+        ->toContain('Designed to work with existing lab infrastructure and staff training.')
+        ->toContain('Interested in TB-AI for your facility or programme?')
+        ->toContain('Request access and we will be in touch.')
+        ->toContain('Empowering Health Care Systems')
+        ->toContain('showTelehealth')
+        ->not->toContain('live demo')
+        ->not->toContain('integration specialists')
+        ->not->toContain('Health Line')
+        ->not->toContain('receive results in minutes')
+        ->not->toContain('high-accuracy');
 });
 
 test('validated claims, supporter names, and the partner line can be switched on', function () {

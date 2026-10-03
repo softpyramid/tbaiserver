@@ -39,4 +39,12 @@ class City extends Model
     {
         return $this->hasMany(Facility::class);
     }
+
+    /**
+     * @return HasMany<Taluka, $this>
+     */
+    public function talukas(): HasMany
+    {
+        return $this->hasMany(Taluka::class);
+    }
 }

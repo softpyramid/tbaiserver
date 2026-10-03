@@ -44,6 +44,7 @@ type Props = {
     return: Counts;
     provisionalTat: {
         label: string;
+        helper: string;
         value: number | null;
         year: number;
     };
@@ -104,10 +105,21 @@ function RegisterForm({
 
     const tested = Number(counts.tested);
     const positive = Number(counts.positive);
+    const negative = Number(counts.negative);
     const positivity =
         Number.isFinite(tested) && tested > 0 && Number.isFinite(positive)
             ? positive / tested
             : null;
+    const testedSumError =
+        counts.positive !== '' &&
+        counts.negative !== '' &&
+        counts.tested !== '' &&
+        Number.isFinite(positive) &&
+        Number.isFinite(negative) &&
+        Number.isFinite(tested) &&
+        positive + negative !== tested
+            ? 'TB positive and TB negative must add up to tested.'
+            : undefined;
 
     const changeDate = (value: string) => {
         router.get(
@@ -122,10 +134,7 @@ function RegisterForm({
             <Head title="Today's register" />
 
             <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 py-6">
-                <Heading
-                    title="Today's register"
-                    description={`${facility.name}. ${facility.sector}. ${facility.city}.`}
-                />
+                <Heading title="Today's register" />
 
                 <Form
                     {...update.form(teamSlug)}
@@ -150,6 +159,22 @@ function RegisterForm({
                                 />
                                 <InputError message={errors.reported_on} />
                             </div>
+
+                            <ReadOnlyField
+                                id="facility_name"
+                                label="Facility name"
+                                value={facility.name}
+                            />
+                            <ReadOnlyField
+                                id="facility_sector"
+                                label="Sector"
+                                value={facility.sector}
+                            />
+                            <ReadOnlyField
+                                id="facility_city"
+                                label="City"
+                                value={facility.city}
+                            />
 
                             {countFields.map((field) => (
                                 <div key={field.name} className="grid gap-2">
@@ -182,7 +207,14 @@ function RegisterForm({
                                                 : `Screenings marked suspect on this date: ${screeningSuspects}.`}
                                         </p>
                                     ) : null}
-                                    <InputError message={errors[field.name]} />
+                                    <InputError
+                                        message={
+                                            field.name === 'tested'
+                                                ? (testedSumError ??
+                                                  errors.tested)
+                                                : errors[field.name]
+                                        }
+                                    />
                                 </div>
                             ))}
 
@@ -212,9 +244,11 @@ function RegisterForm({
                             ? 'not enough returns'
                             : provisionalTat.value.toFixed(2)}
                     </p>
-                    <p className="text-muted-foreground">
-                        This figure is provisional until the official TAT
-                        formula is confirmed.
+                    <p
+                        className="text-muted-foreground"
+                        data-test="turnaround-helper"
+                    >
+                        {provisionalTat.helper}
                     </p>
                 </section>
 
@@ -256,6 +290,23 @@ function RegisterForm({
                 ) : null}
             </div>
         </>
+    );
+}
+
+function ReadOnlyField({
+    id,
+    label,
+    value,
+}: {
+    id: string;
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <Input id={id} value={value} readOnly tabIndex={-1} />
+        </div>
     );
 }
 

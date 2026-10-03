@@ -3,7 +3,9 @@
 use App\Http\Controllers\AccessRequestController;
 use App\Http\Controllers\DailyReturnController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\ProgrammeAssignmentController;
+use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Response;
@@ -70,6 +72,12 @@ Route::prefix('{current_team}')
 
         Route::get('returns/today', [DailyReturnController::class, 'edit'])->name('returns.today');
         Route::put('returns/today', [DailyReturnController::class, 'update'])->name('returns.update');
+
+        Route::get('profile', [FacilityController::class, 'edit'])->name('facilities.edit');
+        Route::put('profile', [FacilityController::class, 'update'])->name('facilities.update');
+
+        Route::get('screening/new', [ScreeningController::class, 'create'])->name('screening.create');
+        Route::post('screening', [ScreeningController::class, 'store'])->name('screening.store');
     });
 
 Route::middleware(['auth'])->group(function () {
@@ -79,6 +87,10 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');
+
+    Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');
+    Route::get('admin/facilities/create', [FacilityController::class, 'create'])->name('facilities.create');
+    Route::post('admin/facilities', [FacilityController::class, 'store'])->name('facilities.store');
 });
 
 require __DIR__.'/settings.php';

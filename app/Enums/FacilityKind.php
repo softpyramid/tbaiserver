@@ -12,7 +12,7 @@ enum FacilityKind: string
     {
         return match ($this) {
             self::Bmu => 'BMU',
-            self::Hospital => 'Hospital',
+            self::Hospital => 'Hospital lab',
             self::Clinic => 'Clinic',
         };
     }

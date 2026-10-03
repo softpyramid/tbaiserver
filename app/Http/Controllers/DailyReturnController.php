@@ -76,6 +76,7 @@ class DailyReturnController extends Controller
             ],
             'provisionalTat' => [
                 'label' => ProvisionalReportedTat::LABEL,
+                'helper' => ProvisionalReportedTat::HELPER,
                 'value' => ProvisionalReportedTat::average($yearReturns),
                 'year' => $reportedOn->year,
             ],

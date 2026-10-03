@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\TeamRole;
+use App\Models\Team;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,6 +39,11 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $facilityTeam = $this->facilityTeam($request, $user);
+        $isTbaiAdmin = $user?->isTbaiAdmin() ?? false;
+        $canEditProfile = $user !== null
+            && $facilityTeam !== null
+            && ($isTbaiAdmin || $user->teamRole($facilityTeam) === TeamRole::Owner);
 
         $showValidatedClaims = (bool) config('tbai.show_validated_claims');
 
@@ -67,9 +75,42 @@ class HandleInertiaRequests extends Middleware
 
                 return route('returns.today', ['current_team' => $team->slug]);
             },
+            'profileUrl' => $canEditProfile && $facilityTeam !== null
+                ? route('facilities.edit', ['current_team' => $facilityTeam->slug])
+                : null,
+            'screeningUrl' => $user !== null && $facilityTeam !== null && $user->belongsToTeam($facilityTeam)
+                ? route('screening.create', ['current_team' => $facilityTeam->slug])
+                : null,
+            'facilitiesUrl' => $isTbaiAdmin ? route('facilities.index') : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
+    }
+
+    /**
+     * Facility behind the current URL, or the user's current team when that team is a facility.
+     */
+    private function facilityTeam(Request $request, ?User $user): ?Team
+    {
+        $routed = $request->route('current_team');
+
+        if ($routed instanceof Team) {
+            $routed->loadMissing('facility');
+
+            if ($routed->facility !== null) {
+                return $routed;
+            }
+        }
+
+        $current = $user?->currentTeam;
+
+        if ($current === null) {
+            return null;
+        }
+
+        $current->loadMissing('facility');
+
+        return $current->facility === null ? null : $current;
     }
 }

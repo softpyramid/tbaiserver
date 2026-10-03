@@ -13,6 +13,9 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             registerUrl: string | null;
+            profileUrl: string | null;
+            screeningUrl: string | null;
+            facilitiesUrl: string | null;
             sidebarOpen: boolean;
             currentTeam: Team | null;
             teams: Team[];

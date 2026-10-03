@@ -1,5 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ClipboardList, Globe, LayoutGrid } from 'lucide-react';
+import {
+    Building2,
+    ClipboardList,
+    ClipboardPlus,
+    Globe,
+    LayoutGrid,
+    List,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -35,6 +42,33 @@ export function AppSidebar() {
                       title: "Today's register",
                       href: page.props.registerUrl,
                       icon: ClipboardList,
+                  },
+              ]
+            : []),
+        ...(page.props.screeningUrl
+            ? [
+                  {
+                      title: 'Screening',
+                      href: page.props.screeningUrl,
+                      icon: ClipboardPlus,
+                  },
+              ]
+            : []),
+        ...(page.props.profileUrl
+            ? [
+                  {
+                      title: 'Facility profile',
+                      href: page.props.profileUrl,
+                      icon: Building2,
+                  },
+              ]
+            : []),
+        ...(page.props.facilitiesUrl
+            ? [
+                  {
+                      title: 'Facilities',
+                      href: page.props.facilitiesUrl,
+                      icon: List,
                   },
               ]
             : []),

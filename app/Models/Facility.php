@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property FacilityStatus $status
  * @property-read Team $team
  * @property-read City $city
+ * @property-read Taluka|null $taluka
  */
 #[Fillable(['team_id', 'city_id', 'taluka_id', 'sector', 'kind', 'code', 'status', 'latitude', 'longitude'])]
 class Facility extends Model
@@ -56,6 +57,14 @@ class Facility extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    /**
+     * @return BelongsTo<Taluka, $this>
+     */
+    public function taluka(): BelongsTo
+    {
+        return $this->belongsTo(Taluka::class);
     }
 
     /**

@@ -9,6 +9,8 @@ class ProvisionalReportedTat
 {
     public const LABEL = 'Average of reported median TAT (days), weighted by tested count';
 
+    public const HELPER = 'Provisional until the official turnaround formula is confirmed.';
+
     /**
      * Provisional stand-in until the official TAT formula arrives.
      * Rows with no reported median, and rows with a median but zero tested, add no weight.

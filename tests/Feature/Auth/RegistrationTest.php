@@ -33,6 +33,9 @@ test('the request access screen can be rendered', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('access-request')
+            ->where('received', false)
+            ->where('status', null)
+            ->where('defaults', null)
             ->missing('accessRequest')
             ->missing('accessRequests'));
 });
@@ -44,7 +47,8 @@ test('an access request is stored for review and does not create an account', fu
     $response = $this->post(route('access-requests.store'), accessRequestPayload());
 
     $response->assertRedirect(route('access-requests.create'));
-    $response->assertSessionHas('status', AccessRequestController::RECEIVED_STATUS);
+    $response->assertSessionHas(AccessRequestController::RECEIVED_SESSION_KEY, true);
+    $response->assertSessionMissing('status');
     $this->assertGuest();
 
     $this->assertDatabaseHas('access_requests', [
@@ -73,6 +77,37 @@ test('an access request is stored for review and does not create an account', fu
                 && str_contains($lines, 'ayesha@example.com');
         },
     );
+
+    $page = $this->followRedirects($response);
+
+    $page->assertOk();
+    $page->assertInertia(fn ($page) => $page
+        ->component('access-request')
+        ->where('received', true)
+        ->where('status', AccessRequestController::RECEIVED_STATUS)
+        ->where('defaults', null)
+        ->missing('accessRequest')
+        ->missing('accessRequests'));
+    $page->assertSee(AccessRequestController::RECEIVED_STATUS, false);
+    $page->assertDontSee('name="name"', false);
+    $page->assertDontSee('name="role"', false);
+    $page->assertDontSee('name="organisation"', false);
+    $page->assertDontSee('name="district"', false);
+    $page->assertDontSee('name="email"', false);
+    $page->assertDontSee('name="consent"', false);
+    $page->assertDontSee('name="website"', false);
+
+    $this->get(route('access-requests.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('received', true)
+            ->where('status', AccessRequestController::RECEIVED_STATUS)
+            ->where('defaults', null))
+        ->assertDontSee('name="email"', false)
+        ->assertDontSee('name="consent"', false);
+
+    expect(session('status'))->toBeNull();
+    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->toBeTrue();
 });
 
 test('an access request requires a name, role, organisation, district, email, and consent', function () {
@@ -83,6 +118,25 @@ test('an access request requires a name, role, organisation, district, email, an
     $response->assertSessionHasErrors(['name', 'role', 'organisation', 'district', 'email', 'consent']);
     $this->assertGuest();
     expect(AccessRequest::query()->count())->toBe(0);
+    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
+
+    dump(session()->all());
+
+    $page = $this->followRedirects($response);
+
+    $page->assertOk();
+    $page->assertInertia(fn ($page) => $page
+        ->component('access-request')
+        ->where('received', false)
+        ->where('status', null)
+        ->has('errors.name')
+        ->has('errors.role')
+        ->has('errors.organisation')
+        ->has('errors.district')
+        ->has('errors.email')
+        ->has('errors.consent'));
+    $page->assertSee('The name field is required.', false);
+    $page->assertDontSee(AccessRequestController::RECEIVED_STATUS, false);
 });
 
 test('an access request rejects an invalid email and fields that are too long', function (array $overrides, string $field) {
@@ -92,6 +146,7 @@ test('an access request rejects an invalid email and fields that are too long', 
     $response->assertRedirect(route('access-requests.create'));
     $response->assertSessionHasErrors($field);
     expect(AccessRequest::query()->count())->toBe(0);
+    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
 })->with([
     'invalid email' => [['email' => 'not-an-email'], 'email'],
     'long email' => [['email' => str_repeat('a', 244).'@example.com'], 'email'],
@@ -102,6 +157,37 @@ test('an access request rejects an invalid email and fields that are too long', 
     'consent declined' => [['consent' => '0'], 'consent'],
 ]);
 
+test('an invalid access request shows the form with the entered values', function () {
+    $response = $this->from(route('access-requests.create'))
+        ->post(route('access-requests.store'), accessRequestPayload([
+            'email' => 'not-an-email',
+        ]));
+
+    $response->assertRedirect(route('access-requests.create'));
+    $response->assertSessionHasErrors('email');
+    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
+
+    $page = $this->followRedirects($response);
+
+    $page->assertOk();
+    $page->assertInertia(fn ($page) => $page
+        ->component('access-request')
+        ->where('received', false)
+        ->where('status', null)
+        ->where('defaults.name', 'Ayesha Khan')
+        ->where('defaults.role', 'Lab technician')
+        ->where('defaults.organisation', 'Thatta BMU')
+        ->where('defaults.district', 'Thatta')
+        ->where('defaults.email', 'not-an-email')
+        ->where('defaults.consent', '1')
+        ->has('errors.email')
+        ->missing('errors.name'));
+    $page->assertSee('Ayesha Khan', false);
+    $page->assertSee('not-an-email', false);
+    $page->assertSee('The email field must be a valid email address.', false);
+    $page->assertDontSee(AccessRequestController::RECEIVED_STATUS, false);
+});
+
 test('a filled honeypot is discarded without storing a request or sending mail', function () {
     Notification::fake();
     config(['access.admin_email' => 'reviewer@example.com']);
@@ -111,8 +197,18 @@ test('a filled honeypot is discarded without storing a request or sending mail',
     ]));
 
     $response->assertRedirect(route('access-requests.create'));
-    $response->assertSessionHas('status', AccessRequestController::RECEIVED_STATUS);
+    $response->assertSessionHas(AccessRequestController::RECEIVED_SESSION_KEY, true);
+    $response->assertSessionMissing('status');
     expect(AccessRequest::query()->count())->toBe(0);
+
+    $this->followRedirects($response)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('received', true)
+            ->where('status', AccessRequestController::RECEIVED_STATUS)
+            ->where('defaults', null))
+        ->assertDontSee('name="email"', false)
+        ->assertDontSee('name="website"', false);
     Notification::assertNothingSent();
 });
 
@@ -163,7 +259,9 @@ test('stored access requests stay off public pages and are visible only to the c
     $this->get(route('access-requests.create'))
         ->assertInertia(fn ($page) => $page
             ->component('access-request')
+            ->where('received', false)
             ->where('status', null)
+            ->where('defaults', null)
             ->missing('accessRequest')
             ->missing('accessRequests'));
 

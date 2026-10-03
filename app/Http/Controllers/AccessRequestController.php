@@ -17,14 +17,27 @@ class AccessRequestController extends Controller
     public const string RECEIVED_STATUS = 'We have your request. We will review it and be in touch.';
 
     /**
-     * Show the request-access form.
+     * Session flag for a completed submit. It is not flash data, so a refresh
+     * or a later visit in this session still shows the success panel.
+     */
+    public const string RECEIVED_SESSION_KEY = 'access_request_received';
+
+    /**
+     * Show the request-access form, or the success panel after a submit.
      *
-     * Stored requests are never passed to the page.
+     * Stored requests are never passed to the page. Any status flash is
+     * cleared here so it cannot appear beside the form on a later load.
      */
     public function create(Request $request): Response
     {
+        $request->session()->forget('status');
+
+        $received = $request->session()->get(self::RECEIVED_SESSION_KEY) === true;
+
         return Inertia::render('access-request', [
-            'status' => $request->session()->get('status'),
+            'received' => $received,
+            'status' => $received ? self::RECEIVED_STATUS : null,
+            'defaults' => $received ? null : $this->previousInput($request),
         ]);
     }
 
@@ -60,6 +73,30 @@ class AccessRequestController extends Controller
      */
     private function received(): RedirectResponse
     {
-        return to_route('access-requests.create')->with('status', self::RECEIVED_STATUS);
+        $session = request()->session();
+        $session->forget('status');
+        $session->put(self::RECEIVED_SESSION_KEY, true);
+
+        return to_route('access-requests.create');
+    }
+
+    /**
+     * Values to put back into the form after validation fails.
+     *
+     * @return array<string, string>|null
+     */
+    private function previousInput(Request $request): ?array
+    {
+        $previous = [];
+
+        foreach (['name', 'role', 'organisation', 'district', 'email', 'consent'] as $field) {
+            $value = $request->old($field);
+
+            if (is_string($value) && $value !== '') {
+                $previous[$field] = $value;
+            }
+        }
+
+        return $previous === [] ? null : $previous;
     }
 }

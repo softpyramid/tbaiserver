@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             LoginSeeder::class,
             ProgrammeRoleSeeder::class,
+            FacilitySeeder::class,
         ]);
     }
 }

@@ -7,6 +7,24 @@ use App\Models\User;
 use App\Notifications\AccessRequestReceived;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
+
+/**
+ * Follow a redirect with the session cookie so flashed errors and old input survive.
+ */
+function followSessionRedirect(TestResponse $response): TestResponse
+{
+    $cookie = collect($response->headers->getCookies())
+        ->first(fn ($item): bool => $item->getName() === config('session.cookie'));
+
+    $pending = test()->disableCookieEncryption();
+
+    if ($cookie !== null) {
+        $pending = $pending->withCookie($cookie->getName(), $cookie->getValue());
+    }
+
+    return $pending->get((string) $response->headers->get('Location'));
+}
 
 /**
  * @return array<string, string>
@@ -120,9 +138,7 @@ test('an access request requires a name, role, organisation, district, email, an
     expect(AccessRequest::query()->count())->toBe(0);
     expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
 
-    dump(session()->all());
-
-    $page = $this->followRedirects($response);
+    $page = followSessionRedirect($response);
 
     $page->assertOk();
     $page->assertInertia(fn ($page) => $page
@@ -167,7 +183,7 @@ test('an invalid access request shows the form with the entered values', functio
     $response->assertSessionHasErrors('email');
     expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
 
-    $page = $this->followRedirects($response);
+    $page = followSessionRedirect($response);
 
     $page->assertOk();
     $page->assertInertia(fn ($page) => $page

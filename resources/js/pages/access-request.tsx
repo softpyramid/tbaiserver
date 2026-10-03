@@ -43,20 +43,20 @@ export default function AccessRequest({ status }: { status?: string }) {
         <MarketingShell>
             <Head title="Request access" />
             <main className="mx-auto max-w-xl px-5 py-16 sm:px-8">
-                <p className="text-xs font-medium tracking-[0.22em] text-[#E53935] uppercase">
+                <p className="text-xs font-medium tracking-[0.22em] text-brand uppercase">
                     Access
                 </p>
                 <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
                     Request access
                 </h1>
-                <p className="mt-4 text-base leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
+                <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
                     Tell us who you are. We store this for review. It does not
                     create an account. Invited users sign in.
                 </p>
 
                 {status && (
                     <p
-                        className="mt-6 rounded-md border border-[#1A237E]/15 bg-white px-4 py-3 text-sm leading-relaxed dark:border-white/15 dark:bg-[#121858]"
+                        className="mt-6 rounded-md border border-navy/15 bg-white px-4 py-3 text-sm leading-relaxed dark:border-white/15 dark:bg-navy"
                         role="status"
                         data-test="access-request-status"
                     >
@@ -114,9 +114,9 @@ export default function AccessRequest({ status }: { status?: string }) {
                                                     type="checkbox"
                                                     value="1"
                                                     required
-                                                    className="mt-1 size-4 shrink-0 rounded border border-[#1A237E]/30 accent-[#1A237E]"
+                                                    className="mt-1 size-4 shrink-0 rounded border border-navy/30 accent-navy"
                                                 />
-                                                <p className="text-sm leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
+                                                <p className="text-sm leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
                                                     <label
                                                         htmlFor="consent"
                                                         className="cursor-pointer"
@@ -127,7 +127,7 @@ export default function AccessRequest({ status }: { status?: string }) {
                                                     See{' '}
                                                     <Link
                                                         href={privacy()}
-                                                        className="underline decoration-[#1E88E5] underline-offset-4 hover:text-[#1A237E] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5] dark:hover:text-white"
+                                                        className="underline decoration-electric underline-offset-4 hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-electric dark:hover:text-white"
                                                     >
                                                         {'Privacy.'}
                                                     </Link>
@@ -144,7 +144,7 @@ export default function AccessRequest({ status }: { status?: string }) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#E53935] px-5 text-sm font-medium text-white hover:bg-[#D32F2F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E88E5] disabled:opacity-50"
+                                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-white hover:bg-[#211e7a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric disabled:opacity-50"
                             >
                                 {processing && <Spinner />}
                                 Request access

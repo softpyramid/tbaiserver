@@ -6,6 +6,7 @@ use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('robots.txt', function (): Response {
     $contents = file_get_contents(public_path('robots.txt'));
@@ -36,7 +37,19 @@ Route::get('sitemap.xml', function (): Response {
     ]);
 })->name('sitemap');
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function () {
+    $showValidatedClaims = (bool) config('tbai.show_validated_claims');
+
+    return Inertia::render('welcome', [
+        'featureTiles' => $showValidatedClaims
+            ? config('tbai.validated_tiles')
+            : config('tbai.neutral_tiles'),
+        'testimonials' => $showValidatedClaims ? config('tbai.testimonials') : [],
+        'supporters' => config('tbai.show_supporter_logos')
+            ? config('tbai.supporters')
+            : [],
+    ]);
+})->name('home');
 Route::inertia('/privacy', 'privacy')->name('privacy');
 Route::inertia('/terms', 'terms')->name('terms');
 

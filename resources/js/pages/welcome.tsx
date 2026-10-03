@@ -1,70 +1,57 @@
 import { Head, usePage } from '@inertiajs/react';
 import {
-    AuthActions,
-    developmentNotice,
-    MarketingShell,
-} from '@/components/marketing-shell';
+    Cloud,
+    Microscope,
+    MonitorSmartphone,
+    Stethoscope,
+    type LucideIcon,
+} from 'lucide-react';
+import { AuthActions, MarketingShell } from '@/components/marketing-shell';
 import { dashboard } from '@/routes';
 
-const pathway = [
-    {
-        step: '01',
-        title: 'Suspects',
-        detail: 'People who enter the diagnostic pathway.',
-    },
-    {
-        step: '02',
-        title: 'Tested',
-        detail: 'Smears actually read, not only referred.',
-    },
-    {
-        step: '03',
-        title: 'Diagnosed',
-        detail: 'Positive and negative, from the same return.',
-    },
-    {
-        step: '04',
-        title: 'On treatment',
-        detail: 'A diagnosis that has a treatment start.',
-    },
-    {
-        step: '05',
-        title: 'Still in care',
-        detail: 'Patients still on treatment or follow-up',
-    },
-] as const;
+type FeatureTile = {
+    title: string;
+    body: string;
+};
 
-const rooms = [
-    {
-        kicker: 'In the lab',
-        title: 'Scope, snap, upload.',
-        body: 'A technician photographs the smear on the microscope already on the bench. TB-AI is in development as decision support for that photograph. It does not return a result on its own.',
-        points: [
-            'Standard microscope, mid-range phone',
-            'The microscopist stays in the decision',
-        ],
-    },
-    {
-        kicker: 'At the programme',
-        title: 'One register for the day.',
-        body: 'Each facility files one return for one date: the same counts as the paper register. Counts roll up from that facility to its district.',
-        points: [
-            'Suspects, tested, positive, treatment, follow-up',
-            'Median turnaround on the same row',
-            'Where the pathway is slow, or a case has no treatment start',
-        ],
-    },
-] as const;
+type Testimonial = {
+    quote: string;
+    name: string;
+    role: string;
+};
 
-const registerFields = [
-    'Suspects identified',
-    'Tested',
-    'TB positive',
-    'TB negative',
-    'Started treatment',
-    'Follow-up',
-    'Median turnaround',
-] as const;
+type WelcomeProps = {
+    featureTiles: FeatureTile[];
+    testimonials: Testimonial[];
+    supporters: string[];
+};
+
+const services: {
+    title: string;
+    body: string;
+    icon: LucideIcon;
+}[] = [
+    {
+        title: 'TB Diagnosis',
+        body: 'AI-powered smear microscopy analysis for rapid, high-accuracy tuberculosis detection.',
+        icon: Microscope,
+    },
+    {
+        title: 'AI Diagnostic Platform',
+        body: 'Cloud-based platform: upload slides from any smartphone, receive results in minutes.',
+        icon: Cloud,
+    },
+    {
+        title: 'Lab Integration',
+        body: 'Seamless integration with existing lab infrastructure and staff training programs.',
+        icon: MonitorSmartphone,
+    },
+    {
+        title: 'Telehealth',
+        body: 'Remote expert consultation linking rural patients to specialist physicians nationwide.',
+        icon: Stethoscope,
+    },
+];
 
 const previewDistricts = [
     { name: 'Karachi West', width: '86%' },
@@ -74,7 +61,11 @@ const previewDistricts = [
     { name: 'Badin', width: '33%' },
 ] as const;
 
-export default function Welcome() {
+export default function Welcome({
+    featureTiles,
+    testimonials,
+    supporters,
+}: WelcomeProps) {
     const { auth, currentTeam } = usePage().props;
     const signedIn = Boolean(auth.user);
     const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
@@ -85,29 +76,21 @@ export default function Welcome() {
 
             <MarketingShell>
                 <main id="top">
-                    <section className="bg-[#1A237E] text-[#F8FAFC]">
-                        <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:py-24">
+                    <section className="bg-[linear-gradient(135deg,#14294c_0%,#1a365d_50%,#29269b_100%)] text-[#F8FAFC]">
+                        <div className="mx-auto grid max-w-[1200px] items-center gap-14 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:py-24">
                             <div>
-                                <p className="text-xs font-medium tracking-[0.22em] text-[#F8FAFC] uppercase">
-                                    In development
+                                <p className="text-xs font-semibold tracking-[0.22em] text-electric uppercase">
+                                    AI-powered tuberculosis diagnostics
                                 </p>
-                                <h1 className="mt-5 max-w-xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-5xl lg:text-[3.4rem]">
-                                    Support for the microscopist. A register
-                                    for the province.
+                                <h1 className="mt-5 max-w-xl font-serif text-4xl leading-[1.1] font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+                                    Saving A Life Every 20 Seconds.
                                 </h1>
-                                <p
-                                    className="mt-6 max-w-lg rounded-md border border-[#1E88E5]/50 bg-[#1E88E5]/15 px-4 py-3 text-sm leading-relaxed text-[#F8FAFC]"
-                                    role="note"
-                                >
-                                    {developmentNotice}
-                                </p>
-                                <p className="mt-6 max-w-lg text-base leading-relaxed text-[#E8EAF6] sm:text-lg">
-                                    TB-AI is in development as decision support
-                                    beside the microscopist, and as the daily
-                                    register behind that work. Facilities file
-                                    the counts. The programme sees testing,
-                                    treatment, and delay without waiting on a
-                                    spreadsheet.
+                                <p className="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+                                    TB-AI is a point-of-care, smartphone-based
+                                    platform for rapid, accurate, and
+                                    affordable diagnosis of Tuberculosis,
+                                    bringing AI to the frontline of global
+                                    health.
                                 </p>
                                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                                     <AuthActions
@@ -117,133 +100,257 @@ export default function Welcome() {
                                     />
                                 </div>
                             </div>
-
-                            <Preview />
+                            <div className="flex justify-center">
+                                <img
+                                    src="/logo.jpeg"
+                                    alt="TB-AI"
+                                    className="w-full max-w-sm rounded-2xl shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]"
+                                />
+                            </div>
                         </div>
                     </section>
 
                     <section
-                        id="pathway"
-                        className="scroll-mt-20 border-b border-[#1A237E]/10 dark:border-white/10"
+                        id="mission"
+                        className="scroll-mt-20 border-b border-navy/10 dark:border-white/10"
                     >
-                        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-20">
-                            <div className="max-w-2xl">
-                                <p className="text-xs font-medium tracking-[0.22em] text-[#E53935] uppercase dark:text-[#E53935]">
-                                    The pathway
+                        <div className="mx-auto grid max-w-[1200px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:py-20">
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                    About TB-AI
                                 </p>
-                                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                                    Five counts. One day on the register.
+                                <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                                    Equitable Healthcare Through Digital
+                                    Diagnostics
                                 </h2>
-                                <p className="mt-4 text-base leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
-                                    The paper register already records this
-                                    path. TB-AI keeps it as one return per
-                                    facility, per date, and rolls it up to the
-                                    district.
+                                <p className="mt-4 max-w-xl text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                    TB-AI is a pioneering healthtech startup
+                                    that harnesses artificial intelligence to
+                                    make tuberculosis diagnosis rapid,
+                                    cost-effective, and accessible, even in the
+                                    most resource-limited settings.
                                 </p>
                             </div>
-                            <ol className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-[#1A237E]/10 bg-[#1A237E]/10 sm:grid-cols-2 lg:grid-cols-5 dark:border-white/10 dark:bg-white/10">
-                                {pathway.map((item) => (
-                                    <li
-                                        key={item.step}
-                                        className="bg-[#F8FAFC] p-5 dark:bg-[#121858]"
-                                    >
-                                        <span className="font-mono text-xs text-[#E53935] dark:text-[#E53935]">
-                                            {item.step}
-                                        </span>
-                                        <h3 className="mt-3 text-lg font-semibold">
-                                            {item.title}
-                                        </h3>
-                                        <p className="mt-2 text-sm leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
-                                            {item.detail}
-                                        </p>
-                                    </li>
-                                ))}
-                            </ol>
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                                <article className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy">
+                                    <h3 className="font-serif text-xl font-bold">
+                                        Our Mission
+                                    </h3>
+                                    <p className="mt-2 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                        Equitable healthcare through digital
+                                        diagnostics.
+                                    </p>
+                                </article>
+                                <article className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy">
+                                    <h3 className="font-serif text-xl font-bold">
+                                        Our Vision
+                                    </h3>
+                                    <p className="mt-2 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                        Accuracy, affordability, access, speed.
+                                    </p>
+                                </article>
+                            </div>
                         </div>
                     </section>
 
                     <section
-                        id="platform"
-                        className="scroll-mt-20 border-b border-[#1A237E]/10 dark:border-white/10"
+                        id="services"
+                        className="scroll-mt-20 border-b border-navy/10 bg-[#EEF2F7] dark:border-white/10 dark:bg-[#0b1220]"
                     >
-                        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-20">
-                            {rooms.map((room) => (
-                                <article key={room.kicker}>
-                                    <p className="text-xs font-medium tracking-[0.22em] text-[#E53935] uppercase dark:text-[#E53935]">
-                                        {room.kicker}
-                                    </p>
-                                    <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-                                        {room.title}
-                                    </h2>
-                                    <p className="mt-4 text-base leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
-                                        {room.body}
-                                    </p>
-                                    <ul className="mt-6 space-y-3">
-                                        {room.points.map((point) => (
-                                            <li
-                                                key={point}
-                                                className="flex gap-3 text-sm leading-relaxed"
-                                            >
-                                                <span
-                                                    aria-hidden
-                                                    className="mt-2 size-1.5 shrink-0 rounded-full bg-[#E53935] dark:bg-[#E53935]"
-                                                />
-                                                <span>{point}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </article>
-                            ))}
+                        <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
+                            <div className="max-w-2xl">
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                    What we do
+                                </p>
+                                <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                                    Our Diagnostic Services
+                                </h2>
+                                <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                    Comprehensive AI-powered diagnostics
+                                    accessible from a smartphone, anywhere in
+                                    the world.
+                                </p>
+                            </div>
+                            <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+                                {services.map((service) => {
+                                    const Icon = service.icon;
+
+                                    return (
+                                    <li
+                                        key={service.title}
+                                        className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy"
+                                    >
+                                        <Icon
+                                            aria-hidden
+                                            className="size-6 text-brand"
+                                        />
+                                        <h3 className="mt-4 font-serif text-xl font-bold">
+                                            {service.title}
+                                        </h3>
+                                        <p className="mt-2 text-sm leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                            {service.body}
+                                        </p>
+                                    </li>
+                                    );
+                                })}
+                            </ul>
                         </div>
                     </section>
 
                     <section
                         id="register"
-                        className="scroll-mt-20 border-b border-[#1A237E]/10 dark:border-white/10"
+                        className="scroll-mt-20 border-b border-navy/10 dark:border-white/10"
                     >
-                        <div className="mx-auto grid max-w-6xl items-start gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:py-20">
+                        <div className="mx-auto grid max-w-[1200px] items-start gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:py-20">
                             <div>
-                                <p className="text-xs font-medium tracking-[0.22em] text-[#E53935] uppercase dark:text-[#E53935]">
-                                    The daily return
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                    For labs and programmes
                                 </p>
-                                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                                    What a facility files before the day is
-                                    over.
+                                <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                                    TB-AI Register and Dashboard
                                 </h2>
-                                <p className="mt-4 text-base leading-relaxed text-[#1A237E]/75 dark:text-[#E8EAF6]">
-                                    One row is one facility and one calendar
-                                    date. Positivity, coverage, and treatment
-                                    gap are read from that row. They are not
-                                    typed in as a second set of numbers.
+                                <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                    Labs and programmes keep a daily TB
+                                    register. Each facility files one return
+                                    for one date: suspects, people tested, and
+                                    positive results. Positivity rate and
+                                    turnaround time are read from that return.
+                                    A heat map shows where the pathway sits
+                                    across districts.
                                 </p>
                             </div>
-                            <ul className="divide-y divide-[#1A237E]/10 border-y border-[#1A237E]/10 dark:divide-white/10 dark:border-white/10">
-                                {registerFields.map((field, index) => (
+                            <Preview />
+                        </div>
+                    </section>
+
+                    <section
+                        id="why"
+                        className="scroll-mt-20 border-b border-navy/10 bg-[#EEF2F7] dark:border-white/10 dark:bg-[#0b1220]"
+                    >
+                        <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
+                            <div className="max-w-2xl">
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                    Why choose us
+                                </p>
+                                <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                                    Empowering Health Line Systems
+                                    Internationally
+                                </h2>
+                                <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                    TB-AI bridges the gap between
+                                    state-of-the-art AI technology and the
+                                    field clinics that need it most. Our system
+                                    is designed to run on existing equipment
+                                    without expensive modifications.
+                                </p>
+                            </div>
+                            <ul
+                                className={`mt-10 grid gap-4 sm:grid-cols-2 ${
+                                    featureTiles.length > 3
+                                        ? 'lg:grid-cols-4'
+                                        : 'lg:grid-cols-3'
+                                }`}
+                            >
+                                {featureTiles.map((tile) => (
                                     <li
-                                        key={field}
-                                        className="flex items-baseline justify-between gap-6 py-4"
+                                        key={tile.title}
+                                        className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy"
                                     >
-                                        <span className="font-mono text-xs text-[#E53935] dark:text-[#E53935]">
-                                            {String(index + 1).padStart(2, '0')}
-                                        </span>
-                                        <span className="flex-1 text-base font-medium">
-                                            {field}
-                                        </span>
+                                        <h3 className="font-serif text-xl font-bold">
+                                            {tile.title}
+                                        </h3>
+                                        <p className="mt-2 text-sm leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                            {tile.body}
+                                        </p>
                                     </li>
                                 ))}
                             </ul>
                         </div>
                     </section>
 
-                    <section className="bg-[#1A237E] text-[#F8FAFC]">
-                        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-5 py-16 sm:px-8 lg:flex-row lg:items-center lg:py-20">
-                            <div className="max-w-xl">
-                                <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                                    Open the register.
+                    {supporters.length > 0 && (
+                        <section
+                            aria-label="Supported and recognized by leading global organizations"
+                            className="border-b border-navy/10 dark:border-white/10"
+                        >
+                            <div className="mx-auto max-w-[1200px] px-5 py-12 sm:px-8">
+                                <h2 className="text-center text-xs font-semibold tracking-[0.18em] text-[#64748B] uppercase">
+                                    Supported and recognized by leading global
+                                    organizations
                                 </h2>
-                                <p className="mt-4 text-base leading-relaxed text-[#E8EAF6]">
-                                    Sign in to file today's return, or to read
-                                    the facilities you are responsible for.
+                                <div className="mt-6 overflow-hidden">
+                                    <div className="supporter-track flex w-max gap-10">
+                                        {[0, 1].map((copy) => (
+                                            <ul
+                                                key={copy}
+                                                aria-hidden={copy === 1}
+                                                className="flex gap-10"
+                                            >
+                                                {supporters.map((name) => (
+                                                    <li
+                                                        key={`${copy}-${name}`}
+                                                        className="text-sm font-semibold tracking-wide whitespace-nowrap text-navy/70 dark:text-white/70"
+                                                    >
+                                                        {name}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {testimonials.length > 0 && (
+                        <section className="border-b border-navy/10 dark:border-white/10">
+                            <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
+                                <div className="max-w-2xl">
+                                    <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                        Testimonials
+                                    </p>
+                                    <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                                        What Clinical Leaders Say
+                                    </h2>
+                                    <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                        Read how our platform helps speed up
+                                        workflows and increase screen rates in
+                                        pilot hospitals.
+                                    </p>
+                                </div>
+                                <ul className="mt-10 grid gap-4 lg:grid-cols-3">
+                                    {testimonials.map((item) => (
+                                        <li
+                                            key={item.name}
+                                            className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy"
+                                        >
+                                            <blockquote className="text-sm leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                                “{item.quote}”
+                                            </blockquote>
+                                            <p className="mt-4 text-sm font-semibold">
+                                                {item.name}
+                                            </p>
+                                            <p className="text-xs text-[#64748B] dark:text-white/60">
+                                                {item.role}
+                                            </p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </section>
+                    )}
+
+                    <section className="bg-[linear-gradient(135deg,#29269b_0%,#14294c_100%)] text-[#F8FAFC]">
+                        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 py-16 sm:px-8 lg:flex-row lg:items-center lg:py-20">
+                            <div className="max-w-xl">
+                                <h2 className="font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                                    Ready to Transform TB Diagnostics at Your
+                                    Facility?
+                                </h2>
+                                <p className="mt-4 text-base leading-relaxed text-white/85">
+                                    Request a live demo to see TB-AI in action
+                                    or speak with our integration specialists
+                                    today.
                                 </p>
                             </div>
                             <AuthActions
@@ -262,57 +369,62 @@ export default function Welcome() {
 function Preview() {
     return (
         <div className="grid gap-4">
-            <div className="rounded-2xl border border-white/10 bg-[#121858] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]">
+            <div className="rounded-2xl border border-white/10 bg-navy p-5 text-[#F8FAFC] shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]">
                 <div className="flex items-center justify-between gap-4">
-                    <p className="text-xs font-medium tracking-[0.16em] text-[#F8FAFC] uppercase">
+                    <p className="text-xs font-medium tracking-[0.16em] uppercase">
                         Provincial view
                     </p>
-                    <p className="text-xs text-[#E8EAF6]/80">Schematic</p>
+                    <p className="text-xs text-white/70">Preview</p>
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {['Suspects', 'Tested', 'Positive', 'Turnaround'].map(
-                        (label) => (
-                            <div
-                                key={label}
-                                className="rounded-lg bg-white/5 px-3 py-3"
-                            >
-                                <p className="text-[11px] tracking-wide text-[#E8EAF6]/80 uppercase">
-                                    {label}
-                                </p>
-                                <p className="mt-2 text-sm text-[#F8FAFC]">
-                                    No data yet
-                                </p>
-                            </div>
-                        ),
-                    )}
+                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {[
+                        'Suspects',
+                        'Tested',
+                        'Positive',
+                        'Positivity rate',
+                        'Turnaround time',
+                    ].map((label) => (
+                        <div
+                            key={label}
+                            className="rounded-lg bg-white/5 px-3 py-3"
+                        >
+                            <p className="text-[11px] tracking-wide text-white/70 uppercase">
+                                {label}
+                            </p>
+                            <p className="mt-2 text-sm">No data yet</p>
+                        </div>
+                    ))}
                 </div>
-                <ul className="mt-5 space-y-3">
+                <p className="mt-5 text-xs font-medium tracking-[0.16em] text-white/70 uppercase">
+                    Heat map
+                </p>
+                <ul className="mt-3 space-y-3">
                     {previewDistricts.map((district) => (
                         <li key={district.name}>
-                            <div className="mb-1.5 flex justify-between text-xs text-[#E8EAF6]">
+                            <div className="mb-1.5 flex justify-between text-xs text-[#E2E8F0]">
                                 <span>{district.name}</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-white/10">
                                 <div
-                                    className="h-1.5 rounded-full bg-[#1E88E5]"
+                                    className="h-1.5 rounded-full bg-electric"
                                     style={{ width: district.width }}
                                 />
                             </div>
                         </li>
                     ))}
                 </ul>
-                <p className="mt-5 text-xs leading-relaxed text-[#E8EAF6]/80">
+                <p className="mt-5 text-xs leading-relaxed text-white/70">
                     Bar length is layout, not a case count. Live figures appear
                     when facilities file the day's return.
                 </p>
             </div>
 
-            <div className="rounded-2xl border border-[#1A237E]/10 bg-[#F8FAFC] p-5 text-[#1A237E]">
+            <div className="rounded-2xl border border-navy/10 bg-[#F8FAFC] p-5 text-navy">
                 <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium tracking-[0.16em] text-[#E53935] uppercase">
+                    <p className="text-xs font-medium tracking-[0.16em] text-brand uppercase">
                         Today's return
                     </p>
-                    <p className="text-xs text-[#1A237E]/60">One facility</p>
+                    <p className="text-xs text-navy/60">Preview</p>
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     {[
@@ -323,10 +435,10 @@ function Preview() {
                     ].map((label) => (
                         <div
                             key={label}
-                            className="flex items-baseline justify-between border-b border-[#1A237E]/10 pb-2"
+                            className="flex items-baseline justify-between border-b border-navy/10 pb-2"
                         >
-                            <dt className="text-[#1A237E]/75">{label}</dt>
-                            <dd className="text-[#1A237E]">No data yet</dd>
+                            <dt className="text-navy/75">{label}</dt>
+                            <dd>No data yet</dd>
                         </div>
                     ))}
                 </dl>

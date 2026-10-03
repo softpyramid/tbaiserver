@@ -15,6 +15,18 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             currentTeam: Team | null;
             teams: Team[];
+            tbai: {
+                showValidatedClaims: boolean;
+                showSupporterLogos: boolean;
+                showPartnerLine: boolean;
+                developmentNotice: string | null;
+                partnerLine: string | null;
+                contact: {
+                    location: string;
+                    email: string;
+                    reach: string;
+                };
+            };
             [key: string]: unknown;
         };
     }

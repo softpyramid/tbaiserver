@@ -12,9 +12,18 @@ export const developmentNotice =
 export const contactName = 'Dr. Hira Fareed';
 export const contactEmail = 'dochirafarid@gmail.com';
 
+const pageLinks = [
+    { href: '/#mission', label: 'Mission' },
+    { href: '/#services', label: 'Services' },
+    { href: '/#register', label: 'Register' },
+] as const;
+
+const focusRing =
+    'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-electric';
+
 export function MarketingShell({ children }: { children: ReactNode }) {
     const page = usePage();
-    const { auth, currentTeam } = page.props;
+    const { auth, currentTeam, tbai } = page.props;
     const signedIn = Boolean(auth.user);
     const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
     const onRequestAccess =
@@ -27,41 +36,37 @@ export function MarketingShell({ children }: { children: ReactNode }) {
     }
 
     return (
-        <div className="min-h-screen scroll-smooth bg-[#F8FAFC] text-[#1A237E] dark:bg-[#0B1028] dark:text-[#F8FAFC]">
-            <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1A237E]/95 text-[#F8FAFC] backdrop-blur-md">
-                <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+        <div className="min-h-screen scroll-smooth bg-[#F8FAFC] font-sans text-navy dark:bg-[#0b1220] dark:text-[#F8FAFC]">
+            <header className="sticky top-0 z-40 border-b border-white/10 bg-navy/95 text-[#F8FAFC] backdrop-blur-md">
+                <div className="mx-auto flex h-[4.5rem] max-w-[1200px] items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/"
-                        className="flex items-center gap-2.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
+                        className={`flex items-center gap-2.5 rounded-sm ${focusRing}`}
                     >
                         <Mark />
-                        <span className="text-sm font-semibold tracking-[0.18em]">
-                            TB-AI
+                        <span className="flex flex-col leading-none">
+                            <span className="font-serif text-lg font-bold tracking-tight">
+                                TB-AI
+                            </span>
+                            <span className="text-[9px] font-semibold tracking-[0.22em] text-white/70">
+                                DIAGNOSTICS
+                            </span>
                         </span>
                     </Link>
 
                     <nav
                         aria-label="Page"
-                        className="hidden items-center gap-8 text-sm text-[#E8EAF6] md:flex"
+                        className="hidden items-center gap-8 text-sm text-white/80 md:flex"
                     >
-                        <a
-                            href="/#pathway"
-                            className="hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
-                        >
-                            Pathway
-                        </a>
-                        <a
-                            href="/#platform"
-                            className="hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
-                        >
-                            Platform
-                        </a>
-                        <a
-                            href="/#register"
-                            className="hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
-                        >
-                            Daily return
-                        </a>
+                        {pageLinks.map((item) => (
+                            <a
+                                key={item.href}
+                                href={item.href}
+                                className={`hover:text-white ${focusRing}`}
+                            >
+                                {item.label}
+                            </a>
+                        ))}
                     </nav>
 
                     <div className="hidden items-center gap-3 md:flex">
@@ -75,7 +80,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 
                     <button
                         type="button"
-                        className="inline-flex size-11 items-center justify-center rounded-md text-[#F8FAFC] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E88E5] md:hidden"
+                        className="inline-flex size-11 items-center justify-center rounded-md text-[#F8FAFC] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric md:hidden"
                         aria-expanded={menuOpen}
                         aria-controls="mobile-nav"
                         onClick={() => setMenuOpen((open) => !open)}
@@ -100,27 +105,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                             aria-label="Page"
                             className="flex flex-col gap-1 text-sm"
                         >
-                            <a
-                                href="/#pathway"
-                                onClick={closeMenu}
-                                className="rounded-md px-2 py-3 hover:bg-white/10"
-                            >
-                                Pathway
-                            </a>
-                            <a
-                                href="/#platform"
-                                onClick={closeMenu}
-                                className="rounded-md px-2 py-3 hover:bg-white/10"
-                            >
-                                Platform
-                            </a>
-                            <a
-                                href="/#register"
-                                onClick={closeMenu}
-                                className="rounded-md px-2 py-3 hover:bg-white/10"
-                            >
-                                Daily return
-                            </a>
+                            {pageLinks.map((item) => (
+                                <a
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={closeMenu}
+                                    className="rounded-md px-2 py-3 hover:bg-white/10"
+                                >
+                                    {item.label}
+                                </a>
+                            ))}
                         </nav>
                         <div className="mt-3 flex flex-col gap-2">
                             <AuthActions
@@ -137,47 +131,61 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 
             {children}
 
-            <footer className="bg-[#121858] text-[#E8EAF6]">
-                <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 md:flex-row md:items-end md:justify-between">
+            <footer className="bg-navy text-[#E2E8F0]">
+                <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-12 sm:px-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
                     <div>
                         <div className="flex items-center gap-2.5 text-[#F8FAFC]">
                             <Mark />
-                            <span className="text-sm font-semibold tracking-[0.18em]">
-                                TB-AI
+                            <span className="flex flex-col leading-none">
+                                <span className="font-serif text-lg font-bold">
+                                    TB-AI
+                                </span>
+                                <span className="text-[9px] font-semibold tracking-[0.22em] text-white/70">
+                                    DIAGNOSTICS
+                                </span>
                             </span>
                         </div>
                         <p className="mt-4 max-w-sm text-sm leading-relaxed">
-                            Decision support in development, and the daily
-                            register a programme keeps.
+                            Saving a life every 20 seconds through AI-powered
+                            point-of-care diagnostics.
                         </p>
-                        <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#F8FAFC]">
-                            {developmentNotice}
-                        </p>
+                        {tbai.developmentNotice && (
+                            <p className="mt-4 max-w-md text-sm leading-relaxed text-[#F8FAFC]">
+                                {tbai.developmentNotice}
+                            </p>
+                        )}
+                        {tbai.partnerLine && (
+                            <p className="mt-4 text-sm text-[#F8FAFC]">
+                                {tbai.partnerLine}
+                            </p>
+                        )}
                     </div>
                     <div className="text-sm leading-7">
                         <nav aria-label="Legal" className="mb-3 flex gap-4">
                             <Link
                                 href={privacy()}
-                                className="hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
+                                className={`hover:text-white ${focusRing}`}
                             >
                                 Privacy
                             </Link>
                             <Link
                                 href={terms()}
-                                className="hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
+                                className={`hover:text-white ${focusRing}`}
                             >
                                 Terms
                             </Link>
                         </nav>
                         <address className="not-italic">
-                            {contactName}
+                            {tbai.contact.location}
                             <br />
                             <a
-                                className="hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
-                                href={`mailto:${contactEmail}`}
+                                className={`hover:text-white ${focusRing}`}
+                                href={`mailto:${tbai.contact.email}`}
                             >
-                                {contactEmail}
+                                {tbai.contact.email}
                             </a>
+                            <br />
+                            {tbai.contact.reach}
                         </address>
                     </div>
                 </div>
@@ -187,7 +195,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 }
 
 function Mark() {
-    return <AppLogoIcon alt="" className="size-8" />;
+    return (
+        <AppLogoIcon alt="" className="size-10 rounded-[4px] object-cover" />
+    );
 }
 
 export function AuthActions({
@@ -205,13 +215,13 @@ export function AuthActions({
 }) {
     const primary =
         tone === 'hero'
-            ? 'inline-flex h-11 items-center justify-center rounded-md bg-[#E53935] px-5 text-sm font-medium text-white hover:bg-[#D32F2F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E88E5]'
-            : 'inline-flex h-9 items-center justify-center rounded-md bg-[#E53935] px-4 text-sm font-medium text-white hover:bg-[#D32F2F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E88E5]';
+            ? 'inline-flex h-11 items-center justify-center rounded-md bg-brand px-5 text-sm font-semibold text-white hover:bg-[#211e7a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric'
+            : 'inline-flex h-9 items-center justify-center rounded-md bg-brand px-4 text-sm font-semibold text-white hover:bg-[#211e7a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric';
 
     const secondary =
         tone === 'hero'
-            ? 'inline-flex h-11 items-center justify-center rounded-md border border-[#1E88E5] px-5 text-sm font-medium text-[#F8FAFC] hover:bg-[#1E88E5]/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E88E5]'
-            : 'inline-flex h-9 items-center justify-center rounded-md border border-[#1E88E5] px-3 text-sm font-medium text-[#F8FAFC] hover:bg-[#1E88E5]/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E88E5]';
+            ? 'inline-flex h-11 items-center justify-center rounded-md border border-white/40 px-5 text-sm font-semibold text-[#F8FAFC] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric'
+            : 'inline-flex h-9 items-center justify-center rounded-md border border-white/30 px-3 text-sm font-semibold text-[#F8FAFC] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric';
 
     if (signedIn) {
         return (
@@ -233,7 +243,7 @@ export function AuthActions({
             {backHome ? (
                 <Link
                     href={home()}
-                    className="inline-flex items-center text-sm font-medium text-[#E8EAF6] underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1E88E5]"
+                    className={`inline-flex items-center text-sm font-medium text-[#E2E8F0] underline-offset-4 hover:text-white hover:underline ${focusRing}`}
                 >
                     Back to home
                 </Link>

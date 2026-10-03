@@ -37,11 +37,25 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        $showValidatedClaims = (bool) config('tbai.show_validated_claims');
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
+            ],
+            'tbai' => [
+                'showValidatedClaims' => $showValidatedClaims,
+                'showSupporterLogos' => (bool) config('tbai.show_supporter_logos'),
+                'showPartnerLine' => (bool) config('tbai.show_partner_line'),
+                'developmentNotice' => $showValidatedClaims
+                    ? null
+                    : config('tbai.development_notice'),
+                'partnerLine' => config('tbai.show_partner_line')
+                    ? config('tbai.partner_line')
+                    : null,
+                'contact' => config('tbai.contact'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,

@@ -31,6 +31,22 @@ return [
 
     'show_telehealth' => $flag('TBAI_SHOW_TELEHEALTH'),
 
+    /*
+    | Product areas that wait on programme sign-off. Each is off by default.
+    | Turning a flag on restores the links and the pages. While a flag is
+    | off, the pages answer with the normal not found page.
+    |
+    | screening: the screening questionnaire, waiting on the TB programme.
+    | drivers: Drivers and Interventions, a placeholder with no data yet.
+    | incidence: Incidence targets, a placeholder with no data yet.
+    */
+
+    'features' => [
+        'screening' => $flag('TBAI_SHOW_SCREENING'),
+        'drivers' => $flag('TBAI_SHOW_DRIVERS'),
+        'incidence' => $flag('TBAI_SHOW_INCIDENCE'),
+    ],
+
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',
 
     'partner_line' => 'Technical partner: Soft Pyramid',

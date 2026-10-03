@@ -18,11 +18,13 @@ class SecurityHeaders
     public function handle(Request $request, Closure $next): Response
     {
         $nonce = Vite::useCspNonce();
-        $authenticated = $request->user() !== null;
 
         $response = $next($request);
 
-        if ($authenticated) {
+        // This runs first in the web group, so the session is only readable
+        // once the response is built. A response is private when the person
+        // is signed in at that point (this includes the login redirect).
+        if ($request->user() !== null) {
             $response->headers->set('Cache-Control', 'no-store, private');
             $response->headers->set('Pragma', 'no-cache');
         }

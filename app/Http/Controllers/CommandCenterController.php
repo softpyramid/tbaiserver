@@ -9,6 +9,7 @@ use App\Models\AlertRule;
 use App\Models\City;
 use App\Models\DailyReturn;
 use App\Models\IncidenceTarget;
+use App\Support\AdminAttention;
 use App\Support\CommandCenterPage;
 use App\Support\DailyReturnDetail;
 use App\Support\DailyReturnListing;
@@ -32,7 +33,10 @@ class CommandCenterController extends Controller
         $user = $request->user();
         abort_unless($user !== null, 403);
 
-        return Inertia::render('command/index', $page->cumulative($request, $user));
+        return Inertia::render('command/index', [
+            ...$page->cumulative($request, $user),
+            'attention' => app(AdminAttention::class)->for($user),
+        ]);
     }
 
     public function map(Request $request, CommandCenterPage $page): Response

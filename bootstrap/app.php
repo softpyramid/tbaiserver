@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\EncryptPrivateHistory;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
@@ -25,13 +27,23 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        $middleware->alias([
+            'feature' => EnsureFeatureEnabled::class,
+        ]);
+
         $middleware->web(append: [
             HandleAppearance::class,
             EnsureAccountIsActive::class,
             TouchLastSeen::class,
+            EncryptPrivateHistory::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             SetTeamUrlDefaults::class,
+        ]);
+
+        // First in the group so every response carries the headers, including
+        // the early answers other middleware return (for example Inertia's 409).
+        $middleware->web(prepend: [
             SecurityHeaders::class,
         ]);
     })

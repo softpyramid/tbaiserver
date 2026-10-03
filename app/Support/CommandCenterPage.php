@@ -581,7 +581,7 @@ class CommandCenterPage
             $incidenceQuery['province'] = $selection['provinceId'];
         }
 
-        return [
+        $screens = [
             [
                 'key' => 'cumulative',
                 'label' => __('entry.cumulative_title'),
@@ -631,6 +631,16 @@ class CommandCenterPage
                 'current' => $current === 'incidence',
             ],
         ];
+
+        $hidden = array_keys(array_filter([
+            'drivers' => ! config('tbai.features.drivers'),
+            'incidence' => ! config('tbai.features.incidence'),
+        ]));
+
+        return array_values(array_filter(
+            $screens,
+            fn (array $screen): bool => ! in_array($screen['key'], $hidden, true),
+        ));
     }
 
     /**

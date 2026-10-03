@@ -12,13 +12,13 @@ class RoleHome
      *
      * Technicians and the facility in-charge open today's register.
      * City, provincial, and country viewers open the command center.
-     * A TB-AI admin opens administration.
+     * A TB-AI admin opens the command center, with a strip of things that need attention.
      * Anyone else opens their account page.
      */
     public function url(User $user): string
     {
         if ($user->isTbaiAdmin()) {
-            return route('admin.home');
+            return route('command.index');
         }
 
         if ($user->programmeAssignments()->exists()) {

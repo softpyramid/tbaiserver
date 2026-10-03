@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\FacilityHomeController;
 use App\Http\Controllers\FacilityReturnHistoryController;
+use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\ProgrammeAdminController;
 use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
@@ -87,9 +88,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('command/map', [CommandCenterController::class, 'map'])->name('command.map');
     Route::get('command/alerts', [CommandCenterController::class, 'alerts'])->name('command.alerts');
     Route::patch('command/alerts/rules/{alertRule}', [CommandCenterController::class, 'updateAlertRule'])->name('command.alerts.update');
-    Route::get('command/drivers', [CommandCenterController::class, 'drivers'])->name('command.drivers');
-    Route::get('command/incidence', [CommandCenterController::class, 'incidence'])->name('command.incidence');
-    Route::post('command/incidence', [CommandCenterController::class, 'storeIncidence'])->name('command.incidence.store');
+    Route::get('command/drivers', [CommandCenterController::class, 'drivers'])
+        ->middleware('feature:drivers')
+        ->name('command.drivers');
+    Route::get('command/incidence', [CommandCenterController::class, 'incidence'])
+        ->middleware('feature:incidence')
+        ->name('command.incidence');
+    Route::post('command/incidence', [CommandCenterController::class, 'storeIncidence'])
+        ->middleware('feature:incidence')
+        ->name('command.incidence.store');
     Route::get('command/sectors/{sector}', [CommandCenterController::class, 'sector'])
         ->whereIn('sector', ['public', 'private', 'ppm'])
         ->name('command.sectors.show');
@@ -100,7 +107,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('command/returns', [CommandCenterController::class, 'returns'])->name('command.returns');
     Route::get('command/returns/{dailyReturn}', [CommandCenterController::class, 'showReturn'])->name('command.returns.show');
 
-    Route::get('admin', fn () => redirect()->route('facilities.index'))->name('admin.home');
+    Route::get('admin', fn () => redirect()->route('command.index'))->name('admin.home');
     Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');
     Route::post('admin/facilities/{facility}/deactivate', [FacilityController::class, 'deactivate'])->name('facilities.deactivate');
     Route::get('admin/facilities/create', [FacilityController::class, 'create'])->name('facilities.create');
@@ -109,7 +116,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/daily-returns', [DailyReturnAdminController::class, 'index'])->name('admin.daily-returns.index');
     Route::get('admin/daily-returns/{dailyReturn}', [DailyReturnAdminController::class, 'show'])->name('admin.daily-returns.show');
     Route::get('admin/return-revisions', [ReturnRevisionAdminController::class, 'index'])->name('admin.revisions.index');
-    Route::get('admin/screening-sessions', [ScreeningSessionAdminController::class, 'index'])->name('admin.screening-sessions.index');
+    Route::get('admin/screening-sessions', [ScreeningSessionAdminController::class, 'index'])
+        ->middleware('feature:screening')
+        ->name('admin.screening-sessions.index');
     Route::get('admin/users', [UserAdminController::class, 'index'])->name('admin.users.index');
     Route::patch('admin/users/{user}', [UserAdminController::class, 'update'])->name('admin.users.update');
     Route::patch('admin/memberships/{membership}', [UserAdminController::class, 'updateMembership'])->name('admin.memberships.update');
@@ -148,11 +157,17 @@ Route::prefix('{current_team}')
         Route::get('profile', [FacilityController::class, 'edit'])->name('facilities.edit');
         Route::put('profile', [FacilityController::class, 'update'])->name('facilities.update');
 
-        Route::get('screening/new', [ScreeningController::class, 'create'])->name('screening.create');
-        Route::post('screening', [ScreeningController::class, 'store'])->name('screening.store');
+        Route::middleware('feature:screening')->group(function () {
+            Route::get('screening/new', [ScreeningController::class, 'create'])->name('screening.create');
+            Route::post('screening', [ScreeningController::class, 'store'])->name('screening.store');
+        });
     });
 
 Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
+
+// Unknown URLs run through the web middleware so the not found page gets the
+// session, shared props, and security headers like any other page.
+Route::fallback(FallbackController::class);

@@ -28,7 +28,9 @@ class TeamArea
             'title' => $current === 'profile'
                 ? __('entry.nav_facility_long')
                 : __('entry.nav_team_members'),
-            'description' => __('entry.team_area_description', ['name' => $team->name]),
+            'description' => $current === 'profile'
+                ? __('entry.facility_profile_description', ['name' => $team->name])
+                : __('entry.team_area_description', ['name' => $team->name]),
             'tabsLabel' => __('entry.team_tabs_label'),
             'teamName' => $team->name,
             'teamSlug' => $team->slug,
@@ -243,7 +245,7 @@ class TeamArea
             'events' => collect($page->items())->map(function (AuditLog $log): array {
                 return [
                     'id' => $log->id,
-                    'when' => $log->created_at->timezone((string) config('app.timezone'))->format('j M Y H:i'),
+                    'when' => EntryDate::dateTime($log->created_at),
                     'who' => $log->actor?->name ?? __('entry.not_available'),
                     'action' => $this->activityLabel($log->action),
                 ];
@@ -417,6 +419,7 @@ class TeamArea
                 'url' => route('facilities.members.active', ['current_team' => $team->slug, 'user' => $member->id]),
                 'confirm' => $inactive ? __('entry.reactivate_confirm') : __('entry.deactivate_confirm'),
                 'fields' => ['active' => $inactive ? '1' : '0'],
+                'destructive' => ! $inactive,
             ];
         }
 

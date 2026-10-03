@@ -58,6 +58,15 @@ class HandleInertiaRequests extends Middleware
                     : null,
                 'contact' => config('tbai.contact'),
             ],
+            'registerUrl' => function () use ($user): ?string {
+                $team = $user?->currentTeam;
+
+                if ($team === null || ! $team->facility()->exists()) {
+                    return null;
+                }
+
+                return route('returns.today', ['current_team' => $team->slug]);
+            },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],

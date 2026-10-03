@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AccessRequestController;
+use App\Http\Controllers\DailyReturnController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Response;
@@ -60,14 +62,23 @@ Route::post('access-requests', [AccessRequestController::class, 'store'])
 Route::redirect('register', '/request-access');
 
 Route::prefix('{current_team}')
-    ->middleware(['auth', 'verified', EnsureTeamMembership::class])
+    ->middleware(['auth', 'verified'])
     ->group(function () {
-        Route::get('dashboard', DashboardController::class)->name('dashboard');
+        Route::middleware(EnsureTeamMembership::class)->group(function () {
+            Route::get('dashboard', DashboardController::class)->name('dashboard');
+        });
+
+        Route::get('returns/today', [DailyReturnController::class, 'edit'])->name('returns.today');
+        Route::put('returns/today', [DailyReturnController::class, 'update'])->name('returns.update');
     });
 
 Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');
 });
 
 require __DIR__.'/settings.php';

@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ProgrammeRole;
 use App\Enums\TeamRole;
+use App\Models\ProgrammeAssignment;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -35,6 +37,7 @@ class LoginSeeder extends Seeder
             $user->save();
 
             $this->ensurePersonalTeam($user);
+            $this->ensureProgrammeAdmin($user, $account['programme_admin']);
         }
 
         $this->command?->info('Login accounts ready:');
@@ -53,7 +56,7 @@ class LoginSeeder extends Seeder
     }
 
     /**
-     * @return list<array{name: string, email: string}>
+     * @return list<array{name: string, email: string, programme_admin: bool}>
      */
     private function accounts(): array
     {
@@ -65,8 +68,8 @@ class LoginSeeder extends Seeder
         }
 
         $accounts = [
-            ['name' => 'TB-AI Admin', 'email' => $adminEmail],
-            ['name' => 'TB-AI Member', 'email' => 'member@tbai.test'],
+            ['name' => 'TB-AI Admin', 'email' => $adminEmail, 'programme_admin' => true],
+            ['name' => 'TB-AI Member', 'email' => 'member@tbai.test', 'programme_admin' => false],
         ];
 
         $seen = [];
@@ -125,5 +128,19 @@ class LoginSeeder extends Seeder
         ]);
 
         $user->switchTeam($team);
+    }
+
+    private function ensureProgrammeAdmin(User $user, bool $programmeAdmin): void
+    {
+        if (! $programmeAdmin) {
+            return;
+        }
+
+        ProgrammeAssignment::query()->firstOrCreate([
+            'user_id' => $user->id,
+            'role' => ProgrammeRole::TbaiAdmin,
+            'scope_type' => null,
+            'scope_id' => null,
+        ]);
     }
 }

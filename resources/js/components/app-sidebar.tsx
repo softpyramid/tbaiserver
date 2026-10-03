@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Globe, LayoutGrid } from 'lucide-react';
+import { ClipboardList, Globe, LayoutGrid } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -29,6 +29,15 @@ export function AppSidebar() {
             href: dashboardUrl,
             icon: LayoutGrid,
         },
+        ...(page.props.registerUrl
+            ? [
+                  {
+                      title: "Today's register",
+                      href: page.props.registerUrl,
+                      icon: ClipboardList,
+                  },
+              ]
+            : []),
     ];
 
     const footerNavItems: NavItem[] = [

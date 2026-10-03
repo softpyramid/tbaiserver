@@ -1,0 +1,187 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\TeamRole;
+use App\Http\Requests\SaveDailyReturnRequest;
+use App\Models\DailyReturn;
+use App\Models\DailyReturnRevision;
+use App\Models\ScreeningSession;
+use App\Models\Team;
+use App\Support\ProvisionalReportedTat;
+use App\Support\ReturnDatePolicy;
+use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class DailyReturnController extends Controller
+{
+    /**
+     * Show today's register, or another open date.
+     */
+    public function edit(Request $request, Team $current_team, ReturnDatePolicy $dates): Response
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        $facility = $current_team->facility;
+        abort_unless($facility !== null, 404);
+        abort_unless($user->belongsToTeam($current_team) || $user->isTbaiAdmin(), 403);
+
+        $reportedOn = $this->reportedOn($request);
+        abort_unless($dates->canView($user, $current_team, $reportedOn), 403);
+
+        $dailyReturn = DailyReturn::query()
+            ->where('facility_id', $facility->id)
+            ->whereDate('reported_on', $reportedOn->toDateString())
+            ->first();
+
+        $yearReturns = $facility->dailyReturns()
+            ->whereYear('reported_on', $reportedOn->year)
+            ->get();
+
+        $screeningSuspects = ScreeningSession::query()
+            ->where('facility_id', $facility->id)
+            ->whereDate('occurred_on', $reportedOn->toDateString())
+            ->where('is_suspect', true)
+            ->count();
+
+        $canSeeHistory = $dates->canSeeHistory($user, $current_team);
+
+        return Inertia::render('returns/today', [
+            'facility' => [
+                'name' => $current_team->name,
+                'sector' => $facility->sector->label(),
+                'city' => $facility->city->name,
+            ],
+            'reportedOn' => $reportedOn->toDateString(),
+            'isToday' => $reportedOn->isSameDay(CarbonImmutable::now((string) config('app.timezone'))),
+            'earliestDate' => ($user->isTbaiAdmin() || ($user->teamRole($current_team)?->isAtLeast(TeamRole::Admin) ?? false))
+                ? null
+                : now()->subDay()->toDateString(),
+            'latestDate' => now()->toDateString(),
+            'canSave' => $user->belongsToTeam($current_team),
+            'screeningSuspects' => $screeningSuspects,
+            'return' => [
+                'suspects' => $dailyReturn->suspects ?? 0,
+                'tested' => $dailyReturn->tested ?? 0,
+                'positive' => $dailyReturn->positive ?? 0,
+                'negative' => $dailyReturn->negative ?? 0,
+                'started_treatment' => $dailyReturn->started_treatment ?? 0,
+                'follow_up' => $dailyReturn->follow_up ?? 0,
+                'median_tat_days' => $dailyReturn?->median_tat_days,
+            ],
+            'provisionalTat' => [
+                'label' => ProvisionalReportedTat::LABEL,
+                'value' => ProvisionalReportedTat::average($yearReturns),
+                'year' => $reportedOn->year,
+            ],
+            'history' => $canSeeHistory
+                ? $this->history($dailyReturn)
+                : null,
+        ]);
+    }
+
+    /**
+     * Create or update the single return for this facility and date.
+     */
+    public function update(SaveDailyReturnRequest $request, Team $current_team): RedirectResponse
+    {
+        $facility = $current_team->facility;
+        abort_unless($facility !== null, 404);
+
+        $reportedOn = CarbonImmutable::parse(
+            $request->string('reported_on')->toString(),
+            (string) config('app.timezone'),
+        )->toDateString();
+
+        $median = $request->input('median_tat_days');
+
+        $dailyReturn = DailyReturn::query()
+            ->where('facility_id', $facility->id)
+            ->whereDate('reported_on', $reportedOn)
+            ->first() ?? new DailyReturn([
+                'facility_id' => $facility->id,
+                'reported_on' => $reportedOn,
+            ]);
+
+        $dailyReturn->fill([
+            'submitted_by' => $request->user()->id,
+            'suspects' => $request->integer('suspects'),
+            'tested' => $request->integer('tested'),
+            'positive' => $request->integer('positive'),
+            'negative' => $request->integer('negative'),
+            'started_treatment' => $request->integer('started_treatment'),
+            'follow_up' => $request->integer('follow_up'),
+            'median_tat_days' => $median === null || $median === '' ? null : $median,
+        ]);
+        $dailyReturn->save();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Return saved.')]);
+
+        return to_route('returns.today', [
+            'current_team' => $current_team->slug,
+            'reported_on' => $reportedOn,
+        ]);
+    }
+
+    private function reportedOn(Request $request): CarbonImmutable
+    {
+        $value = $request->query('reported_on');
+        $timezone = (string) config('app.timezone');
+
+        if (! is_string($value) || $value === '') {
+            return CarbonImmutable::now($timezone)->startOfDay();
+        }
+
+        try {
+            return CarbonImmutable::parse($value, $timezone)->startOfDay();
+        } catch (InvalidFormatException) {
+            return CarbonImmutable::now($timezone)->startOfDay();
+        }
+    }
+
+    /**
+     * @return list<array{changedAt: string, changedBy: string, changes: list<array{field: string, from: int|float|null, to: int|float|null}>}>
+     */
+    private function history(?DailyReturn $dailyReturn): array
+    {
+        if ($dailyReturn === null) {
+            return [];
+        }
+
+        return $dailyReturn->revisions()
+            ->with('editor')
+            ->orderByDesc('changed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (DailyReturnRevision $revision): array {
+                $changes = [];
+
+                foreach (DailyReturn::TRACKED as $field) {
+                    $from = $revision->old_values[$field] ?? null;
+                    $to = $revision->new_values[$field] ?? null;
+
+                    if ($from !== $to) {
+                        $changes[] = [
+                            'field' => $field,
+                            'from' => $from,
+                            'to' => $to,
+                        ];
+                    }
+                }
+
+                return [
+                    'changedAt' => $revision->changed_at
+                        ->timezone((string) config('app.timezone'))
+                        ->format('j M Y, H:i'),
+                    'changedBy' => $revision->editor->name,
+                    'changes' => $changes,
+                ];
+            })
+            ->all();
+    }
+}

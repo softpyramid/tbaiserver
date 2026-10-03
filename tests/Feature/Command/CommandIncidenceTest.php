@@ -13,6 +13,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
+beforeEach(fn () => enableFeature('incidence'));
+
 test('with no targets the empty state shows and no series is returned', function () {
     $admin = User::factory()->create();
     giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);

@@ -10,6 +10,8 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
 
+beforeEach(fn () => enableFeature('drivers', 'incidence'));
+
 afterEach(function () {
     CarbonImmutable::setTestNow();
 });

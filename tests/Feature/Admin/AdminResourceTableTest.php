@@ -5,6 +5,8 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('empty daily returns, return history, and screening sessions keep column headers', function () {
+    enableFeature('screening');
+
     $admin = User::factory()->create();
     giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
 

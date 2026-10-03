@@ -57,6 +57,7 @@ test('user can delete their account', function () {
         ->actingAs($user)
         ->delete(route('profile.destroy'), [
             'password' => 'password',
+            'confirm_email' => $user->email,
         ]);
 
     $response
@@ -75,6 +76,7 @@ test('correct password must be provided to delete account', function () {
         ->from(route('profile.edit'))
         ->delete(route('profile.destroy'), [
             'password' => 'wrong-password',
+            'confirm_email' => $user->email,
         ]);
 
     $response
@@ -82,4 +84,22 @@ test('correct password must be provided to delete account', function () {
         ->assertRedirect(route('profile.edit'));
 
     expect($user->fresh())->not->toBeNull();
+});
+
+test('the account email must be typed to delete the account', function () {
+    $user = User::factory()->create();
+
+    foreach (['', 'someone-else@example.com'] as $typed) {
+        $this
+            ->actingAs($user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+                'confirm_email' => $typed,
+            ])
+            ->assertSessionHasErrors('confirm_email')
+            ->assertRedirect(route('profile.edit'));
+
+        expect($user->fresh())->not->toBeNull();
+    }
 });

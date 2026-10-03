@@ -48,3 +48,13 @@ function something()
 {
     // ..
 }
+
+/**
+ * Turn product areas on for a test. They are off by default, as in production.
+ */
+function enableFeature(string ...$features): void
+{
+    foreach ($features as $feature) {
+        config(["tbai.features.{$feature}" => true]);
+    }
+}

@@ -80,7 +80,7 @@ test('each role lands on its home and the empty dashboard is gone', function () 
 
     $this->actingAs($admin)
         ->get(route('dashboard'))
-        ->assertRedirect(route('admin.home'));
+        ->assertRedirect(route('command.index'));
 });
 
 test('viewers can open daily returns for their area', function () {
@@ -266,7 +266,7 @@ test('missing forbidden and expired pages stay inside the app', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('errors/http')
             ->where('status', 404)
-            ->where('reason', 'That page does not exist.')
+            ->where('reason', 'This page does not exist.')
             ->where('homeLabel', 'Back to home'));
 
     Route::get('/qa-session-expired', fn () => abort(419));

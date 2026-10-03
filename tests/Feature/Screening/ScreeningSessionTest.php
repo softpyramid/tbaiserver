@@ -11,6 +11,8 @@ use App\Support\ScreeningScore;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
+beforeEach(fn () => enableFeature('screening'));
+
 test('an empty screening config explains that questions are not ready', function () {
     expect(config('screening.questions'))->toBe([])
         ->and(config('screening.cutoff'))->toBeNull();

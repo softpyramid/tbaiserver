@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useEntryI18n } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 
 type Props = {
     title: string;
@@ -9,6 +10,8 @@ type Props = {
     action?: ReactNode;
     /** The page already shows its own title, so skip the inner header card. */
     headerless?: boolean;
+    /** Lets the content use the full page width on desktop (forms in a grid). */
+    wide?: boolean;
     children: ReactNode;
 };
 
@@ -18,6 +21,7 @@ export default function EntryScreen({
     dateLabel,
     action,
     headerless = false,
+    wide = false,
     children,
 }: Props) {
     const { dir } = useEntryI18n();
@@ -26,7 +30,10 @@ export default function EntryScreen({
 
     return (
         <div
-            className="entry-screen mx-auto flex w-full max-w-lg min-w-0 flex-col overflow-x-clip text-base"
+            className={cn(
+                'entry-screen mx-auto flex w-full max-w-lg min-w-0 flex-col overflow-x-clip text-base',
+                wide && 'md:max-w-none',
+            )}
             dir={dir}
         >
             {headerless ? null : (
@@ -69,7 +76,18 @@ export default function EntryScreen({
                         paddingRight: 'max(1rem, env(safe-area-inset-right))',
                     }}
                 >
-                    <div className="mx-auto w-full max-w-lg">{action}</div>
+                    <div
+                        className={cn(
+                            'mx-auto w-full max-w-lg',
+                            wide && 'md:max-w-5xl md:px-4',
+                        )}
+                    >
+                        {wide ? (
+                            <div className="md:ml-auto md:w-56">{action}</div>
+                        ) : (
+                            action
+                        )}
+                    </div>
                 </div>
             ) : null}
         </div>

@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import FacilityForm, {
     type FacilityFormValues,
@@ -70,7 +70,6 @@ export default function EditFacility(props: Props) {
 
     return (
         <>
-            <Head title={t('profile_title')} />
             <TeamAreaShell area={props.area}>
                 <FacilityForm
                     titleKey="profile_title"

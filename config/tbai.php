@@ -39,12 +39,14 @@ return [
     | screening: the screening questionnaire, waiting on the TB programme.
     | drivers: Drivers and Interventions, a placeholder with no data yet.
     | incidence: Incidence targets, a placeholder with no data yet.
+    | ai_tests: the AI-assisted tests tile on Overview, which has no data source yet.
     */
 
     'features' => [
         'screening' => $flag('TBAI_SHOW_SCREENING'),
         'drivers' => $flag('TBAI_SHOW_DRIVERS'),
         'incidence' => $flag('TBAI_SHOW_INCIDENCE'),
+        'ai_tests' => $flag('TBAI_SHOW_AI_TESTS'),
     ],
 
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',

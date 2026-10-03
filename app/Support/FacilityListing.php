@@ -74,7 +74,27 @@ class FacilityListing
             createUrl: $administration ? route('facilities.create') : null,
             createLabel: $administration ? ResourceResponse::line('entry.create_facility') : null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => $administration ? __('entry.facilities_description') : __('entry.facilities_description_scoped'),
+                'tiles' => $administration ? $this->tiles() : [],
+            ],
         );
+    }
+
+    /**
+     * @return list<array{key: string, label: string, figure: string, caption: string}>
+     */
+    private function tiles(): array
+    {
+        $total = Facility::query()->count();
+        $active = Facility::query()->where('status', FacilityStatus::Active)->count();
+        $missing = AdminAttention::facilitiesWithoutReturnToday()->count();
+
+        return [
+            ['key' => 'total', 'label' => __('entry.tile_facilities_total'), 'figure' => (string) $total, 'caption' => __('entry.tile_facilities_total_caption')],
+            ['key' => 'active', 'label' => __('entry.tile_facilities_active'), 'figure' => (string) $active, 'caption' => __('entry.tile_facilities_active_caption')],
+            ['key' => 'missing', 'label' => __('entry.tile_facilities_missing'), 'figure' => (string) $missing, 'caption' => __('entry.tile_facilities_missing_caption')],
+        ];
     }
 
     /**

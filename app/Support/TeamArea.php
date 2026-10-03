@@ -25,12 +25,15 @@ class TeamArea
     public function header(User $user, Team $team, string $current): array
     {
         return [
-            'title' => $current === 'profile'
-                ? __('entry.nav_facility_long')
-                : __('entry.nav_team_members'),
-            'description' => $current === 'profile'
-                ? __('entry.facility_profile_description', ['name' => $team->name])
-                : __('entry.team_area_description', ['name' => $team->name]),
+            'title' => $team->name,
+            'section' => $this->sectionLabel($current),
+            'description' => match ($current) {
+                'overview' => __('entry.facility_overview_description', ['name' => $team->name]),
+                'profile' => __('entry.facility_profile_description', ['name' => $team->name]),
+                'invites' => __('entry.facility_invites_description', ['name' => $team->name]),
+                'activity' => __('entry.facility_activity_description', ['name' => $team->name]),
+                default => __('entry.team_area_description', ['name' => $team->name]),
+            },
             'tabsLabel' => __('entry.team_tabs_label'),
             'teamName' => $team->name,
             'teamSlug' => $team->slug,
@@ -38,6 +41,17 @@ class TeamArea
             'canInvite' => Gate::forUser($user)->allows('inviteMember', $team),
             'inviteRoles' => TeamRole::rosterOptions(),
         ];
+    }
+
+    private function sectionLabel(string $current): string
+    {
+        return match ($current) {
+            'overview' => __('entry.tab_overview'),
+            'profile' => __('entry.tab_profile'),
+            'invites' => __('entry.tab_invites'),
+            'activity' => __('entry.tab_activity'),
+            default => __('entry.tab_members'),
+        };
     }
 
     /**
@@ -124,6 +138,7 @@ class TeamArea
                 ];
             })->values()->all(),
             'pagination' => $this->pagination($page),
+            'rolesInfo' => $this->roles($actor, $team),
             'labels' => [
                 'invite' => __('entry.invite_member'),
                 'search' => __('entry.search_members'),
@@ -205,7 +220,7 @@ class TeamArea
     public function roles(User $actor, Team $team): array
     {
         return [
-            'area' => $this->header($actor, $team, 'roles'),
+            'heading' => __('entry.tab_roles'),
             'intro' => __('entry.roles_intro'),
             'roles' => [
                 ['role' => TeamRole::Owner->rosterLabel(), 'access' => __('entry.role_access_in_charge')],
@@ -273,11 +288,11 @@ class TeamArea
         $profile = $facility instanceof Facility && Gate::forUser($user)->allows('openProfile', $facility);
 
         $tabs = [
+            ['id' => 'overview', 'label' => __('entry.tab_overview'), 'href' => route('facilities.home', $team), 'visible' => true],
+            ['id' => 'profile', 'label' => __('entry.tab_profile'), 'href' => route('facilities.edit', $team), 'visible' => $profile],
             ['id' => 'members', 'label' => __('entry.tab_members'), 'href' => route('facilities.members', $team), 'visible' => $open],
             ['id' => 'invites', 'label' => __('entry.tab_invites'), 'href' => route('facilities.invites', $team), 'visible' => $open],
-            ['id' => 'roles', 'label' => __('entry.tab_roles'), 'href' => route('facilities.roles', $team), 'visible' => $open],
             ['id' => 'activity', 'label' => __('entry.tab_activity'), 'href' => route('facilities.activity', $team), 'visible' => $open],
-            ['id' => 'profile', 'label' => __('entry.tab_profile'), 'href' => route('facilities.edit', $team), 'visible' => $profile],
         ];
 
         return array_values(array_map(
@@ -289,6 +304,19 @@ class TeamArea
             ],
             array_values(array_filter($tabs, fn (array $tab): bool => $tab['visible'])),
         ));
+    }
+
+    /**
+     * Summary tiles for a team that has a facility.
+     *
+     * @return list<array{key: string, label: string, figure: string, caption: string}>
+     */
+    public function cardsFor(Team $team): array
+    {
+        $facility = $team->facility;
+        abort_unless($facility instanceof Facility, 404);
+
+        return $this->cards($team, $facility);
     }
 
     /**

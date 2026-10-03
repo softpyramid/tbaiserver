@@ -33,13 +33,6 @@ class TeamAreaController extends Controller
         return Inertia::render('facilities/invites', $area->invites($request, $actor, $current_team));
     }
 
-    public function roles(Request $request, Team $current_team, TeamArea $area): Response
-    {
-        Gate::authorize('viewRoster', $current_team);
-
-        return Inertia::render('facilities/roles', $area->roles($this->actor($request), $current_team));
-    }
-
     public function activity(Request $request, Team $current_team, TeamArea $area): Response
     {
         Gate::authorize('viewRoster', $current_team);

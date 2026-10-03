@@ -34,7 +34,7 @@ test('map indicators and the 12 month trend come from daily returns', function (
         ->assertOk()
         ->assertInertia(function (Assert $page) {
             $page->component('command/map')
-                ->where('title', 'Geospatial Heatmapping')
+                ->where('title', 'Map')
                 ->where('boundaries', 'District boundaries are indicative, not official')
                 ->where('tat.note', 'Provisional until the official turnaround formula is confirmed.')
                 ->where('indicator', 'testing_coverage')
@@ -54,10 +54,8 @@ test('map indicators and the 12 month trend come from daily returns', function (
                 ->and($west['figures']['testing_coverage'])->toBe(0.4)
                 ->and($west['figures']['provisional_tat'])->toBe(2)
                 ->and($west['lines'][3]['value'])->toBe('25%')
-                ->and($districts['Thatta']['figures']['positivity'])->toBeNull()
-                ->and($districts['Thatta']['figures']['testing_coverage'])->toBeNull()
-                ->and($districts['Thatta']['lines'][3]['value'])->toBe('Positivity appears after tested is above zero.')
-                ->and($districts['Thatta']['lines'][7]['value'])->toBe('Testing coverage appears after suspects is above zero.')
+                ->and($districts->has('Thatta'))->toBeFalse()
+                ->and($districts['Hyderabad']['lines'][3]['value'])->toBe('Positivity appears after tested is above zero.')
                 ->and($districts['Hyderabad']['figures']['positivity'])->toBeNull()
                 ->and($districts['Hyderabad']['figures']['testing_coverage'])->toEqual(0)
                 ->and($west['trend'])->toHaveCount(12)
@@ -66,12 +64,10 @@ test('map indicators and the 12 month trend come from daily returns', function (
                 ->and($february['positive'])->toBe(1)
                 ->and(collect($west['trend'])->sum('suspects'))->toBe(10);
 
-            $keys = collect($page->toArray()['props']['nav']['groups'])
-                ->flatMap(fn (array $group): array => array_column($group['items'], 'key'))
-                ->all();
+            $keys = array_column($page->toArray()['props']['screens'], 'key');
 
-            expect($keys)->toContain('command_map')
-                ->and($keys)->toContain('command_alerts')
+            expect($keys)->toContain('map')
+                ->and($keys)->toContain('alerts')
                 ->and(file_get_contents(public_path('geo/sindh-districts.geojson')))->toContain('CC BY-IGO');
         });
 });

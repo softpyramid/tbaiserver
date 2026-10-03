@@ -247,12 +247,11 @@ test('exactly one phone tab is active on every page a facility role can reach', 
 
     $expected = [
         route('returns.today', $team) => 'register',
-        route('returns.history', $team) => 'register',
+        route('returns.history', $team) => 'returns',
         route('facilities.home', $team) => 'facility',
         route('facilities.edit', $team) => 'facility',
         route('facilities.members', $team) => 'facility',
         route('facilities.invites', $team) => 'facility',
-        route('facilities.roles', $team) => 'facility',
         route('facilities.activity', $team) => 'facility',
         route('profile.edit') => 'account',
         route('appearance.edit') => 'account',
@@ -275,7 +274,7 @@ test('exactly one phone tab is active on every page a facility role can reach', 
 
             $response->assertOk()->assertInertia(function (Assert $page) use ($expected, $url) {
                 $props = $page->toArray()['props'];
-                $visible = ['register', 'facility', 'account'];
+                $visible = ['register', 'returns', 'facility', 'account'];
                 $active = $props['nav']['activeTab'];
 
                 expect($props['nav']['shell'])->toBe('facility')
@@ -289,7 +288,7 @@ test('exactly one phone tab is active on every page a facility role can reach', 
     $this->actingAs($cast['member'])->get(route('profile.edit'))
         ->assertInertia(fn (Assert $page) => $page->where('nav.activeTab', 'account'));
     $this->actingAs($cast['owner'])->get(route('returns.history', $team))
-        ->assertInertia(fn (Assert $page) => $page->where('nav.activeTab', 'register'));
+        ->assertInertia(fn (Assert $page) => $page->where('nav.activeTab', 'returns'));
 });
 
 test('admin lands on the command center with a needs attention strip', function () {

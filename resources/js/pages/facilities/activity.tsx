@@ -1,4 +1,3 @@
-import { Head } from '@inertiajs/react';
 import TeamAreaShell, { TeamPager } from '@/components/team-area-shell';
 import type { PageLinks, TeamAreaHeader } from '@/types/team-area';
 
@@ -24,24 +23,36 @@ type Props = {
     };
 };
 
-export default function FacilityActivity({ area, events, pagination, labels }: Props) {
+export default function FacilityActivity({
+    area,
+    events,
+    pagination,
+    labels,
+}: Props) {
     return (
         <>
-            <Head title={labels.heading} />
             <TeamAreaShell area={area}>
-                <h2 className="text-lg font-semibold">{labels.heading}</h2>
                 {events.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{labels.empty}</p>
+                    <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+                        {labels.empty}
+                    </p>
                 ) : (
                     <>
                         <ul className="space-y-3 md:hidden">
                             {events.map((event) => (
-                                <li key={event.id} className="rounded-xl border bg-card p-4">
-                                    <p className="font-medium">{event.action}</p>
+                                <li
+                                    key={event.id}
+                                    className="rounded-xl border bg-card p-4"
+                                >
+                                    <p className="font-medium">
+                                        {event.action}
+                                    </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
                                         {event.who}
                                     </p>
-                                    <p className="text-sm text-muted-foreground">{event.when}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {event.when}
+                                    </p>
                                 </li>
                             ))}
                         </ul>
@@ -49,17 +60,32 @@ export default function FacilityActivity({ area, events, pagination, labels }: P
                             <table className="w-full border-collapse text-sm">
                                 <thead>
                                     <tr className="border-b text-left">
-                                        <th className="px-4 py-3 font-medium">{labels.when}</th>
-                                        <th className="px-4 py-3 font-medium">{labels.who}</th>
-                                        <th className="px-4 py-3 font-medium">{labels.action}</th>
+                                        <th className="px-4 py-3 font-medium">
+                                            {labels.when}
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            {labels.who}
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            {labels.action}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {events.map((event) => (
-                                        <tr key={event.id} className="border-b last:border-0">
-                                            <td className="px-4 py-3 text-muted-foreground">{event.when}</td>
-                                            <td className="px-4 py-3">{event.who}</td>
-                                            <td className="px-4 py-3">{event.action}</td>
+                                        <tr
+                                            key={event.id}
+                                            className="border-b last:border-0"
+                                        >
+                                            <td className="px-4 py-3 text-muted-foreground">
+                                                {event.when}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {event.who}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {event.action}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -67,7 +93,11 @@ export default function FacilityActivity({ area, events, pagination, labels }: P
                         </div>
                     </>
                 )}
-                <TeamPager pagination={pagination} previousLabel={labels.previous} nextLabel={labels.next} />
+                <TeamPager
+                    pagination={pagination}
+                    previousLabel={labels.previous}
+                    nextLabel={labels.next}
+                />
             </TeamAreaShell>
         </>
     );

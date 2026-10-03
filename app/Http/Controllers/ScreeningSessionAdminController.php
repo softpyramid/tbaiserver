@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Facility;
 use App\Models\ScreeningSession;
+use App\Support\AdminTabs;
 use App\Support\EntryDate;
 use App\Support\ResourceResponse;
 use Illuminate\Http\Request;
@@ -153,6 +154,11 @@ class ScreeningSessionAdminController extends Controller
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => __('entry.returns_description'),
+                'title' => __('entry.nav_returns'),
+                'tabs' => AdminTabs::returns('screening_sessions'),
+            ],
         );
     }
 }

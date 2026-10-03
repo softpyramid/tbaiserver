@@ -85,6 +85,7 @@ class FacilityReturnHistoryController extends Controller
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: ['description' => __('entry.returns_history_description')],
         );
     }
 }

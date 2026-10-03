@@ -1,10 +1,9 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { UserPlus } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import InviteMemberModal from '@/components/invite-member-modal';
 import RowActions from '@/components/row-actions';
 import TeamAreaShell, { TeamPager } from '@/components/team-area-shell';
-import TeamSummaryCards from '@/components/team-summary-cards';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +43,11 @@ type Props = {
     statusOptions: Option[];
     members: Member[];
     pagination: PageLinks;
+    rolesInfo: {
+        heading: string;
+        intro: string;
+        roles: { role: string; access: string }[];
+    };
     labels: {
         invite: string;
         search: string;
@@ -126,6 +130,7 @@ export default function FacilityMembers({
     statusOptions,
     members,
     pagination,
+    rolesInfo,
     labels,
 }: Props) {
     const [inviteOpen, setInviteOpen] = useState(false);
@@ -149,24 +154,22 @@ export default function FacilityMembers({
 
     return (
         <>
-            <Head title={area.title} />
-            <TeamAreaShell area={area}>
-                <div className="flex flex-col gap-3">
-                    <div className="flex justify-end">
-                        {area.canInvite ? (
-                            <Button
-                                type="button"
-                                data-test="invite-member-button"
-                                onClick={() => setInviteOpen(true)}
-                            >
-                                <UserPlus />
-                                {labels.invite}
-                            </Button>
-                        ) : null}
-                    </div>
-                    <TeamSummaryCards cards={cards} />
-                </div>
-
+            <TeamAreaShell
+                area={area}
+                tiles={cards}
+                action={
+                    area.canInvite ? (
+                        <Button
+                            type="button"
+                            data-test="invite-member-button"
+                            onClick={() => setInviteOpen(true)}
+                        >
+                            <UserPlus />
+                            {labels.invite}
+                        </Button>
+                    ) : null
+                }
+            >
                 <section className="flex flex-col gap-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <h2 className="text-lg font-semibold text-foreground">
@@ -283,13 +286,7 @@ export default function FacilityMembers({
                                                 {labels.member}
                                             </th>
                                             <th className="px-4 py-3 font-medium">
-                                                {labels.email}
-                                            </th>
-                                            <th className="px-4 py-3 font-medium">
                                                 {labels.role}
-                                            </th>
-                                            <th className="px-4 py-3 font-medium">
-                                                {labels.facility}
                                             </th>
                                             <th className="px-4 py-3 font-medium">
                                                 {labels.returns}
@@ -319,9 +316,6 @@ export default function FacilityMembers({
                                                         member={member}
                                                     />
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {member.email}
-                                                </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col items-start gap-1">
                                                         <RoleBadge
@@ -337,9 +331,6 @@ export default function FacilityMembers({
                                                             </span>
                                                         ) : null}
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {area.teamName}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {member.returnsThisMonth}
@@ -372,6 +363,30 @@ export default function FacilityMembers({
                         nextLabel={labels.next}
                     />
                 </section>
+
+                <details
+                    className="rounded-xl border bg-card p-4"
+                    data-test="roles-info"
+                >
+                    <summary className="cursor-pointer text-sm font-semibold">
+                        {rolesInfo.heading}
+                    </summary>
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        {rolesInfo.intro}
+                    </p>
+                    <dl className="mt-3 grid gap-3 md:grid-cols-2">
+                        {rolesInfo.roles.map((item) => (
+                            <div key={item.role}>
+                                <dt className="text-sm font-medium">
+                                    {item.role}
+                                </dt>
+                                <dd className="text-sm text-muted-foreground">
+                                    {item.access}
+                                </dd>
+                            </div>
+                        ))}
+                    </dl>
+                </details>
             </TeamAreaShell>
 
             {area.canInvite ? (

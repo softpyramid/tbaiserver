@@ -1,4 +1,3 @@
-import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import InviteMemberModal from '@/components/invite-member-modal';
 import RowActions from '@/components/row-actions';
@@ -31,33 +30,57 @@ type Props = {
     };
 };
 
-export default function FacilityInvites({ area, invitations, pagination, labels }: Props) {
+export default function FacilityInvites({
+    area,
+    invitations,
+    pagination,
+    labels,
+}: Props) {
     const [inviteOpen, setInviteOpen] = useState(false);
 
     return (
         <>
-            <Head title={labels.heading} />
-            <TeamAreaShell area={area}>
-                <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-semibold">{labels.heading}</h2>
-                    {area.canInvite ? (
-                        <Button type="button" data-test="invite-member-button" onClick={() => setInviteOpen(true)}>
+            <TeamAreaShell
+                area={area}
+                action={
+                    area.canInvite ? (
+                        <Button
+                            type="button"
+                            data-test="invite-member-button"
+                            onClick={() => setInviteOpen(true)}
+                        >
                             {labels.invite}
                         </Button>
-                    ) : null}
-                </div>
-
+                    ) : null
+                }
+            >
                 {invitations.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{labels.empty}</p>
+                    <p
+                        className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground"
+                        data-test="invites-empty"
+                    >
+                        {labels.empty}
+                    </p>
                 ) : (
                     <>
                         <ul className="space-y-3 md:hidden">
                             {invitations.map((invitation) => (
-                                <li key={invitation.code} data-test="invitation-row" className="rounded-xl border bg-card p-4">
-                                    <p className="font-medium">{invitation.email}</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">{invitation.roleLabel}</p>
+                                <li
+                                    key={invitation.code}
+                                    data-test="invitation-row"
+                                    className="rounded-xl border bg-card p-4"
+                                >
+                                    <p className="font-medium">
+                                        {invitation.email}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {invitation.roleLabel}
+                                    </p>
                                     <div className="mt-3">
-                                        <RowActions actions={invitation.actions} label={labels.actions} />
+                                        <RowActions
+                                            actions={invitation.actions}
+                                            label={labels.actions}
+                                        />
                                     </div>
                                 </li>
                             ))}
@@ -66,22 +89,43 @@ export default function FacilityInvites({ area, invitations, pagination, labels 
                             <table className="w-full border-collapse text-sm">
                                 <thead>
                                     <tr className="border-b text-left">
-                                        <th className="px-4 py-3 font-medium">{labels.email}</th>
-                                        <th className="px-4 py-3 font-medium">{labels.role}</th>
-                                        <th className="px-4 py-3 font-medium">{labels.sent}</th>
+                                        <th className="px-4 py-3 font-medium">
+                                            {labels.email}
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            {labels.role}
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            {labels.sent}
+                                        </th>
                                         <th className="px-4 py-3">
-                                            <span className="sr-only">{labels.actions}</span>
+                                            <span className="sr-only">
+                                                {labels.actions}
+                                            </span>
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {invitations.map((invitation) => (
-                                        <tr key={invitation.code} data-test="invitation-row" className="border-b last:border-0">
-                                            <td className="px-4 py-3">{invitation.email}</td>
-                                            <td className="px-4 py-3">{invitation.roleLabel}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">{invitation.sent}</td>
+                                        <tr
+                                            key={invitation.code}
+                                            data-test="invitation-row"
+                                            className="border-b last:border-0"
+                                        >
+                                            <td className="px-4 py-3">
+                                                {invitation.email}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {invitation.roleLabel}
+                                            </td>
+                                            <td className="px-4 py-3 text-muted-foreground">
+                                                {invitation.sent}
+                                            </td>
                                             <td className="px-4 py-3 text-right">
-                                                <RowActions actions={invitation.actions} label={labels.actions} />
+                                                <RowActions
+                                                    actions={invitation.actions}
+                                                    label={labels.actions}
+                                                />
                                             </td>
                                         </tr>
                                     ))}
@@ -91,12 +135,21 @@ export default function FacilityInvites({ area, invitations, pagination, labels 
                     </>
                 )}
 
-                <TeamPager pagination={pagination} previousLabel={labels.previous} nextLabel={labels.next} />
+                <TeamPager
+                    pagination={pagination}
+                    previousLabel={labels.previous}
+                    nextLabel={labels.next}
+                />
             </TeamAreaShell>
 
             {area.canInvite ? (
                 <InviteMemberModal
-                    team={{ id: 0, name: area.teamName, slug: area.teamSlug, isPersonal: false }}
+                    team={{
+                        id: 0,
+                        name: area.teamName,
+                        slug: area.teamSlug,
+                        isPersonal: false,
+                    }}
                     availableRoles={area.inviteRoles}
                     open={inviteOpen}
                     onOpenChange={setInviteOpen}

@@ -23,20 +23,15 @@ test('team tabs follow the role and hidden urls stay forbidden', function () {
     joinFacility($technician, $facility, TeamRole::Member);
     giveProgrammeRole($officer, ProgrammeRole::CityOfficer);
 
-    $tabs = ['members', 'invites', 'roles', 'activity', 'profile'];
-
     $this->actingAs($owner)
         ->get(route('facilities.members', $facility->team))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('area.tabs.0.id', 'members')
-            ->where('area.tabs.0.current', true)
-            ->where('area.tabs.1.id', 'invites')
-            ->where('area.tabs.2.id', 'roles')
-            ->where('area.tabs.3.id', 'activity')
-            ->where('area.tabs.4.id', 'profile')
+            ->where('area.tabs', fn ($tabs) => collect($tabs)->pluck('id')->all() === ['overview', 'profile', 'members', 'invites', 'activity']
+                && collect($tabs)->pluck('label')->all() === ['Overview', 'Profile', 'Staff', 'Invites', 'Activity']
+                && collect($tabs)->where('current', true)->pluck('id')->all() === ['members'])
             ->where('area.canInvite', true)
-            ->has('area.tabs', count($tabs)),
+            ->has('rolesInfo.roles'),
         );
 
     $this->actingAs($senior)
@@ -44,20 +39,26 @@ test('team tabs follow the role and hidden urls stay forbidden', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('area.tabs', 5)
-            ->where('area.tabs.4.id', 'profile')
+            ->where('area.tabs.1.id', 'profile')
             ->where('area.canInvite', true),
         );
 
     foreach ([
         'facilities.members',
         'facilities.invites',
-        'facilities.roles',
         'facilities.activity',
         'facilities.edit',
     ] as $name) {
         $this->actingAs($technician)->get(route($name, $facility->team))->assertForbidden();
         $this->actingAs($officer)->get(route($name, $facility->team))->assertForbidden();
     }
+
+    $this->actingAs($technician)
+        ->get(route('facilities.home', $facility->team))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('facilities/home')
+            ->where('area.tabs', fn ($tabs) => collect($tabs)->pluck('id')->all() === ['overview']));
 });
 
 test('an email invite does not create a user and writes an audit row', function () {

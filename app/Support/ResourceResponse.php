@@ -72,6 +72,7 @@ class ResourceResponse
      * @param  list<array{key: string, label: string}>  $columns
      * @param  array<int, array<string, mixed>>  $rows
      * @param  list<array<string, mixed>>  $filters
+     * @param  array{title?: string, description?: string, tabs?: list<array<string, mixed>>, tiles?: list<array<string, mixed>>, empty?: array{title: string, body: string}}  $shell  Page shell extras: purpose line, tab strip, summary tiles, and an empty state.
      */
     public static function page(
         string $title,
@@ -88,6 +89,7 @@ class ResourceResponse
         ?string $createUrl,
         ?string $createLabel,
         string $exportUrl,
+        array $shell = [],
     ): Response {
         return Inertia::render('resources/index', [
             'title' => $title,
@@ -119,6 +121,11 @@ class ResourceResponse
                 'sort' => __('entry.sort'),
             ],
             'status' => session('status'),
+            'heading' => $shell['title'] ?? null,
+            'description' => $shell['description'] ?? null,
+            'tabs' => $shell['tabs'] ?? [],
+            'tiles' => $shell['tiles'] ?? [],
+            'empty' => $shell['empty'] ?? null,
         ]);
     }
 

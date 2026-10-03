@@ -19,12 +19,31 @@ declare module '@inertiajs/core' {
             facilitiesUrl: string | null;
             nav: {
                 shell: 'facility' | 'sidebar';
-                activeTab:
-                    | 'register'
-                    | 'screening'
-                    | 'facility'
-                    | 'account'
-                    | null;
+                activeTab: string | null;
+                tabs: {
+                    id: string;
+                    label: string;
+                    href: string;
+                    icon: string;
+                    current: boolean;
+                }[];
+                more: {
+                    id: string;
+                    label: string;
+                    href: string;
+                    icon: string;
+                    current: boolean;
+                }[];
+                commandTabs: {
+                    id: string;
+                    label: string;
+                    href: string;
+                    current: boolean;
+                    badge: number | null;
+                }[];
+                tabsLabel: string;
+                moreLabel: string;
+                logoutLabel: string;
                 groups: {
                     key: string;
                     label: string;
@@ -34,6 +53,7 @@ declare module '@inertiajs/core' {
                         href: string | null;
                         badge: number | null;
                         expanded: boolean;
+                        current: boolean;
                         children: {
                             key: string;
                             label: string;

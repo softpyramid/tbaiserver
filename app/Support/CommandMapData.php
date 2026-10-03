@@ -43,9 +43,19 @@ class CommandMapData
         $byCity = $this->rowsByCity($rows);
         $trendByCity = $this->rowsByCity($trendRows);
         $districts = [];
+        $hidden = [];
 
         foreach ($this->cities($user, $selection) as $city) {
             $summary = CommandTotals::summarize($byCity[$city->id] ?? []);
+
+            // A district with no returns in the period has nothing to show, so it
+            // is left off the map and the list. A district picked on purpose stays.
+            if (! self::hasFigures($summary) && $selection['cityId'] !== $city->id) {
+                $hidden[] = DistrictMatch::key($city->name);
+
+                continue;
+            }
+
             $value = $indicator->read($summary);
             $districts[] = [
                 'id' => (string) $city->id,
@@ -83,6 +93,8 @@ class CommandMapData
             'indicatorLabel' => $indicator->label(),
             'indicators' => MapIndicator::options(),
             'districts' => $districts,
+            'hiddenMatches' => $hidden,
+            'hiddenNote' => $hidden === [] ? null : __('entry.map_zero_hidden'),
             'top' => $this->top($districts),
             'selectedId' => $selectedId,
             'trendHeading' => __('entry.map_trend_heading'),
@@ -91,6 +103,19 @@ class CommandMapData
             'listHeading' => __('entry.map_list_heading'),
             'indicatorField' => __('entry.map_indicator'),
         ];
+    }
+
+    /**
+     * @param  array{suspects: int, tested: int, positive: int, started_treatment: int, follow_up: int, negative: int}  $summary
+     */
+    private static function hasFigures(array $summary): bool
+    {
+        return $summary['suspects'] > 0
+            || $summary['tested'] > 0
+            || $summary['positive'] > 0
+            || $summary['negative'] > 0
+            || $summary['started_treatment'] > 0
+            || $summary['follow_up'] > 0;
     }
 
     /**

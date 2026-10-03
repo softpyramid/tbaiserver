@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
-        <script>
+        <script nonce="{{ Vite::cspNonce() }}">
             (function() {
                 const appearance = '{{ $appearance ?? "system" }}';
 
@@ -34,6 +34,7 @@
         <link rel="icon" href="/logo.png" type="image/png">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+        {{-- Remove noindex and open robots.txt at public launch, after the MoU is signed and Hira approves the copy. --}}
         <meta name="robots" content="noindex, nofollow">
         <meta name="description" content="TB-AI is in development as decision support for tuberculosis microscopy and as a daily TB register. The microscopist makes the final call.">
         <meta property="og:title" content="TB-AI | TB register and decision support">

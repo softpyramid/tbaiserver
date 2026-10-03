@@ -15,6 +15,27 @@ Route::get('robots.txt', function (): Response {
     ]);
 })->name('robots');
 
+Route::get('sitemap.xml', function (): Response {
+    $locations = ['/', '/privacy', '/terms', '/request-access'];
+
+    $urls = array_map(
+        fn (string $path): string => '  <url><loc>'.e(url($path)).'</loc></url>',
+        $locations,
+    );
+
+    $xml = implode("\n", [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        ...$urls,
+        '</urlset>',
+        '',
+    ]);
+
+    return response($xml, 200, [
+        'Content-Type' => 'application/xml; charset=UTF-8',
+    ]);
+})->name('sitemap');
+
 Route::inertia('/', 'welcome')->name('home');
 Route::inertia('/privacy', 'privacy')->name('privacy');
 Route::inertia('/terms', 'terms')->name('terms');

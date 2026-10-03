@@ -1,2 +1,3 @@
+# Remove noindex and open robots.txt at public launch, after the MoU is signed and Hira approves the copy.
 User-agent: *
 Disallow: /

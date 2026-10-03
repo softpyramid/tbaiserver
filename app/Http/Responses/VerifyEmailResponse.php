@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use App\Support\IntendedUrl;
 use App\Support\RoleHome;
 use Illuminate\Http\JsonResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
@@ -12,6 +13,10 @@ class VerifyEmailResponse implements VerifyEmailResponseContract
     public function toResponse($request): Response
     {
         $user = $request->user();
+
+        if ($user !== null) {
+            app(IntendedUrl::class)->discardIfNotPermitted($request, $user);
+        }
         $home = $user === null ? url('/') : app(RoleHome::class)->url($user);
         $separator = str_contains($home, '?') ? '&' : '?';
 

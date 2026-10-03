@@ -80,7 +80,7 @@
     --secondary: #1a365d;
     --secondary-foreground: #ffffff;
     --muted: #eef2f7;
-    --muted-foreground: #64748b;
+    --muted-foreground: #556376;
     --accent: #eef2f7;
     --accent-foreground: #14294c;
     --destructive: #d32f2f;
@@ -122,7 +122,7 @@
     --accent-foreground: #f8fafc;
     --destructive: #d32f2f;
     --destructive-foreground: #ffcdd2;
-    --success: #2e7d32;
+    --success: #66bb6a;
     --border: #1a365d;
     --input: #1a365d;
     --ring: #60a5fa;
@@ -146,6 +146,11 @@
     --muted-foreground: #e2e8f0;
     --accent: #1a365d;
     --accent-foreground: #f8fafc;
+}
+
+/* Theme tokens resolve at :root, so re-read the sidebar override here. */
+[data-sidebar='sidebar'] .text-muted-foreground {
+    color: var(--muted-foreground);
 }
 
 @keyframes supporter-marquee {
@@ -185,7 +190,9 @@
 
 @media (max-width: 767px) {
     html[data-nav-shell='facility'] {
-        --entry-tab-offset: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+        --entry-tab-offset: calc(
+            3.5rem + 1px + env(safe-area-inset-bottom, 0px)
+        );
     }
 }
 
@@ -208,21 +215,33 @@
 }
 
 @media (min-width: 768px) {
-    html[data-nav-shell='facility'] .peer[data-slot='sidebar'] ~ main .entry-save-bar {
+    html[data-nav-shell='facility']
+        .peer[data-slot='sidebar']
+        ~ main
+        .entry-save-bar {
         left: var(--sidebar-width, 16rem);
     }
 
-    html[data-nav-shell='facility'] .peer[data-state='collapsed'][data-collapsible='icon'] ~ main .entry-save-bar {
+    html[data-nav-shell='facility']
+        .peer[data-state='collapsed'][data-collapsible='icon']
+        ~ main
+        .entry-save-bar {
         left: calc(var(--sidebar-width-icon, 3rem) + 1rem);
     }
 }
 
 @media (min-width: 1024px) {
-    html[data-nav-shell='sidebar'] .peer[data-slot='sidebar'] ~ main .entry-save-bar {
+    html[data-nav-shell='sidebar']
+        .peer[data-slot='sidebar']
+        ~ main
+        .entry-save-bar {
         left: var(--sidebar-width, 16rem);
     }
 
-    html[data-nav-shell='sidebar'] .peer[data-state='collapsed'][data-collapsible='icon'] ~ main .entry-save-bar {
+    html[data-nav-shell='sidebar']
+        .peer[data-state='collapsed'][data-collapsible='icon']
+        ~ main
+        .entry-save-bar {
         left: calc(var(--sidebar-width-icon, 3rem) + 1rem);
     }
 }
@@ -230,5 +249,12 @@
 @media (max-width: 767px) {
     html[data-nav-shell='facility'] [data-sonner-toaster] {
         bottom: calc(var(--entry-tab-offset, 0px) + 0.75rem) !important;
+    }
+}
+
+@media (max-width: 767px) {
+    /* A page with a fixed Save bar: lift toasts above the bar so they never cover it. */
+    body:has(.entry-save-bar) [data-sonner-toaster] {
+        bottom: calc(var(--entry-tab-offset, 0px) + 5.5rem) !important;
     }
 }

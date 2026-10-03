@@ -233,31 +233,21 @@ export default function TeamEdit({
 
                                     {member.role !== 'owner' &&
                                     permissions.canRemoveMember ? (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        data-test="member-remove-button"
-                                                        aria-label={`Remove ${member.name}`}
-                                                        onClick={() =>
-                                                            confirmRemoveMember(
-                                                                member,
-                                                            )
-                                                        }
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                        <span className="sr-only">
-                                                            Remove {member.name}
-                                                        </span>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Remove member</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        <div className="ml-2 border-l pl-4">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-destructive hover:text-destructive dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                                                data-test="member-remove-button"
+                                                aria-label={`Remove ${member.name} from this facility`}
+                                                onClick={() =>
+                                                    confirmRemoveMember(member)
+                                                }
+                                            >
+                                                <X className="h-4 w-4" />
+                                                Remove
+                                            </Button>
+                                        </div>
                                     ) : null}
                                 </div>
                             </div>
@@ -322,7 +312,6 @@ export default function TeamEdit({
                         </div>
                     </div>
                 ) : null}
-
             </div>
 
             {permissions.canCreateInvitation ? (
@@ -347,7 +336,6 @@ export default function TeamEdit({
                 open={cancelInvitationDialogOpen}
                 onOpenChange={setCancelInvitationDialogOpen}
             />
-
         </>
     );
 }

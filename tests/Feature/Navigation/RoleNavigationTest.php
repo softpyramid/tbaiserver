@@ -35,7 +35,7 @@ test('a tb-ai admin sees the administration group and can open it', function () 
     $this->actingAs($admin)->get(route('facilities.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.daily-returns.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.revisions.index'))->assertOk();
-    $this->actingAs($admin)->get(route('admin.screening-sessions.index'))->assertOk();
+    $this->actingAs($admin)->get(route('admin.screening-sessions.index'))->assertNotFound();
     $this->actingAs($admin)->get(route('admin.users.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.programme-assignments.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.access-requests.index'))->assertOk();
@@ -60,7 +60,6 @@ test('an in-charge sees facility links and cannot open administration', function
             expect($keys)->toBe([
                 'register',
                 'returns_history',
-                'screening',
                 'my_facility',
                 'facility_profile',
                 'team_members',
@@ -74,7 +73,7 @@ test('an in-charge sees facility links and cannot open administration', function
     $this->actingAs($owner)->get(route('admin.users.index'))->assertForbidden();
 });
 
-test('a technician sees register screening and my facility only', function () {
+test('a technician sees register and facility only', function () {
     $member = User::factory()->create();
     $facility = Facility::factory()->create();
     joinFacility($member, $facility, TeamRole::Member);
@@ -85,7 +84,6 @@ test('a technician sees register screening and my facility only', function () {
         ->assertInertia(function (Assert $page) {
             expect(navItemKeys($page))->toBe([
                 'register',
-                'screening',
                 'my_facility',
                 'account',
             ])->and($page->toArray()['props']['nav']['shell'])->toBe('facility');
@@ -94,7 +92,7 @@ test('a technician sees register screening and my facility only', function () {
     $this->actingAs($member)->get(route('facilities.home', $facility->team))->assertOk();
     $this->actingAs($member)->get(route('returns.history', $facility->team))->assertForbidden();
     $this->actingAs($member)->get(route('facilities.members', $facility->team))->assertForbidden();
-    $this->actingAs($member)->get(route('admin.screening-sessions.index'))->assertForbidden();
+    $this->actingAs($member)->get(route('admin.screening-sessions.index'))->assertNotFound();
     $this->actingAs($member)->get(route('command.index'))->assertForbidden();
 });
 
@@ -203,7 +201,6 @@ test('a senior technician sees the facility profile and not owner-only links', f
         ->assertInertia(function (Assert $page) {
             expect(navItemKeys($page))->toBe([
                 'register',
-                'screening',
                 'my_facility',
                 'facility_profile',
                 'team_members',
@@ -234,11 +231,10 @@ test('the parent of the active page is marked open', function () {
         });
 
     $this->actingAs($admin)
-        ->get(route('facilities.create'))
+        ->get(route('admin.daily-returns.index'))
         ->assertOk()
         ->assertInertia(function (Assert $page) {
-            expect(navEntry($page, 'administration', 'facilities')['expanded'])->toBeTrue()
-                ->and(navEntry($page, 'administration', 'data')['expanded'])->toBeFalse()
+            expect(navEntry($page, 'administration', 'data')['expanded'])->toBeTrue()
                 ->and(navEntry($page, 'administration', 'people')['expanded'])->toBeFalse();
         });
 
@@ -329,6 +325,8 @@ test('hidden command and administration urls return 403', function () {
 });
 
 test('screening session admin views do not include patient identifiers', function () {
+    enableFeature('screening');
+
     $admin = User::factory()->create();
     giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
     $facility = Facility::factory()->create();
@@ -444,3 +442,113 @@ function officerOutside(): User
 
     return $officer;
 }
+
+test('screening links are removed for every role while the flag is off and return with it', function () {
+    $facility = Facility::factory()->create();
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    joinFacility($owner, $facility, TeamRole::Owner);
+    joinFacility($member, $facility, TeamRole::Member);
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    foreach ([$owner, $member] as $person) {
+        $this->actingAs($person)
+            ->get(route('returns.today', $facility->team))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('screeningUrl', null)
+                ->where('screeningSuspects', null));
+
+        $this->actingAs($person)->get(route('screening.create', $facility->team))->assertNotFound();
+        $this->actingAs($person)->post(route('screening.store', $facility->team), [])->assertNotFound();
+    }
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(function (Assert $page) {
+            expect(json_encode($page->toArray()['props']['nav']))->not->toContain('screening')
+                ->and(json_encode($page->toArray()['props']['screens'] ?? []))->not->toContain('screening');
+        });
+
+    $this->actingAs($admin)->get(route('admin.screening-sessions.index'))->assertNotFound();
+
+    enableFeature('screening');
+
+    $this->actingAs($member)
+        ->get(route('returns.today', $facility->team))
+        ->assertOk()
+        ->assertInertia(function (Assert $page) {
+            expect(navItemKeys($page))->toContain('screening');
+        });
+
+    $this->actingAs($member)->get(route('screening.create', $facility->team))->assertOk();
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertInertia(function (Assert $page) {
+            expect(navEntry($page, 'administration', 'data')['children'][2]['key'])->toBe('screening_sessions');
+        });
+});
+
+test('drivers and incidence are hidden everywhere while their flags are off and return with them', function () {
+    $province = Province::factory()->create();
+    $city = City::factory()->create(['province_id' => $province->id]);
+    $viewer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $viewer->id,
+        'role' => ProgrammeRole::ProvincialViewer,
+        'scope_type' => ScopeType::Province,
+        'scope_id' => $province->id,
+    ]);
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    foreach ([$viewer, $admin] as $person) {
+        $this->actingAs($person)
+            ->get(route('command.index'))
+            ->assertOk()
+            ->assertInertia(function (Assert $page) {
+                $keys = navItemKeys($page);
+                $screens = array_column($page->toArray()['props']['screens'] ?? [], 'key');
+
+                expect($keys)->not->toContain('command_drivers')
+                    ->and($keys)->not->toContain('command_incidence')
+                    ->and($screens)->not->toContain('drivers')
+                    ->and($screens)->not->toContain('incidence');
+            });
+
+        $this->actingAs($person)->get(route('command.drivers'))->assertNotFound();
+        $this->actingAs($person)->get(route('command.incidence'))->assertNotFound();
+    }
+
+    $this->actingAs($admin)->post(route('command.incidence.store'), [])->assertNotFound();
+
+    enableFeature('drivers', 'incidence');
+
+    $this->actingAs($viewer)
+        ->get(route('command.index'))
+        ->assertInertia(function (Assert $page) {
+            expect(navItemKeys($page))->toContain('command_drivers')
+                ->and(navItemKeys($page))->toContain('command_incidence');
+        });
+    $this->actingAs($viewer)->get(route('command.drivers'))->assertOk();
+    $this->actingAs($viewer)->get(route('command.incidence'))->assertOk();
+});
+
+test('the hidden screening url shows the styled not found page inside the app', function () {
+    $facility = Facility::factory()->create();
+    $member = User::factory()->create();
+    joinFacility($member, $facility, TeamRole::Member);
+
+    $this->actingAs($member)
+        ->get(route('screening.create', $facility->team))
+        ->assertNotFound()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('errors/http')
+            ->where('status', 404)
+            ->where('homeUrl', route('returns.today', $facility->team))
+            ->where('homeLabel', 'Back to home')
+            ->where('auth.user.id', $member->id));
+});

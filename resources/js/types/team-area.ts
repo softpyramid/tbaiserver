@@ -44,6 +44,8 @@ export type RowAction =
           url: string;
           confirm: string | null;
           fields: Record<string, string | boolean>;
+          /** Shown apart from routine actions, in the destructive style. */
+          destructive?: boolean;
       }
     | {
           kind: 'delete';

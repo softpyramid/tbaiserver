@@ -21,6 +21,7 @@ type NavProps = {
     myFacilityUrl: string | null;
     facilitiesUrl: string | null;
     currentTeam: { slug: string } | null;
+    activeTab: string | null;
 };
 
 /**
@@ -69,36 +70,16 @@ export function facilityTabs(props: NavProps): FacilityTab[] {
     return tabs;
 }
 
-export function isTabActive(tab: FacilityTab, currentUrl: string): boolean {
-    const path = strip(currentUrl);
-    const target = strip(tab.href);
-
-    switch (tab.id) {
-        case 'account':
-            return path === target || path.startsWith('/settings');
-        case 'register':
-            return path === target || path.endsWith('/returns/today');
-        case 'screening':
-            return path === target || path.includes('/screening');
-        case 'facility':
-            return (
-                path === target ||
-                path.endsWith('/my-facility') ||
-                path.endsWith('/profile') ||
-                path.endsWith('/members')
-            );
-        default: {
-            const unreachable: never = tab.id;
-
-            return unreachable;
-        }
-    }
-}
-
-function strip(url: string): string {
-    const path = url.split('?')[0] ?? url;
-
-    return path.length > 1 ? path.replace(/\/$/, '') : path;
+/**
+ * The server decides which tab owns the page, from the route name, and sends it
+ * as nav.activeTab. The client only compares ids, so a URL that merely ends the
+ * same way as another tab's URL can never light up two tabs.
+ */
+export function isTabActive(
+    tab: FacilityTab,
+    activeTab: string | null,
+): boolean {
+    return activeTab !== null && tab.id === activeTab;
 }
 
 export function useNavProps(): NavProps {
@@ -111,5 +92,6 @@ export function useNavProps(): NavProps {
         myFacilityUrl: page.props.myFacilityUrl,
         facilitiesUrl: page.props.facilitiesUrl,
         currentTeam: page.props.currentTeam,
+        activeTab: page.props.nav.activeTab,
     };
 }

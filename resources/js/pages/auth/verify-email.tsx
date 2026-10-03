@@ -3,6 +3,7 @@ import { Form, Head } from '@inertiajs/react';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { clearClientSession } from '@/lib/sign-out';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
 
@@ -28,6 +29,8 @@ export default function VerifyEmail({ status }: { status?: string }) {
 
                         <TextLink
                             href={logout()}
+                            replace
+                            onClick={clearClientSession}
                             className="mx-auto block text-sm"
                         >
                             Log out

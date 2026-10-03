@@ -7,6 +7,7 @@ use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Support\DataScope;
+use App\Support\FacilityTabs;
 use App\Support\NavigationShell;
 use App\Support\RoleHome;
 use App\Support\SidebarNavigation;
@@ -91,6 +92,7 @@ class HandleInertiaRequests extends Middleware
                 : null,
             'nav' => [
                 'shell' => app(NavigationShell::class)->for($user, $facilityTeam),
+                'activeTab' => app(FacilityTabs::class)->active($request),
                 'groups' => app(SidebarNavigation::class)->groups($user, $facilityTeam),
             ],
             'i18n' => [
@@ -98,7 +100,7 @@ class HandleInertiaRequests extends Middleware
                 'dir' => in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr',
                 'entry' => trans('entry'),
             ],
-            'screeningUrl' => $user !== null && $facilityTeam !== null && $user->belongsToTeam($facilityTeam)
+            'screeningUrl' => config('tbai.features.screening') && $user !== null && $facilityTeam !== null && $user->belongsToTeam($facilityTeam)
                 ? route('screening.create', ['current_team' => $facilityTeam->slug])
                 : null,
             'facilitiesUrl' => $isTbaiAdmin ? route('facilities.index') : null,

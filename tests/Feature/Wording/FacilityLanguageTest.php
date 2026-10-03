@@ -119,9 +119,9 @@ test('viewers and the tb-ai admin land without a facility slug', function () {
     $this->post(route('login.store'), [
         'email' => $admin->email,
         'password' => 'password',
-    ])->assertRedirect(route('admin.home'));
+    ])->assertRedirect(route('command.index'));
 
-    expect(parse_url(route('admin.home'), PHP_URL_PATH))->toBe('/admin');
+    expect(parse_url(route('command.index'), PHP_URL_PATH))->toBe('/command');
 });
 
 test('a viewer sees a scope label and no facility switcher', function () {

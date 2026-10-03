@@ -26,9 +26,7 @@ class ReturnRevisionPresenter
                 }
 
                 $lines[] = [
-                    'when' => $revision->changed_at
-                        ->timezone(EntryDate::timezone())
-                        ->format('j M Y, H:i'),
+                    'when' => EntryDate::dateTime($revision->changed_at),
                     'who' => $revision->editor->name,
                     'field' => $this->fieldLabel($field),
                     'old' => $this->display($from),
@@ -47,9 +45,7 @@ class ReturnRevisionPresenter
     {
         $revision->loadMissing('editor');
 
-        $when = $revision->changed_at
-            ->timezone(EntryDate::timezone())
-            ->format('j M Y, H:i');
+        $when = EntryDate::dateTime($revision->changed_at);
         $who = $revision->editor->name;
         $lines = [];
 

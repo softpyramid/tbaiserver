@@ -123,6 +123,15 @@ class FacilityListing
             );
         }
 
+        if ($administration && $request->string('return_today')->toString() === 'missing') {
+            $today = EntryDate::now()->toDateString();
+
+            $query->whereDoesntHave(
+                'dailyReturns',
+                fn (Builder $returns) => $returns->whereDate('reported_on', $today),
+            );
+        }
+
         return $query;
     }
 
@@ -180,7 +189,7 @@ class FacilityListing
             $this->scope->constrainCities($cities, $user);
         }
 
-        return [
+        $filters = [
             [
                 'key' => 'q',
                 'label' => __('entry.search'),
@@ -226,6 +235,21 @@ class FacilityListing
                 ],
             ],
         ];
+
+        if ($administration) {
+            $filters[] = [
+                'key' => 'return_today',
+                'label' => __('entry.return_today'),
+                'type' => 'select',
+                'value' => $request->string('return_today')->toString() === 'missing' ? 'missing' : '',
+                'options' => [
+                    ['value' => '', 'label' => __('entry.any')],
+                    ['value' => 'missing', 'label' => __('entry.return_today_missing')],
+                ],
+            ];
+        }
+
+        return $filters;
     }
 
     /**

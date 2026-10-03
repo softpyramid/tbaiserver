@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use App\Support\IntendedUrl;
 use App\Support\RoleHome;
 use Illuminate\Http\JsonResponse;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
@@ -12,6 +13,10 @@ class LoginResponse implements LoginResponseContract
     public function toResponse($request): Response
     {
         $user = $request->user();
+
+        if ($user !== null) {
+            app(IntendedUrl::class)->discardIfNotPermitted($request, $user);
+        }
 
         return $request->wantsJson()
             ? new JsonResponse(['two_factor' => false], 200)

@@ -26,6 +26,16 @@ class EntryDate
         return $date->copy()->timezone(self::timezone())->format('H:i');
     }
 
+    /**
+     * Date and time with the programme time zone named, for example
+     * "4 Oct 2026, 00:08 PKT". Use it wherever a time of day is shown, so a
+     * reader never has to guess which clock it is.
+     */
+    public static function dateTime(CarbonInterface $date): string
+    {
+        return $date->copy()->timezone(self::timezone())->format('j M Y, H:i T');
+    }
+
     public static function day(mixed $value): string
     {
         if ($value instanceof CarbonInterface) {

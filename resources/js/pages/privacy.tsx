@@ -10,7 +10,7 @@ export default function Privacy() {
         <MarketingShell>
             <Head title="Privacy" />
             <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8">
-                <p className="text-xs font-medium tracking-[0.22em] text-brand uppercase">
+                <p className="text-xs font-medium tracking-[0.22em] text-brand uppercase dark:text-indigo-300">
                     Draft, pending legal review
                 </p>
                 <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -24,8 +24,8 @@ export default function Privacy() {
                     <p>
                         When you request access, we collect your name, role,
                         organisation, district, and email. We use this only to
-                        review your request. Submitting the form does not
-                        create an account.
+                        review your request. Submitting the form does not create
+                        an account.
                     </p>
                     <p>
                         Retention is 12 months. That period is a draft, pending

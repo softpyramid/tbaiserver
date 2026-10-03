@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use App\Support\IntendedUrl;
 use App\Support\RoleHome;
 use Illuminate\Http\JsonResponse;
 use Laravel\Passkeys\Contracts\PasskeyLoginResponse as PasskeyLoginResponseContract;
@@ -12,6 +13,10 @@ class PasskeyLoginResponse implements PasskeyLoginResponseContract
     public function toResponse($request): Response
     {
         $user = $request->user();
+
+        if ($user !== null) {
+            app(IntendedUrl::class)->discardIfNotPermitted($request, $user);
+        }
         $redirect = $user === null ? url('/') : app(RoleHome::class)->url($user);
 
         return $request->wantsJson()

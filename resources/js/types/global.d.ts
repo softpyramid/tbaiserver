@@ -19,6 +19,12 @@ declare module '@inertiajs/core' {
             facilitiesUrl: string | null;
             nav: {
                 shell: 'facility' | 'sidebar';
+                activeTab:
+                    | 'register'
+                    | 'screening'
+                    | 'facility'
+                    | 'account'
+                    | null;
                 groups: {
                     key: string;
                     label: string;

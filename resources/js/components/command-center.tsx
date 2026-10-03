@@ -76,7 +76,11 @@ export type CommandLink = {
     label: string;
 };
 
-export type CascadeKey = 'suspects' | 'tested' | 'positive' | 'started_treatment';
+export type CascadeKey =
+    | 'suspects'
+    | 'tested'
+    | 'positive'
+    | 'started_treatment';
 
 export type CascadeBar = {
     key: CascadeKey;
@@ -116,7 +120,10 @@ function pathOf(url: string): string {
     return url.split('?')[0] ?? url;
 }
 
-function queryFrom(filters: CommandFilters, extra: Record<string, string> = {}): Record<string, string> {
+function queryFrom(
+    filters: CommandFilters,
+    extra: Record<string, string> = {},
+): Record<string, string> {
     const query: Record<string, string> = {};
 
     for (const [key, value] of Object.entries(filters)) {
@@ -140,6 +147,7 @@ export function CommandShell({
     labels,
     links,
     preserved,
+    banner,
     children,
 }: {
     title: string;
@@ -153,20 +161,28 @@ export function CommandShell({
     labels: CommandLabels;
     links: CommandLink[];
     preserved?: Record<string, string>;
+    banner?: ReactNode;
     children: ReactNode;
 }) {
     return (
         <>
             <Head title={title} />
 
-            <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6 overflow-x-hidden px-4 py-6">
+            <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 overflow-x-hidden px-4 py-6">
                 <div className="flex min-w-0 flex-col gap-2">
                     <CommandCrumbs crumbs={crumbs} />
-                    {eyebrow ? <p className="text-sm text-muted-foreground">{eyebrow}</p> : null}
+                    {eyebrow ? (
+                        <p className="text-sm text-muted-foreground">
+                            {eyebrow}
+                        </p>
+                    ) : null}
                     <h1 className="text-xl font-semibold">{title}</h1>
-                    {scope ? <p className="text-sm text-muted-foreground">{scope}</p> : null}
+                    {scope ? (
+                        <p className="text-sm text-muted-foreground">{scope}</p>
+                    ) : null}
                 </div>
 
+                {banner}
                 {tabs}
                 <FilterBar
                     filters={filters}
@@ -205,8 +221,15 @@ export function SegmentedTabs({
     }
 
     return (
-        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0" data-test="page-tabs">
-            <div role="tablist" aria-label={label} className="flex w-max min-w-full gap-1 border-b border-border">
+        <div
+            className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0"
+            data-test="page-tabs"
+        >
+            <div
+                role="tablist"
+                aria-label={label}
+                className="flex w-max min-w-full gap-1 border-b border-border"
+            >
                 {tabs.map((tab) => {
                     const className = cn(
                         'shrink-0 border-b-2 px-3 py-2 text-sm whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
@@ -262,10 +285,14 @@ function CommandCrumbs({ crumbs }: { crumbs: CommandCrumb[] }) {
                         <Fragment key={`${crumb.title}-${index}`}>
                             <BreadcrumbItem>
                                 {isLast || crumb.href === null ? (
-                                    <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
+                                    <BreadcrumbPage>
+                                        {crumb.title}
+                                    </BreadcrumbPage>
                                 ) : (
                                     <BreadcrumbLink asChild>
-                                        <Link href={crumb.href}>{crumb.title}</Link>
+                                        <Link href={crumb.href}>
+                                            {crumb.title}
+                                        </Link>
                                     </BreadcrumbLink>
                                 )}
                             </BreadcrumbItem>
@@ -312,14 +339,20 @@ function FilterBar({
     const activeCount = activeFilterCount(filters, show);
 
     return (
-        <details className="group rounded-lg border [&:not([open])>:not(summary)]:hidden" data-test="command-filters">
+        <details
+            className="group rounded-lg border [&:not([open])>:not(summary)]:hidden"
+            data-test="command-filters"
+        >
             <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium marker:content-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
                 <ChevronRight
                     aria-hidden="true"
                     className="size-4 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"
                 />
                 <span>{labels.filters}</span>
-                <span className="tabular-nums text-muted-foreground" data-test="filter-count">
+                <span
+                    className="text-muted-foreground tabular-nums"
+                    data-test="filter-count"
+                >
                     {activeCount}
                 </span>
             </summary>
@@ -328,42 +361,55 @@ function FilterBar({
                 className="grid grid-cols-1 gap-3 border-t p-3 sm:grid-cols-2"
                 onSubmit={onFilter}
             >
-            <DateField name="from" label={labels.from} value={filters.from} />
-            <DateField name="to" label={labels.to} value={filters.to} />
-            <PlaceField
-                name="province"
-                label={labels.province}
-                value={filters.province}
-                options={options.provinces}
-                shown={show.province}
-            />
-            <PlaceField
-                name="district"
-                label={labels.district}
-                value={filters.district}
-                options={options.districts}
-                shown={show.district}
-            />
-            <PlaceField
-                name="sector"
-                label={labels.sector}
-                value={filters.sector}
-                options={options.sectors}
-                shown={show.sector}
-            />
-            {Object.entries(preserved).map(([name, value]) =>
-                value === '' ? null : <input key={name} type="hidden" name={name} value={value} />,
-            )}
-            <div className="flex items-end gap-2">
-                <Button type="submit">{labels.apply}</Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.get(path, {}, { preserveScroll: true })}
-                >
-                    {labels.clear}
-                </Button>
-            </div>
+                <DateField
+                    name="from"
+                    label={labels.from}
+                    value={filters.from}
+                />
+                <DateField name="to" label={labels.to} value={filters.to} />
+                <PlaceField
+                    name="province"
+                    label={labels.province}
+                    value={filters.province}
+                    options={options.provinces}
+                    shown={show.province}
+                />
+                <PlaceField
+                    name="district"
+                    label={labels.district}
+                    value={filters.district}
+                    options={options.districts}
+                    shown={show.district}
+                />
+                <PlaceField
+                    name="sector"
+                    label={labels.sector}
+                    value={filters.sector}
+                    options={options.sectors}
+                    shown={show.sector}
+                />
+                {Object.entries(preserved).map(([name, value]) =>
+                    value === '' ? null : (
+                        <input
+                            key={name}
+                            type="hidden"
+                            name={name}
+                            value={value}
+                        />
+                    ),
+                )}
+                <div className="flex items-end gap-2">
+                    <Button type="submit">{labels.apply}</Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                            router.get(path, {}, { preserveScroll: true })
+                        }
+                    >
+                        {labels.clear}
+                    </Button>
+                </div>
             </form>
         </details>
     );
@@ -395,11 +441,24 @@ function activeFilterCount(filters: CommandFilters, show: CommandShow): number {
     return count;
 }
 
-function DateField({ name, label, value }: { name: string; label: string; value: string }) {
+function DateField({
+    name,
+    label,
+    value,
+}: {
+    name: string;
+    label: string;
+    value: string;
+}) {
     return (
         <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span>{label}</span>
-            <Input name={name} type="date" defaultValue={value} aria-label={label} />
+            <Input
+                name={name}
+                type="date"
+                defaultValue={value}
+                aria-label={label}
+            />
         </label>
     );
 }
@@ -432,7 +491,7 @@ function PlaceField({
                 name={name}
                 defaultValue={value}
                 aria-label={label}
-                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 text-base md:text-sm"
+                className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-base md:text-sm"
             >
                 {options.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -454,7 +513,11 @@ export function ViewToggle({
     onChange: (mode: 'graph' | 'table') => void;
 }) {
     return (
-        <div className="flex flex-wrap gap-2" role="group" aria-label={`${labels.graph}, ${labels.table}`}>
+        <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label={`${labels.graph}, ${labels.table}`}
+        >
             <Button
                 type="button"
                 variant={mode === 'graph' ? 'default' : 'outline'}
@@ -490,14 +553,20 @@ export function CommandCharts({
         return (
             <div className="flex min-w-0 flex-col gap-6">
                 <section className="min-w-0">
-                    <h2 className="mb-3 text-base font-medium">{labels.cascade}</h2>
+                    <h2 className="mb-3 text-base font-medium">
+                        {labels.cascade}
+                    </h2>
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-sm">
                             <tbody>
                                 {cascade.map((bar) => (
                                     <tr key={bar.key} className="border-b">
-                                        <th className="px-2 py-2 text-left font-medium">{bar.label}</th>
-                                        <td className="px-2 py-2 text-right tabular-nums">{bar.value}</td>
+                                        <th className="px-2 py-2 text-left font-medium">
+                                            {bar.label}
+                                        </th>
+                                        <td className="px-2 py-2 text-right tabular-nums">
+                                            {bar.value}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -505,14 +574,21 @@ export function CommandCharts({
                     </div>
                 </section>
                 <section className="min-w-0">
-                    <h2 className="mb-3 text-base font-medium">{labels.monthly}</h2>
+                    <h2 className="mb-3 text-base font-medium">
+                        {labels.monthly}
+                    </h2>
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-sm">
                             <thead>
                                 <tr className="border-b text-left">
-                                    <th className="px-2 py-2 font-medium">{labels.monthly}</th>
+                                    <th className="px-2 py-2 font-medium">
+                                        {labels.monthly}
+                                    </th>
                                     {cascade.map((bar) => (
-                                        <th key={bar.key} className="px-2 py-2 font-medium">
+                                        <th
+                                            key={bar.key}
+                                            className="px-2 py-2 font-medium"
+                                        >
                                             {bar.label}
                                         </th>
                                     ))}
@@ -521,9 +597,14 @@ export function CommandCharts({
                             <tbody>
                                 {months.map((month) => (
                                     <tr key={month.key} className="border-b">
-                                        <th className="px-2 py-2 text-left font-medium">{month.label}</th>
+                                        <th className="px-2 py-2 text-left font-medium">
+                                            {month.label}
+                                        </th>
                                         {cascade.map((bar) => (
-                                            <td key={bar.key} className="px-2 py-2 tabular-nums">
+                                            <td
+                                                key={bar.key}
+                                                className="px-2 py-2 tabular-nums"
+                                            >
                                                 {monthValue(month, bar.key)}
                                             </td>
                                         ))}
@@ -548,7 +629,9 @@ export function CommandCharts({
                 <div className="flex flex-col gap-4">
                     {months.map((month) => (
                         <div key={month.key} className="min-w-0">
-                            <h3 className="mb-2 text-sm font-medium">{month.label}</h3>
+                            <h3 className="mb-2 text-sm font-medium">
+                                {month.label}
+                            </h3>
                             <BarList
                                 items={cascade.map((bar) => ({
                                     key: bar.key,
@@ -582,7 +665,11 @@ function monthValue(month: MonthPoint, key: CascadeKey): number {
     }
 }
 
-function BarList({ items }: { items: { key: string; label: string; value: number }[] }) {
+function BarList({
+    items,
+}: {
+    items: { key: string; label: string; value: number }[];
+}) {
     const max = Math.max(1, ...items.map((item) => item.value));
 
     return (
@@ -591,12 +678,16 @@ function BarList({ items }: { items: { key: string; label: string; value: number
                 <div key={item.key} className="min-w-0">
                     <div className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="min-w-0">{item.label}</span>
-                        <span className="shrink-0 tabular-nums">{item.value}</span>
+                        <span className="shrink-0 tabular-nums">
+                            {item.value}
+                        </span>
                     </div>
                     <div className="mt-1 h-2 rounded bg-muted">
                         <div
                             className={`h-2 rounded ${tones[index % tones.length]}`}
-                            style={{ width: `${Math.min(100, (item.value / max) * 100)}%` }}
+                            style={{
+                                width: `${Math.min(100, (item.value / max) * 100)}%`,
+                            }}
                         />
                     </div>
                 </div>
@@ -605,7 +696,10 @@ function BarList({ items }: { items: { key: string; label: string; value: number
     );
 }
 
-export function useChartMode(): ['graph' | 'table', (mode: 'graph' | 'table') => void] {
+export function useChartMode(): [
+    'graph' | 'table',
+    (mode: 'graph' | 'table') => void,
+] {
     const [mode, setMode] = useState<'graph' | 'table'>('graph');
 
     return [mode, setMode];
@@ -630,12 +724,17 @@ export function DistrictTable({
     const path = pathOf(page.url);
 
     function onSort(key: string) {
-        const nextDirection = sort === key && direction === 'asc' ? 'desc' : 'asc';
+        const nextDirection =
+            sort === key && direction === 'asc' ? 'desc' : 'asc';
 
-        router.get(path, queryFrom(filters, { sort: key, direction: nextDirection }), {
-            preserveState: true,
-            preserveScroll: true,
-        });
+        router.get(
+            path,
+            queryFrom(filters, { sort: key, direction: nextDirection }),
+            {
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
     }
 
     return (
@@ -645,7 +744,9 @@ export function DistrictTable({
                     <li key={row.id} className="rounded-lg border p-3">
                         {columns.map((column) => (
                             <div key={column.key} className="py-1">
-                                <div className="text-sm text-muted-foreground">{column.label}</div>
+                                <div className="text-sm text-muted-foreground">
+                                    {column.label}
+                                </div>
                                 <div>
                                     {column.key === columns[0]?.key ? (
                                         <Link
@@ -664,20 +765,38 @@ export function DistrictTable({
                 ))}
             </ul>
 
-            <div className={rows.length === 0 ? 'overflow-x-auto' : 'hidden overflow-x-auto md:block'}>
-                <table className="w-full border-collapse text-sm" data-test="district-table">
+            <div
+                className={
+                    rows.length === 0
+                        ? 'overflow-x-auto'
+                        : 'hidden overflow-x-auto md:block'
+                }
+            >
+                <table
+                    className="w-full border-collapse text-sm"
+                    data-test="district-table"
+                >
                     <thead>
                         <tr className="border-b text-left">
                             {columns.map((column) => (
-                                <th key={column.key} className="px-2 py-2 font-medium">
+                                <th
+                                    key={column.key}
+                                    className="px-2 py-2 font-medium"
+                                >
                                     <button
                                         type="button"
                                         className="underline-offset-2 hover:underline"
                                         onClick={() => onSort(column.key)}
                                     >
                                         {column.label}
-                                        {sort === column.key ? (direction === 'asc' ? ' ↑' : ' ↓') : ''}
-                                        <span className="sr-only">{labels.sort}</span>
+                                        {sort === column.key
+                                            ? direction === 'asc'
+                                                ? ' ↑'
+                                                : ' ↓'
+                                            : ''}
+                                        <span className="sr-only">
+                                            {labels.sort}
+                                        </span>
                                     </button>
                                 </th>
                             ))}
@@ -686,7 +805,10 @@ export function DistrictTable({
                     <tbody>
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length} className="px-2 py-4 text-sm text-muted-foreground">
+                                <td
+                                    colSpan={columns.length}
+                                    className="px-2 py-4 text-sm text-muted-foreground"
+                                >
                                     {labels.empty}
                                 </td>
                             </tr>
@@ -694,13 +816,17 @@ export function DistrictTable({
                             rows.map((row) => (
                                 <tr key={row.id} className="border-b align-top">
                                     {columns.map((column) => (
-                                        <td key={column.key} className="px-2 py-2">
+                                        <td
+                                            key={column.key}
+                                            className="px-2 py-2"
+                                        >
                                             {column.key === columns[0]?.key ? (
                                                 <Link
                                                     href={row.href}
                                                     className="font-medium underline-offset-2 hover:underline"
                                                 >
-                                                    {row.cells[column.key] ?? ''}
+                                                    {row.cells[column.key] ??
+                                                        ''}
                                                 </Link>
                                             ) : (
                                                 row.cells[column.key]

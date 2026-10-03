@@ -53,11 +53,13 @@ class DailyReturnController extends Controller
 
         $provisionalAverage = ProvisionalReportedTat::average($yearReturns);
 
-        $screeningSuspects = ScreeningSession::query()
-            ->where('facility_id', $facility->id)
-            ->whereDate('occurred_on', $reportedOn->toDateString())
-            ->where('is_suspect', true)
-            ->count();
+        $screeningSuspects = config('tbai.features.screening')
+            ? ScreeningSession::query()
+                ->where('facility_id', $facility->id)
+                ->whereDate('occurred_on', $reportedOn->toDateString())
+                ->where('is_suspect', true)
+                ->count()
+            : null;
 
         $canSeeHistory = $dates->canSeeHistory($user, $current_team);
         $today = EntryDate::now()->startOfDay();
@@ -219,9 +221,7 @@ class DailyReturnController extends Controller
                 }
 
                 return [
-                    'changedAt' => $revision->changed_at
-                        ->timezone((string) config('app.timezone'))
-                        ->format('j M Y, H:i'),
+                    'changedAt' => EntryDate::dateTime($revision->changed_at),
                     'changedBy' => $revision->editor->name,
                     'changes' => $changes,
                 ];

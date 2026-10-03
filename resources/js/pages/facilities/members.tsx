@@ -10,7 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
-import type { PageLinks, RowAction, SummaryCard, TeamAreaHeader } from '@/types/team-area';
+import type {
+    PageLinks,
+    RowAction,
+    SummaryCard,
+    TeamAreaHeader,
+} from '@/types/team-area';
 
 type Option = {
     value: string;
@@ -63,7 +68,7 @@ type Props = {
 
 function RoleBadge({ label }: { label: string }) {
     return (
-        <span className="inline-flex rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
+        <span className="inline-flex rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand dark:bg-indigo-400/15 dark:text-indigo-200">
             {label}
         </span>
     );
@@ -74,7 +79,9 @@ function LastActive({ member }: { member: Member }) {
         <span
             className={cn(
                 'inline-flex items-center gap-2 text-sm',
-                member.activeNow ? 'font-medium text-success' : 'text-muted-foreground',
+                member.activeNow
+                    ? 'font-medium text-success'
+                    : 'text-muted-foreground',
             )}
         >
             <span
@@ -100,8 +107,12 @@ function MemberIdentity({ member }: { member: Member }) {
                 </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-                <p className="truncate font-medium text-foreground">{member.name}</p>
-                <p className="truncate text-sm text-muted-foreground">{member.email}</p>
+                <p className="truncate font-medium text-foreground">
+                    {member.name}
+                </p>
+                <p className="truncate text-sm text-muted-foreground">
+                    {member.email}
+                </p>
             </div>
         </div>
     );
@@ -158,7 +169,9 @@ export default function FacilityMembers({
 
                 <section className="flex flex-col gap-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <h2 className="text-lg font-semibold text-foreground">{labels.current}</h2>
+                        <h2 className="text-lg font-semibold text-foreground">
+                            {labels.current}
+                        </h2>
                         <form
                             className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center"
                             onSubmit={onFilter}
@@ -176,10 +189,13 @@ export default function FacilityMembers({
                                     name="role"
                                     defaultValue={filters.role}
                                     aria-label={labels.role}
-                                    className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm lg:w-44"
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-base md:text-sm lg:w-44"
                                 >
                                     {roleOptions.map((option) => (
-                                        <option key={`role-${option.value}`} value={option.value}>
+                                        <option
+                                            key={`role-${option.value}`}
+                                            value={option.value}
+                                        >
                                             {option.label}
                                         </option>
                                     ))}
@@ -191,10 +207,13 @@ export default function FacilityMembers({
                                     name="status"
                                     defaultValue={filters.status}
                                     aria-label={labels.status}
-                                    className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm lg:w-36"
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-base md:text-sm lg:w-36"
                                 >
                                     {statusOptions.map((option) => (
-                                        <option key={`status-${option.value}`} value={option.value}>
+                                        <option
+                                            key={`status-${option.value}`}
+                                            value={option.value}
+                                        >
                                             {option.label}
                                         </option>
                                     ))}
@@ -206,7 +225,11 @@ export default function FacilityMembers({
                                     type="button"
                                     variant="outline"
                                     onClick={() =>
-                                        router.get(window.location.pathname, {}, { preserveScroll: true })
+                                        router.get(
+                                            window.location.pathname,
+                                            {},
+                                            { preserveScroll: true },
+                                        )
                                     }
                                 >
                                     {labels.clear}
@@ -216,7 +239,9 @@ export default function FacilityMembers({
                     </div>
 
                     {members.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">{labels.empty}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {labels.empty}
+                        </p>
                     ) : (
                         <>
                             <ul className="space-y-3 md:hidden">
@@ -228,10 +253,15 @@ export default function FacilityMembers({
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <MemberIdentity member={member} />
-                                            <RowActions actions={member.actions} label={labels.actions} />
+                                            <RowActions
+                                                actions={member.actions}
+                                                label={labels.actions}
+                                            />
                                         </div>
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            <RoleBadge label={member.roleLabel} />
+                                            <RoleBadge
+                                                label={member.roleLabel}
+                                            />
                                             {member.inactive ? (
                                                 <span className="text-xs font-medium text-muted-foreground">
                                                     {labels.inactive}
@@ -249,15 +279,31 @@ export default function FacilityMembers({
                                 <table className="w-full border-collapse text-sm">
                                     <thead>
                                         <tr className="border-b text-left">
-                                            <th className="px-4 py-3 font-medium">{labels.member}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.email}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.role}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.facility}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.returns}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.joined}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.lastActive}</th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.member}
+                                            </th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.email}
+                                            </th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.role}
+                                            </th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.facility}
+                                            </th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.returns}
+                                            </th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.joined}
+                                            </th>
+                                            <th className="px-4 py-3 font-medium">
+                                                {labels.lastActive}
+                                            </th>
                                             <th className="px-4 py-3">
-                                                <span className="sr-only">{labels.actions}</span>
+                                                <span className="sr-only">
+                                                    {labels.actions}
+                                                </span>
                                             </th>
                                         </tr>
                                     </thead>
@@ -269,26 +315,42 @@ export default function FacilityMembers({
                                                 className="border-b last:border-0"
                                             >
                                                 <td className="px-4 py-3">
-                                                    <MemberIdentity member={member} />
+                                                    <MemberIdentity
+                                                        member={member}
+                                                    />
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">{member.email}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {member.email}
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col items-start gap-1">
-                                                        <RoleBadge label={member.roleLabel} />
+                                                        <RoleBadge
+                                                            label={
+                                                                member.roleLabel
+                                                            }
+                                                        />
                                                         {member.inactive ? (
                                                             <span className="text-xs text-muted-foreground">
-                                                                {labels.inactive}
+                                                                {
+                                                                    labels.inactive
+                                                                }
                                                             </span>
                                                         ) : null}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">{area.teamName}</td>
-                                                <td className="px-4 py-3">{member.returnsThisMonth}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {area.teamName}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {member.returnsThisMonth}
+                                                </td>
                                                 <td className="px-4 py-3 text-muted-foreground">
                                                     {member.joined}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <LastActive member={member} />
+                                                    <LastActive
+                                                        member={member}
+                                                    />
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <RowActions
@@ -314,7 +376,12 @@ export default function FacilityMembers({
 
             {area.canInvite ? (
                 <InviteMemberModal
-                    team={{ id: 0, name: area.teamName, slug: area.teamSlug, isPersonal: false }}
+                    team={{
+                        id: 0,
+                        name: area.teamName,
+                        slug: area.teamSlug,
+                        isPersonal: false,
+                    }}
                     availableRoles={area.inviteRoles}
                     open={inviteOpen}
                     onOpenChange={setInviteOpen}

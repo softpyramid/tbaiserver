@@ -154,6 +154,8 @@ test('a tb-ai admin can edit a facility from administration and the change is au
 });
 
 test('a facility owner can edit the profile and cannot create one', function () {
+    enableFeature('screening');
+
     $owner = User::factory()->create();
     $facility = Facility::factory()->create();
     joinFacility($owner, $facility, TeamRole::Owner);
@@ -198,6 +200,8 @@ test('a facility owner can edit the profile and cannot create one', function () 
 });
 
 test('a technician cannot edit or create a facility profile', function () {
+    enableFeature('screening');
+
     $member = User::factory()->create();
     $facility = Facility::factory()->create();
     joinFacility($member, $facility, TeamRole::Member);

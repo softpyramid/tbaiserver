@@ -1,4 +1,4 @@
-import { Form, Head, Link, router, usePage } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { LogOut } from 'lucide-react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
@@ -7,6 +7,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { clearClientSession } from '@/lib/sign-out';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
@@ -35,8 +36,9 @@ export default function Profile({
                     <Link
                         href={logout()}
                         as="button"
+                        replace
                         data-test="account-logout"
-                        onClick={() => router.flushAll()}
+                        onClick={clearClientSession}
                     >
                         <LogOut className="mr-2 size-4" />
                         Log out

@@ -1,12 +1,12 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { facilityTabs, isTabActive, useNavProps } from '@/lib/entry-nav';
 import { useEntryI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 export function FacilityTabBar() {
-    const page = usePage();
     const { t } = useEntryI18n();
-    const tabs = facilityTabs(useNavProps());
+    const navProps = useNavProps();
+    const tabs = facilityTabs(navProps);
 
     return (
         <nav
@@ -22,7 +22,7 @@ export function FacilityTabBar() {
                 }}
             >
                 {tabs.map((tab) => {
-                    const active = isTabActive(tab, page.url);
+                    const active = isTabActive(tab, navProps.activeTab);
                     const Icon = tab.icon;
 
                     return (

@@ -86,7 +86,7 @@ class SidebarNavigation
      */
     private function commandItems(): array
     {
-        return [
+        $items = [
             $this->link('command', __('entry.cumulative_title'), route('command.index')),
             $this->parent('registered', __('entry.nav_registered'), [
                 $this->child('public', Sector::Public->label(), route('command.sectors.show', ['sector' => Sector::Public->value])),
@@ -95,11 +95,20 @@ class SidebarNavigation
             ]),
             $this->link('command_map', __('entry.command_map'), route('command.map')),
             $this->link('command_alerts', __('entry.command_alerts'), route('command.alerts')),
-            $this->link('command_drivers', __('entry.nav_drivers'), route('command.drivers')),
-            $this->link('command_incidence', __('entry.incidence_title'), route('command.incidence')),
-            $this->link('daily_returns', __('entry.nav_daily_returns'), route('command.returns')),
-            $this->link('account', __('entry.nav_account'), route('profile.edit')),
         ];
+
+        if (config('tbai.features.drivers')) {
+            $items[] = $this->link('command_drivers', __('entry.nav_drivers'), route('command.drivers'));
+        }
+
+        if (config('tbai.features.incidence')) {
+            $items[] = $this->link('command_incidence', __('entry.incidence_title'), route('command.incidence'));
+        }
+
+        $items[] = $this->link('daily_returns', __('entry.nav_daily_returns'), route('command.returns'));
+        $items[] = $this->link('account', __('entry.nav_account'), route('profile.edit'));
+
+        return $items;
     }
 
     /**
@@ -119,16 +128,18 @@ class SidebarNavigation
             ->count();
         $badge = $pending > 0 ? $pending : null;
 
+        $dataChildren = [
+            $this->child('daily_returns', __('entry.nav_daily_returns'), route('admin.daily-returns.index')),
+            $this->child('revisions', __('entry.nav_revisions'), route('admin.revisions.index')),
+        ];
+
+        if (config('tbai.features.screening')) {
+            $dataChildren[] = $this->child('screening_sessions', __('entry.nav_screening_sessions'), route('admin.screening-sessions.index'));
+        }
+
         return [
-            $this->parent('facilities', __('entry.nav_facilities'), [
-                $this->child('all_facilities', __('entry.nav_all_facilities'), route('facilities.index')),
-                $this->child('add_facility', __('entry.nav_add_facility'), route('facilities.create')),
-            ]),
-            $this->parent('data', __('entry.nav_data'), [
-                $this->child('daily_returns', __('entry.nav_daily_returns'), route('admin.daily-returns.index')),
-                $this->child('revisions', __('entry.nav_revisions'), route('admin.revisions.index')),
-                $this->child('screening_sessions', __('entry.nav_screening_sessions'), route('admin.screening-sessions.index')),
-            ]),
+            $this->link('facilities', __('entry.nav_all_facilities'), route('facilities.index')),
+            $this->parent('data', __('entry.nav_data'), $dataChildren),
             $this->parent('people', __('entry.nav_people'), [
                 $this->child('users', __('entry.nav_users'), route('admin.users.index')),
                 $this->child('programme_assignments', __('entry.nav_programme_assignments'), route('admin.programme-assignments.index')),
@@ -159,7 +170,10 @@ class SidebarNavigation
             $items[] = $this->link('returns_history', __('entry.nav_returns_history'), route('returns.history', $facilityTeam));
         }
 
-        $items[] = $this->link('screening', __('entry.nav_screening'), route('screening.create', $facilityTeam));
+        if (config('tbai.features.screening')) {
+            $items[] = $this->link('screening', __('entry.nav_screening'), route('screening.create', $facilityTeam));
+        }
+
         $items[] = $this->link('my_facility', __('entry.nav_facility'), route('facilities.home', $facilityTeam));
 
         if ($role === TeamRole::Owner || $role === TeamRole::Admin) {

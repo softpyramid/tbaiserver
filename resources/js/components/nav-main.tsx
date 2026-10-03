@@ -27,6 +27,7 @@ export type NavEntry = {
     href: string | null;
     badge: number | null;
     expanded: boolean;
+    current?: boolean;
     children: NavChild[];
 };
 
@@ -107,9 +108,11 @@ export function NavMain({
         <>
             {groups.map((group) => (
                 <SidebarGroup key={group.key} className="px-2 py-0">
-                    <SidebarGroupLabel className="uppercase tracking-wide">
-                        {group.label}
-                    </SidebarGroupLabel>
+                    {group.label !== '' ? (
+                        <SidebarGroupLabel className="tracking-wide uppercase">
+                            {group.label}
+                        </SidebarGroupLabel>
+                    ) : null}
                     <SidebarMenu>
                         {group.items.map((item) => (
                             <NavRow
@@ -192,7 +195,9 @@ function NavRow({
                 >
                     {Icon ? <Icon /> : null}
                     <span>{item.label}</span>
-                    {!open && pending > 0 ? <CountBadge count={pending} /> : null}
+                    {!open && pending > 0 ? (
+                        <CountBadge count={pending} />
+                    ) : null}
                     <ChevronRight
                         aria-hidden="true"
                         className={cn(
@@ -209,7 +214,10 @@ function NavRow({
                         open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
                     )}
                 >
-                    <div className="overflow-hidden" inert={open ? undefined : true}>
+                    <div
+                        className="overflow-hidden"
+                        inert={open ? undefined : true}
+                    >
                         <SidebarMenuSub>
                             {item.children.map((child) => {
                                 const active = itemIsActive(
@@ -252,9 +260,9 @@ function NavRow({
         );
     }
 
-    const active = item.href
-        ? itemIsActive(item.href, page.url, hrefs)
-        : false;
+    const active =
+        item.current ??
+        (item.href ? itemIsActive(item.href, page.url, hrefs) : false);
 
     return (
         <SidebarMenuItem>
@@ -328,7 +336,9 @@ function readStored(userId: number | undefined): string[] | null {
             return null;
         }
 
-        return parsed.filter((item): item is string => typeof item === 'string');
+        return parsed.filter(
+            (item): item is string => typeof item === 'string',
+        );
     } catch {
         return null;
     }
@@ -337,7 +347,8 @@ function readStored(userId: number | undefined): string[] | null {
 function pathnameOf(href: string): string {
     const withoutQuery = href.split('?')[0] ?? href;
     const path =
-        withoutQuery.startsWith('http://') || withoutQuery.startsWith('https://')
+        withoutQuery.startsWith('http://') ||
+        withoutQuery.startsWith('https://')
             ? new URL(withoutQuery).pathname
             : withoutQuery;
 
@@ -348,7 +359,11 @@ function pathnameOf(href: string): string {
     return path;
 }
 
-function itemIsActive(href: string, currentPath: string, hrefs: string[]): boolean {
+function itemIsActive(
+    href: string,
+    currentPath: string,
+    hrefs: string[],
+): boolean {
     const target = pathnameOf(href);
     const path = pathnameOf(currentPath);
     const matches = path === target || path.startsWith(`${target}/`);

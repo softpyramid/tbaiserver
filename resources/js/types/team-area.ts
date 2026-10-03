@@ -16,6 +16,7 @@ export type SummaryCard = {
 
 export type TeamAreaHeader = {
     title: string;
+    section: string;
     description: string;
     tabsLabel: string;
     teamName: string;

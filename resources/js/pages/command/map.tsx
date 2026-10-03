@@ -74,6 +74,8 @@ type Props = {
     topHeading: string;
     chooseDistrict: string;
     listHeading: string;
+    hiddenMatches?: string[];
+    hiddenNote?: string | null;
 };
 
 function pathOf(url: string): string {
@@ -102,11 +104,14 @@ export default function CommandMap({
     topHeading,
     chooseDistrict,
     listHeading,
+    hiddenMatches = [],
+    hiddenNote = null,
 }: Props) {
     const page = usePage();
     const [pickedId, setPickedId] = useState(selectedId);
     const [unmatchedName, setUnmatchedName] = useState<string | null>(null);
-    const selected = districts.find((district) => district.id === pickedId) ?? null;
+    const selected =
+        districts.find((district) => district.id === pickedId) ?? null;
 
     function onIndicator(value: string) {
         const query: Record<string, string> = { indicator: value };
@@ -117,7 +122,10 @@ export default function CommandMap({
             }
         }
 
-        router.get(pathOf(page.url), query, { preserveState: true, preserveScroll: true });
+        router.get(pathOf(page.url), query, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     }
 
     function onSelect(districtId: string, unmatched: string | null) {
@@ -148,7 +156,10 @@ export default function CommandMap({
             preserved={{ indicator }}
         >
             <p data-test="indicative-boundaries">{boundaries}</p>
-            <p className="text-sm text-muted-foreground" data-test="map-attribution">
+            <p
+                className="text-sm text-muted-foreground"
+                data-test="map-attribution"
+            >
                 {attribution}
             </p>
 
@@ -158,7 +169,16 @@ export default function CommandMap({
                     districts={districts}
                     selectedId={pickedId}
                     onSelect={onSelect}
+                    hiddenMatches={hiddenMatches}
                 />
+                {hiddenNote ? (
+                    <p
+                        className="mt-3 text-sm text-muted-foreground"
+                        data-test="map-hidden-note"
+                    >
+                        {hiddenNote}
+                    </p>
+                ) : null}
             </section>
 
             {selected ? (
@@ -171,7 +191,9 @@ export default function CommandMap({
                 />
             ) : (
                 <p className="text-sm text-muted-foreground">
-                    {unmatchedName ? `${unmatchedName}. ${labels.empty}` : chooseDistrict}
+                    {unmatchedName
+                        ? `${unmatchedName}. ${labels.empty}`
+                        : chooseDistrict}
                 </p>
             )}
 
@@ -197,12 +219,23 @@ function DistrictCard({
     labels: CommandLabels;
 }) {
     return (
-        <section className="flex min-w-0 flex-col gap-4 rounded-lg border p-4" data-test="district-card">
-            <h2 className="text-lg font-semibold break-words">{district.name}</h2>
+        <section
+            className="flex min-w-0 flex-col gap-4 rounded-lg border p-4"
+            data-test="district-card"
+        >
+            <h2 className="text-lg font-semibold break-words">
+                {district.name}
+            </h2>
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {district.lines.map((line) => (
-                    <div key={line.key} className="min-w-0" data-test={`figure-${line.key}`}>
-                        <dt className="text-sm text-muted-foreground">{line.label}</dt>
+                    <div
+                        key={line.key}
+                        className="min-w-0"
+                        data-test={`figure-${line.key}`}
+                    >
+                        <dt className="text-sm text-muted-foreground">
+                            {line.label}
+                        </dt>
                         <dd className="break-words">{line.value}</dd>
                     </div>
                 ))}
@@ -211,13 +244,25 @@ function DistrictCard({
             <div className="min-w-0">
                 <h3 className="mb-2 text-base font-medium">{topHeading}</h3>
                 {top.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{labels.empty}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {labels.empty}
+                    </p>
                 ) : (
-                    <ol className="flex flex-col gap-1 text-sm" data-test="map-top">
+                    <ol
+                        className="flex flex-col gap-1 text-sm"
+                        data-test="map-top"
+                    >
                         {top.map((item) => (
-                            <li key={item.id} className="flex min-w-0 justify-between gap-3">
-                                <span className="min-w-0 break-words">{item.name}</span>
-                                <span className="shrink-0 tabular-nums">{item.display}</span>
+                            <li
+                                key={item.id}
+                                className="flex min-w-0 justify-between gap-3"
+                            >
+                                <span className="min-w-0 break-words">
+                                    {item.name}
+                                </span>
+                                <span className="shrink-0 tabular-nums">
+                                    {item.display}
+                                </span>
                             </li>
                         ))}
                     </ol>
@@ -235,7 +280,8 @@ function DistrictCard({
                         >
                             <span className="font-medium">{month.label}</span>
                             <span className="text-right tabular-nums">
-                                {month.suspects} / {month.tested} / {month.positive} / {month.started_treatment}
+                                {month.suspects} / {month.tested} /{' '}
+                                {month.positive} / {month.started_treatment}
                             </span>
                         </li>
                     ))}

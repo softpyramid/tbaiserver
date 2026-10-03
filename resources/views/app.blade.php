@@ -34,12 +34,20 @@
         <link rel="icon" href="/logo.png" type="image/png">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+        <meta name="robots" content="noindex, nofollow">
+        <meta name="description" content="TB-AI is in development as decision support for tuberculosis microscopy and as a daily TB register. The microscopist makes the final call.">
+        <meta property="og:title" content="TB-AI | TB register and decision support">
+        <meta property="og:description" content="TB-AI is in development as decision support for tuberculosis microscopy and as a daily TB register. The microscopist makes the final call.">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <link rel="canonical" href="{{ url()->current() }}">
+
         @fonts
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>TB-AI | TB register and decision support</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

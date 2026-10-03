@@ -1,48 +1,61 @@
 <?php
 
-use App\Enums\TeamRole;
-use App\Models\Team;
-use App\Models\TeamInvitation;
+use App\Models\AccessRequest;
 use App\Models\User;
-use Inertia\Testing\AssertableInertia as Assert;
 
-test('registration screen can be rendered', function () {
-    $response = $this->get(route('register'));
-
-    $response->assertOk();
+test('the register address shows the request access form', function () {
+    $this->get('/register')
+        ->assertRedirect('/request-access');
 });
 
-test('registration screen includes team invitation context', function () {
-    $owner = User::factory()->create();
-    $team = Team::factory()->create(['name' => 'Laravel Team']);
-    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+test('the request access screen can be rendered', function () {
+    $this->get(route('access-requests.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('access-request'));
+});
 
-    $invitation = TeamInvitation::factory()->create([
-        'team_id' => $team->id,
-        'email' => 'invited@example.com',
-        'invited_by' => $owner->id,
+test('an access request is stored for review and does not create an account', function () {
+    $response = $this->post(route('access-requests.store'), [
+        'name' => 'Ayesha Khan',
+        'role' => 'Lab technician',
+        'organisation' => 'Thatta BMU',
+        'district' => 'Thatta',
+        'email' => 'ayesha@example.com',
     ]);
 
-    $response = $this->get(route('register', ['invitation' => $invitation->code]));
+    $response->assertRedirect(route('access-requests.create'));
+    $this->assertGuest();
 
-    $response->assertOk();
-    $response->assertInertia(fn (Assert $page) => $page
-        ->component('auth/register')
-        ->where('teamInvitation.code', $invitation->code)
-        ->where('teamInvitation.teamName', 'Laravel Team'),
-    );
+    $this->assertDatabaseHas('access_requests', [
+        'name' => 'Ayesha Khan',
+        'role' => 'Lab technician',
+        'organisation' => 'Thatta BMU',
+        'district' => 'Thatta',
+        'email' => 'ayesha@example.com',
+    ]);
+
+    expect(User::query()->count())->toBe(0);
+    expect(AccessRequest::query()->count())->toBe(1);
 });
 
-test('new users can register', function () {
-    $response = $this->post(route('register.store'), [
+test('an access request requires a name, role, organisation, district, and email', function () {
+    $response = $this->from(route('access-requests.create'))
+        ->post(route('access-requests.store'), []);
+
+    $response->assertRedirect(route('access-requests.create'));
+    $response->assertSessionHasErrors(['name', 'role', 'organisation', 'district', 'email']);
+    $this->assertGuest();
+    expect(AccessRequest::query()->count())->toBe(0);
+});
+
+test('posting to the old register address does not create an account', function () {
+    $this->post('/register', [
         'name' => 'Test User',
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
-    ]);
+    ])->assertRedirect('/request-access');
 
-    $this->assertAuthenticated();
-
-    $user = User::where('email', 'test@example.com')->first();
-    $response->assertRedirect(route('dashboard'));
+    $this->assertGuest();
+    expect(User::query()->count())->toBe(0);
 });

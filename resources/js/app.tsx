@@ -7,12 +7,16 @@ import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'TB-AI';
+const siteTitle = 'TB-AI | TB register and decision support';
 
 void createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => (title ? `${title} - ${appName}` : siteTitle),
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+            case name === 'privacy':
+            case name === 'terms':
+            case name === 'access-request':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

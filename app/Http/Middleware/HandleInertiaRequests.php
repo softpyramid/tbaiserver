@@ -8,6 +8,7 @@ use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Support\DataScope;
 use App\Support\FacilityTabs;
+use App\Support\Impersonation;
 use App\Support\NavigationShell;
 use App\Support\RoleHome;
 use App\Support\SidebarNavigation;
@@ -89,6 +90,15 @@ class HandleInertiaRequests extends Middleware
                 : null,
             'myFacilityUrl' => $user !== null && $facilityTeam !== null && ($isTbaiAdmin || $user->belongsToTeam($facilityTeam))
                 ? route('facilities.home', ['current_team' => $facilityTeam->slug])
+                : null,
+            'impersonation' => $user instanceof User && app(Impersonation::class)->active($request)
+                ? [
+                    'name' => $user->name,
+                    'stopUrl' => route('impersonation.stop'),
+                    'banner' => __('entry.impersonation_banner', ['name' => $user->name]),
+                    'returnLabel' => __('entry.impersonation_return'),
+                    'stopLabel' => __('entry.impersonation_stop'),
+                ]
                 : null,
             'nav' => $this->navigation($request, $user, $facilityTeam),
             'i18n' => [

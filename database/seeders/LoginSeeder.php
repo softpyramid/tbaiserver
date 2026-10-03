@@ -3,41 +3,67 @@
 namespace Database\Seeders;
 
 use App\Enums\ProgrammeRole;
+use App\Enums\ScopeType;
 use App\Enums\TeamRole;
+use App\Models\City;
+use App\Models\Country;
 use App\Models\ProgrammeAssignment;
+use App\Models\Province;
 use App\Models\Team;
 use App\Models\User;
+use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
 class LoginSeeder extends Seeder
 {
+    use SkipsOutsideLocalDevStaging;
+
     /**
-     * Seed verified accounts that can sign in.
+     * Seed one verified account per role for local, dev, and staging.
      *
-     * Safe to run again. Re-running resets these accounts' passwords.
+     * Safe to run again. Re-running resets these accounts' passwords and
+     * does not remove other users. Skips production and every environment
+     * other than local, dev, and staging.
      *
      *   php artisan db:seed --class=LoginSeeder
      *
-     * Outside local and testing, set SEED_LOGIN_PASSWORD in the environment
-     * before running. When config is cached, the cached value is used.
+     * Password is "password" unless SEED_LOGIN_PASSWORD is set.
+     * When config is cached, the cached value is used.
+     * Facility ownership and sample returns are seeded next by FacilitySeeder.
      */
     public function run(): void
     {
+        if ($this->skipsOutsideLocalDevStaging()) {
+            return;
+        }
+
         $password = $this->password();
 
-        foreach ($this->accounts() as $account) {
-            $user = User::query()->firstOrNew([
-                'email' => $account['email'],
-            ]);
+        $this->call(GeographySeeder::class);
 
-            $user->name = $account['name'];
-            $user->password = $password;
-            $user->email_verified_at ??= now();
-            $user->save();
+        foreach ($this->accounts() as $account) {
+            $user = User::query()->updateOrCreate(
+                ['email' => $account['email']],
+                [
+                    'name' => $account['name'],
+                    'password' => $password,
+                ],
+            );
+
+            if ($user->email_verified_at === null) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
 
             $this->ensurePersonalTeam($user);
-            $this->ensureProgrammeAdmin($user, $account['programme_admin']);
+
+            if ($account['programme_admin']) {
+                $this->ensureProgrammeAdmin($user);
+            }
+
+            if ($account['role'] instanceof ProgrammeRole && is_string($account['scope_slug'])) {
+                $this->ensureScopedAssignment($user, $account['role'], $account['scope_slug']);
+            }
         }
 
         $this->command?->info('Login accounts ready:');
@@ -48,53 +74,96 @@ class LoginSeeder extends Seeder
 
         if ($this->usesDefaultPassword()) {
             $this->command?->comment('Sign in with password: password');
-
-            return;
+        } else {
+            $this->command?->comment('Sign in with the SEED_LOGIN_PASSWORD value from the server environment.');
         }
 
-        $this->command?->comment('Sign in with the SEED_LOGIN_PASSWORD value from the server environment.');
+        $this->call(FacilitySeeder::class);
     }
 
     /**
-     * @return list<array{name: string, email: string, programme_admin: bool}>
+     * @return list<array{name: string, email: string, programme_admin: bool, role: ProgrammeRole|null, scope_slug: string|null}>
      */
     private function accounts(): array
+    {
+        $accounts = [
+            [
+                'name' => 'TB-AI Admin',
+                'email' => 'admin@tbai.test',
+                'programme_admin' => true,
+                'role' => null,
+                'scope_slug' => null,
+            ],
+            [
+                'name' => 'TB-AI Member',
+                'email' => 'member@tbai.test',
+                'programme_admin' => false,
+                'role' => null,
+                'scope_slug' => null,
+            ],
+            [
+                'name' => 'Karachi West In-charge',
+                'email' => 'incharge@tbai.test',
+                'programme_admin' => false,
+                'role' => null,
+                'scope_slug' => null,
+            ],
+            [
+                'name' => 'Country Viewer',
+                'email' => 'country@tbai.test',
+                'programme_admin' => false,
+                'role' => ProgrammeRole::CountryViewer,
+                'scope_slug' => 'pakistan',
+            ],
+            [
+                'name' => 'Provincial Viewer',
+                'email' => 'sindh@tbai.test',
+                'programme_admin' => false,
+                'role' => ProgrammeRole::ProvincialViewer,
+                'scope_slug' => 'sindh',
+            ],
+            [
+                'name' => 'Karachi West Officer',
+                'email' => 'karachi-west@tbai.test',
+                'programme_admin' => false,
+                'role' => ProgrammeRole::CityOfficer,
+                'scope_slug' => 'karachi-west',
+            ],
+        ];
+
+        $configured = $this->configuredAdminEmail();
+
+        if ($configured !== null && $configured !== 'admin@tbai.test') {
+            $accounts[] = [
+                'name' => 'TB-AI Admin',
+                'email' => $configured,
+                'programme_admin' => true,
+                'role' => null,
+                'scope_slug' => null,
+            ];
+        }
+
+        return $accounts;
+    }
+
+    private function configuredAdminEmail(): ?string
     {
         $adminEmail = config('access.admin_email');
         $adminEmail = is_string($adminEmail) ? strtolower(trim($adminEmail)) : '';
 
         if (filter_var($adminEmail, FILTER_VALIDATE_EMAIL) === false) {
-            $adminEmail = 'admin@tbai.test';
+            return null;
         }
 
-        $accounts = [
-            ['name' => 'TB-AI Admin', 'email' => $adminEmail, 'programme_admin' => true],
-            ['name' => 'TB-AI Member', 'email' => 'member@tbai.test', 'programme_admin' => false],
-        ];
-
-        $seen = [];
-
-        return array_values(array_filter(
-            $accounts,
-            function (array $account) use (&$seen): bool {
-                if (isset($seen[$account['email']])) {
-                    return false;
-                }
-
-                $seen[$account['email']] = true;
-
-                return true;
-            },
-        ));
+        return $adminEmail;
     }
 
     private function password(): string
     {
         $configured = config('access.seed_login_password');
-        $password = is_string($configured) ? $configured : '';
 
-        if ($password !== '') {
-            return $password;
+        if (is_string($configured) && $configured !== '') {
+            return $configured;
         }
 
         if ($this->usesDefaultPassword()) {
@@ -109,7 +178,7 @@ class LoginSeeder extends Seeder
         $configured = config('access.seed_login_password');
 
         return (! is_string($configured) || $configured === '')
-            && app()->environment('local', 'testing');
+            && app()->environment('local', 'dev', 'staging');
     }
 
     private function ensurePersonalTeam(User $user): void
@@ -130,17 +199,52 @@ class LoginSeeder extends Seeder
         $user->switchTeam($team);
     }
 
-    private function ensureProgrammeAdmin(User $user, bool $programmeAdmin): void
+    /**
+     * Keep an existing TB-AI admin assignment. Do not remove it.
+     */
+    private function ensureProgrammeAdmin(User $user): void
     {
-        if (! $programmeAdmin) {
-            return;
-        }
-
         ProgrammeAssignment::query()->firstOrCreate([
             'user_id' => $user->id,
             'role' => ProgrammeRole::TbaiAdmin,
             'scope_type' => null,
             'scope_id' => null,
         ]);
+    }
+
+    private function ensureScopedAssignment(User $user, ProgrammeRole $role, string $slug): void
+    {
+        [$scopeType, $scopeId] = $this->scope($role, $slug);
+
+        ProgrammeAssignment::query()->firstOrCreate([
+            'user_id' => $user->id,
+            'role' => $role,
+            'scope_type' => $scopeType,
+            'scope_id' => $scopeId,
+        ]);
+    }
+
+    /**
+     * @return array{0: ScopeType, 1: int}
+     */
+    private function scope(ProgrammeRole $role, string $slug): array
+    {
+        $scopeType = $role->scopeType();
+
+        if ($scopeType === null) {
+            throw new RuntimeException('Programme role seed accounts must have a geographic scope.');
+        }
+
+        $id = match ($scopeType) {
+            ScopeType::Country => Country::query()->where('slug', $slug)->value('id'),
+            ScopeType::Province => Province::query()->where('slug', $slug)->value('id'),
+            ScopeType::City => City::query()->where('slug', $slug)->value('id'),
+        };
+
+        if (! is_numeric($id)) {
+            throw new RuntimeException("Missing {$scopeType->value} [{$slug}] for programme role seeding.");
+        }
+
+        return [$scopeType, (int) $id];
     }
 }

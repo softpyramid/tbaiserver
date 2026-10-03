@@ -160,6 +160,7 @@ test('the form opens the return that already exists for that date', function () 
             ->where('earliestDate', null)
             ->where('canChooseDate', true)
             ->where('latestDate', now()->toDateString())
+            ->where('provisionalTat.insufficient', ProvisionalReportedTat::INSUFFICIENT)
             ->where('provisionalTat.helper', ProvisionalReportedTat::HELPER)
             ->where('lastUpdated.name', $owner->name)
             ->where('lastUpdated.at', $dailyReturn->updated_at->timezone('Asia/Karachi')->format('H:i'))
@@ -225,6 +226,25 @@ test('senior technicians can backfill any past date', function () {
         ->assertRedirect();
 
     expect(DailyReturn::query()->count())->toBe(1);
+});
+
+test('turnaround helper stays provisional when the weighted average can be calculated', function () {
+    $owner = User::factory()->create();
+    $facility = Facility::factory()->create();
+    $facility->team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $this->actingAs($owner)
+        ->put(route('returns.update', $facility->team), returnPayload(now()->toDateString()))
+        ->assertRedirect();
+
+    $this->actingAs($owner)
+        ->get(route('returns.today', $facility->team))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('provisionalTat.value', 1.5)
+            ->where('provisionalTat.insufficient', null)
+            ->where('provisionalTat.helper', 'Provisional until the official turnaround formula is confirmed.'),
+        );
 });
 
 test('future dates stay closed', function () {

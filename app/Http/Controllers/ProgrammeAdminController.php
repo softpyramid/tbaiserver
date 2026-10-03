@@ -304,7 +304,7 @@ class ProgrammeAdminController extends Controller
         $query->orderBy('name', $direction);
 
         $columns = [
-            ['key' => 'name', 'label' => __('entry.facility_name')],
+            ['key' => 'name', 'label' => __('entry.column_team')],
             ['key' => 'city', 'label' => __('entry.city')],
             ['key' => 'members', 'label' => __('entry.column_members')],
         ];

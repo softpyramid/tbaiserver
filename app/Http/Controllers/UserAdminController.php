@@ -46,7 +46,7 @@ class UserAdminController extends Controller
         $query->orderBy($sort, $direction);
 
         $columns = [
-            ['key' => 'name', 'label' => __('entry.facility_name')],
+            ['key' => 'name', 'label' => __('entry.column_name')],
             ['key' => 'email', 'label' => __('entry.column_email')],
             ['key' => 'role', 'label' => __('entry.column_role')],
             ['key' => 'team', 'label' => __('entry.column_team')],

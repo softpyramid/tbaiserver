@@ -23,6 +23,11 @@ type Column = {
 
 type Control =
     | {
+          kind: 'link';
+          url: string;
+          label: string;
+      }
+    | {
           kind: 'button';
           url: string;
           method: 'post' | 'patch';
@@ -209,74 +214,89 @@ export default function ResourceIndex({
                     <p className="text-sm text-muted-foreground">{showing}</p>
                 ) : null}
 
-                {rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{labels.empty}</p>
-                ) : (
-                    <>
-                        <ul className="space-y-3 md:hidden">
-                            {rows.map((row) => (
-                                <li key={row.id} className="rounded-lg border p-3">
-                                    <RowBody row={row} columns={columns} />
-                                </li>
-                            ))}
-                        </ul>
+                {rows.length > 0 ? (
+                    <ul className="space-y-3 md:hidden">
+                        {rows.map((row) => (
+                            <li key={row.id} className="rounded-lg border p-3">
+                                <RowBody row={row} columns={columns} />
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
 
-                        <div className="hidden overflow-x-auto md:block">
-                            <table className="w-full border-collapse text-sm">
-                                <thead>
-                                    <tr className="border-b text-left">
+                <div className={rows.length === 0 ? 'overflow-x-auto' : 'hidden overflow-x-auto md:block'}>
+                    <table className="w-full border-collapse text-sm" data-test="resource-table">
+                        <thead>
+                            <tr className="border-b text-left">
+                                {columns.map((column) => (
+                                    <th
+                                        key={column.key}
+                                        className="px-2 py-2 font-medium"
+                                        data-test="resource-column"
+                                    >
+                                        <button
+                                            type="button"
+                                            className="underline-offset-2 hover:underline"
+                                            onClick={() => onSort(column.key)}
+                                        >
+                                            {column.label}
+                                            {sort === column.key
+                                                ? direction === 'asc'
+                                                    ? ' ↑'
+                                                    : ' ↓'
+                                                : ''}
+                                            <span className="sr-only">
+                                                {labels.sort}
+                                            </span>
+                                        </button>
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.length === 0 ? (
+                                <tr>
+                                    <td colSpan={columns.length} className="px-2 py-4">
+                                        <p
+                                            className="text-sm text-muted-foreground"
+                                            data-test="resource-empty"
+                                        >
+                                            {labels.empty}
+                                        </p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                rows.map((row) => (
+                                    <tr key={row.id} className="border-b align-top">
                                         {columns.map((column) => (
-                                            <th key={column.key} className="px-2 py-2 font-medium">
-                                                <button
-                                                    type="button"
-                                                    className="underline-offset-2 hover:underline"
-                                                    onClick={() => onSort(column.key)}
-                                                >
-                                                    {column.label}
-                                                    {sort === column.key
-                                                        ? direction === 'asc'
-                                                            ? ' ↑'
-                                                            : ' ↓'
-                                                        : ''}
-                                                    <span className="sr-only">
-                                                        {labels.sort}
-                                                    </span>
-                                                </button>
-                                            </th>
+                                            <td key={column.key} className="px-2 py-2">
+                                                {column.key === columns[0]?.key ? (
+                                                    <CellLink row={row} value={row.cells[column.key] ?? ''} />
+                                                ) : (
+                                                    row.cells[column.key]
+                                                )}
+                                            </td>
                                         ))}
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {rows.map((row) => (
-                                        <tr key={row.id} className="border-b align-top">
-                                            {columns.map((column) => (
-                                                <td key={column.key} className="px-2 py-2">
-                                                    {column.key === columns[0]?.key ? (
-                                                        <CellLink row={row} value={row.cells[column.key] ?? ''} />
-                                                    ) : (
-                                                        row.cells[column.key]
-                                                    )}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            <div className="mt-4 flex flex-col gap-4">
-                                {rows
-                                    .filter((row) => row.controls.length > 0)
-                                    .map((row) => (
-                                        <div key={`${row.id}-controls`}>
-                                            <p className="text-sm font-medium">
-                                                {row.cells[columns[0]?.key ?? ''] ?? ''}
-                                            </p>
-                                            <Controls controls={row.controls} />
-                                        </div>
-                                    ))}
-                            </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                    {rows.some((row) => row.controls.length > 0) ? (
+                        <div className="mt-4 flex flex-col gap-4">
+                            {rows
+                                .filter((row) => row.controls.length > 0)
+                                .map((row) => (
+                                    <div key={`${row.id}-controls`}>
+                                        <p className="text-sm font-medium">
+                                            {row.cells[columns[0]?.key ?? ''] ?? ''}
+                                        </p>
+                                        <Controls controls={row.controls} />
+                                    </div>
+                                ))}
                         </div>
-                    </>
-                )}
+                    ) : null}
+                </div>
 
                 <div className="flex gap-2">
                     {previousUrl ? (
@@ -334,46 +354,62 @@ function Controls({ controls }: { controls: Control[] }) {
 
     return (
         <div className="flex flex-col gap-2 pt-2">
-            {controls.map((control) =>
-                control.kind === 'select' ? (
-                    <label key={control.url + control.label} className="flex flex-col gap-1 text-sm">
-                        <span>{control.label}</span>
-                        <select
-                            className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm"
-                            defaultValue={control.value}
-                            aria-label={control.label}
-                            onChange={(event) => {
-                                router.visit(control.url, {
-                                    method: control.method,
-                                    data: { [control.name]: event.target.value },
-                                    preserveScroll: true,
-                                });
-                            }}
-                        >
-                            {control.options.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                ) : (
-                    <Button
-                        key={control.url + control.label}
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                            router.visit(control.url, {
-                                method: control.method,
-                                data: fieldData(control.fields),
-                                preserveScroll: true,
-                            });
-                        }}
-                    >
-                        {control.label}
-                    </Button>
-                ),
-            )}
+            {controls.map((control) => {
+                switch (control.kind) {
+                    case 'link':
+                        return (
+                            <Button key={control.url + control.label} variant="outline" asChild>
+                                <Link href={control.url}>{control.label}</Link>
+                            </Button>
+                        );
+                    case 'select':
+                        return (
+                            <label key={control.url + control.label} className="flex flex-col gap-1 text-sm">
+                                <span>{control.label}</span>
+                                <select
+                                    className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm"
+                                    defaultValue={control.value}
+                                    aria-label={control.label}
+                                    onChange={(event) => {
+                                        router.visit(control.url, {
+                                            method: control.method,
+                                            data: { [control.name]: event.target.value },
+                                            preserveScroll: true,
+                                        });
+                                    }}
+                                >
+                                    {control.options.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        );
+                    case 'button':
+                        return (
+                            <Button
+                                key={control.url + control.label}
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    router.visit(control.url, {
+                                        method: control.method,
+                                        data: fieldData(control.fields),
+                                        preserveScroll: true,
+                                    });
+                                }}
+                            >
+                                {control.label}
+                            </Button>
+                        );
+                    default: {
+                        const unreachable: never = control;
+
+                        return unreachable;
+                    }
+                }
+            })}
         </div>
     );
 }

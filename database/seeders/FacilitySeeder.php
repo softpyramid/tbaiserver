@@ -7,26 +7,41 @@ use App\Enums\FacilityStatus;
 use App\Enums\Sector;
 use App\Enums\TeamRole;
 use App\Models\City;
+use App\Models\DailyReturn;
 use App\Models\Facility;
 use App\Models\Team;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 
 class FacilitySeeder extends Seeder
 {
+    use SkipsOutsideLocalDevStaging;
+
     /**
      * Seed one public BMU so today's register can be opened.
      *
-     * Safe to run again. Requires the login accounts from LoginSeeder.
-     * Geography is seeded first. The admin is the facility in-charge and
-     * the member account is a technician. Both accounts switch to this team.
+     * Test data. Also seeds five recent daily returns for Karachi West BMU.
+     * There is no notes column, so these rows are marked in this class
+     * rather than with a patient identifier. Safe to run again. Does not
+     * delete other facilities or returns. Skips production and every
+     * environment other than local, dev, and staging.
+     *
+     * The in-charge account owns the facility. The member account stays a
+     * technician. The TB-AI admin keeps that programme role.
      *
      *   php artisan db:seed --class=FacilitySeeder
      */
     public function run(): void
     {
-        $admin = $this->user($this->adminEmail(), 'LoginSeeder');
+        if ($this->skipsOutsideLocalDevStaging()) {
+            return;
+        }
+
+        $incharge = $this->user('incharge@tbai.test', 'LoginSeeder');
         $member = $this->user('member@tbai.test', 'LoginSeeder');
 
         $this->call(GeographySeeder::class);
@@ -45,7 +60,7 @@ class FacilitySeeder extends Seeder
             ],
         );
 
-        Facility::query()->firstOrCreate(
+        $facility = Facility::query()->firstOrCreate(
             ['team_id' => $team->id],
             [
                 'city_id' => $city->id,
@@ -57,15 +72,19 @@ class FacilitySeeder extends Seeder
             ],
         );
 
-        $this->ensureMember($team, $admin, TeamRole::Owner);
+        $this->ensureMember($team, $incharge, TeamRole::Owner);
         $this->ensureMember($team, $member, TeamRole::Member);
+        $this->releaseSeededAdminOwnership($team, $incharge);
 
-        $admin->switchTeam($team);
+        $incharge->switchTeam($team);
         $member->switchTeam($team);
 
+        $this->seedSampleReturns($facility, $incharge);
+
         $this->command?->info('Facility ready: Karachi West BMU <karachi-west-bmu>.');
-        $this->command?->line('  In-charge: '.$admin->email);
+        $this->command?->line('  In-charge: '.$incharge->email);
         $this->command?->line('  Technician: '.$member->email);
+        $this->command?->line('  Test data: 5 daily returns, one with a revision.');
     }
 
     private function adminEmail(): string
@@ -93,12 +112,109 @@ class FacilitySeeder extends Seeder
 
     private function ensureMember(Team $team, User $user, TeamRole $role): void
     {
-        if ($team->members()->whereKey($user->id)->exists()) {
+        $existing = $team->members()->whereKey($user->id)->first();
+
+        if ($existing === null) {
+            $team->members()->attach($user->id, [
+                'role' => $role->value,
+            ]);
+
             return;
         }
 
-        $team->members()->attach($user->id, [
-            'role' => $role->value,
-        ]);
+        $current = $existing->pivot->role ?? null;
+        $currentValue = $current instanceof TeamRole ? $current->value : (string) $current;
+
+        if ($currentValue !== $role->value) {
+            $team->members()->updateExistingPivot($user->id, [
+                'role' => $role->value,
+            ]);
+        }
+    }
+
+    /**
+     * The seeded admin used to own this facility. Move that membership off
+     * without removing the TB-AI admin programme role.
+     */
+    private function releaseSeededAdminOwnership(Team $team, User $incharge): void
+    {
+        $emails = array_unique(['admin@tbai.test', $this->adminEmail()]);
+
+        foreach ($emails as $email) {
+            $admin = User::query()->where('email', $email)->first();
+
+            if ($admin === null || $admin->is($incharge) || ! $admin->ownsTeam($team)) {
+                continue;
+            }
+
+            $personal = $admin->personalTeam();
+
+            if ($personal !== null && $admin->current_team_id === $team->id) {
+                $admin->switchTeam($personal);
+            }
+
+            $team->members()->detach($admin->id);
+
+            if ($admin->current_team_id === $team->id) {
+                $admin->forceFill(['current_team_id' => $personal?->id])->save();
+            }
+        }
+    }
+
+    /**
+     * Test data. Five past days in Asia/Karachi, one row per facility and date.
+     * The newest of those days is saved, then updated, so DailyReturn writes
+     * one revision. The editor is the facility in-charge.
+     */
+    private function seedSampleReturns(Facility $facility, User $editor): void
+    {
+        $today = CarbonImmutable::now('Asia/Karachi')->startOfDay();
+
+        foreach ($this->sampleDays() as $daysAgo => $sample) {
+            $reportedOn = $today->subDays($daysAgo)->toDateString();
+
+            $return = DailyReturn::query()->firstOrCreate(
+                [
+                    'facility_id' => $facility->id,
+                    'reported_on' => $reportedOn,
+                ],
+                [
+                    'submitted_by' => $editor->id,
+                    'suspects' => $sample['suspects'],
+                    'tested' => 4,
+                    'positive' => 1,
+                    'negative' => 3,
+                    'started_treatment' => 1,
+                    'follow_up' => 0,
+                    'median_tat_days' => '2.00',
+                ],
+            );
+
+            if (! $sample['edited'] || ! $return->wasRecentlyCreated) {
+                continue;
+            }
+
+            Auth::login($editor);
+
+            try {
+                $return->update(['suspects' => $sample['suspects_after_edit']]);
+            } finally {
+                Auth::logout();
+            }
+        }
+    }
+
+    /**
+     * @return array<int, array{suspects: int, suspects_after_edit: int, edited: bool}>
+     */
+    private function sampleDays(): array
+    {
+        return [
+            1 => ['suspects' => 4, 'suspects_after_edit' => 6, 'edited' => true],
+            2 => ['suspects' => 5, 'suspects_after_edit' => 5, 'edited' => false],
+            3 => ['suspects' => 7, 'suspects_after_edit' => 7, 'edited' => false],
+            4 => ['suspects' => 8, 'suspects_after_edit' => 8, 'edited' => false],
+            5 => ['suspects' => 9, 'suspects_after_edit' => 9, 'edited' => false],
+        ];
     }
 }

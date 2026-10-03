@@ -17,6 +17,12 @@ test('provisional tat is the average of reported medians weighted by tested coun
     expect($average)->toBe(3.5)
         ->and(ProvisionalReportedTat::LABEL)->toBe(
             'Average of reported median TAT (days), weighted by tested count',
+        )
+        ->and(ProvisionalReportedTat::INSUFFICIENT)->toBe(
+            'Weighted by tested count. Not enough returns yet to calculate.',
+        )
+        ->and(ProvisionalReportedTat::HELPER)->toBe(
+            'Provisional until the official turnaround formula is confirmed.',
         );
 });
 

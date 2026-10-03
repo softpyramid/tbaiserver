@@ -10,7 +10,6 @@ use App\Models\User;
 use Database\Seeders\GeographySeeder;
 use Database\Seeders\ProgrammeRoleSeeder;
 use Illuminate\Support\Facades\Hash;
-use RuntimeException;
 
 test('geography seeder creates pakistan, sindh, and the seven pitch cities', function () {
     $this->seed(GeographySeeder::class);
@@ -30,6 +29,7 @@ test('geography seeder creates pakistan, sindh, and the seven pitch cities', fun
 });
 
 test('programme role seeder assigns each login to its geography', function () {
+    $this->app['env'] = 'local';
     config(['access.seed_login_password' => 'server-secret']);
 
     $this->seed(ProgrammeRoleSeeder::class);
@@ -42,7 +42,11 @@ test('programme role seeder assigns each login to its geography', function () {
     expect($country)->not->toBeNull()
         ->and(Hash::check('server-secret', $country->password))->toBeTrue()
         ->and($country->email_verified_at)->not->toBeNull()
-        ->and(ProgrammeAssignment::query()->count())->toBe(3);
+        ->and(ProgrammeAssignment::query()->whereIn('role', [
+            ProgrammeRole::CountryViewer,
+            ProgrammeRole::ProvincialViewer,
+            ProgrammeRole::CityOfficer,
+        ])->count())->toBe(3);
 
     $pakistanId = Country::query()->where('slug', 'pakistan')->value('id');
     $sindhId = Province::query()->where('slug', 'sindh')->value('id');
@@ -62,12 +66,11 @@ test('programme role seeder assigns each login to its geography', function () {
         ->scope_id->toBe($karachiWestId);
 });
 
-test('programme role seeder refuses the default password outside local and testing', function () {
+test('programme role seeder does not run in production', function () {
     $this->app['env'] = 'production';
     config(['access.seed_login_password' => null]);
 
-    expect(fn () => (new ProgrammeRoleSeeder)->run())->toThrow(
-        RuntimeException::class,
-        'Set SEED_LOGIN_PASSWORD before seeding login accounts.',
-    );
+    (new ProgrammeRoleSeeder)->run();
+
+    expect(User::query()->count())->toBe(0);
 });

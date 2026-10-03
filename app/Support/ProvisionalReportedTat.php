@@ -9,6 +9,8 @@ class ProvisionalReportedTat
 {
     public const LABEL = 'Average of reported median TAT (days), weighted by tested count';
 
+    public const INSUFFICIENT = 'Weighted by tested count. Not enough returns yet to calculate.';
+
     public const HELPER = 'Provisional until the official turnaround formula is confirmed.';
 
     /**

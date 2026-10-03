@@ -77,6 +77,7 @@ type Props = {
     provisionalTat: {
         label: string;
         helper: string;
+        insufficient: string | null;
         value: number | null;
         year: number;
     };
@@ -539,7 +540,7 @@ function RegisterForm(props: Props) {
                                     <p>
                                         {props.provisionalTat.label}:{' '}
                                         {props.provisionalTat.value === null
-                                            ? t('not_enough_returns')
+                                            ? props.provisionalTat.insufficient
                                             : props.provisionalTat.value.toFixed(
                                                   2,
                                               )}

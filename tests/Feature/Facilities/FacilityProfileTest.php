@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\FacilityKind;
+use App\Models\AuditLog;
 use App\Enums\FacilityStatus;
 use App\Enums\ProgrammeRole;
 use App\Enums\ScopeType;
@@ -104,6 +105,52 @@ test('a facility slug stays unique when the name is reused', function () {
     $this->actingAs($admin)
         ->get(route('facilities.edit', ['current_team' => 'thatta-bmu-1']))
         ->assertNotFound();
+});
+
+test('a tb-ai admin can edit a facility from administration and the change is audited', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $facility = Facility::factory()->create();
+    $city = City::factory()->create();
+    $member = User::factory()->create();
+    joinFacility($member, $facility, TeamRole::Member);
+
+    $this->actingAs($admin)
+        ->get(route('facilities.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rows.0.href', route('facilities.edit', $facility->team))
+            ->where('rows.0.controls.0.kind', 'link')
+            ->where('rows.0.controls.0.label', 'Edit')
+            ->where('rows.0.controls.0.url', route('facilities.edit', $facility->team)),
+        );
+
+    $this->actingAs($admin)
+        ->get(route('facilities.edit', $facility->team))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('canEdit', true));
+
+    $this->actingAs($admin)
+        ->put(route('facilities.update', $facility->team), facilityFormPayload($city, [
+            'name' => 'Edited BMU',
+            'code' => 'NTP-EDIT',
+        ]))
+        ->assertRedirect();
+
+    $facility->refresh()->load('team');
+    $log = AuditLog::query()->where('action', 'facility.updated')->first();
+
+    expect($facility->team->name)->toBe('Edited BMU')
+        ->and($log)->not->toBeNull()
+        ->and($log->user_id)->toBe($admin->id)
+        ->and($log->subject_id)->toBe($facility->id);
+
+    $this->actingAs($member)
+        ->put(route('facilities.update', $facility->team), facilityFormPayload($city, [
+            'name' => 'Edited BMU',
+            'code' => 'NTP-EDIT',
+        ]))
+        ->assertForbidden();
 });
 
 test('a facility owner can edit the profile and cannot create one', function () {

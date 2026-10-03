@@ -25,6 +25,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { dashboard } from '@/routes';
@@ -57,6 +58,13 @@ function isNavKey(key: string): key is NavKey {
 export function AppSidebar() {
     const page = usePage();
     const { currentUrl } = useCurrentUrl();
+    const { isMobile, setOpenMobile } = useSidebar();
+
+    const closeMobileDrawer = () => {
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
     const dashboardUrl = page.props.currentTeam
         ? dashboard(page.props.currentTeam.slug)
         : '/';
@@ -77,7 +85,11 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboardUrl} prefetch>
+                            <Link
+                                href={dashboardUrl}
+                                prefetch
+                                onClick={closeMobileDrawer}
+                            >
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

@@ -20,8 +20,9 @@ return [
     | Seeded login password
     |--------------------------------------------------------------------------
     |
-    | Password assigned to accounts created by LoginSeeder. Required outside
-    | local and testing. Leave empty locally to use the default "password".
+    | Password assigned to accounts created by LoginSeeder. Leave empty in
+    | local, dev, and staging to use the default "password". That seeder
+    | does not run in production.
     |
     */
 

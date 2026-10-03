@@ -28,6 +28,7 @@ return [
     'choose_date' => 'Choose a date',
 
     'facility_name' => 'Facility name',
+    'column_name' => 'Name',
     'sector' => 'Sector',
     'city' => 'City',
     'kind' => 'Kind',

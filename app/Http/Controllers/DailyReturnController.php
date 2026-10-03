@@ -44,6 +44,8 @@ class DailyReturnController extends Controller
             ->whereYear('reported_on', $reportedOn->year)
             ->get();
 
+        $provisionalAverage = ProvisionalReportedTat::average($yearReturns);
+
         $screeningSuspects = ScreeningSession::query()
             ->where('facility_id', $facility->id)
             ->whereDate('occurred_on', $reportedOn->toDateString())
@@ -87,7 +89,8 @@ class DailyReturnController extends Controller
             'provisionalTat' => [
                 'label' => ProvisionalReportedTat::LABEL,
                 'helper' => ProvisionalReportedTat::HELPER,
-                'value' => ProvisionalReportedTat::average($yearReturns),
+                'insufficient' => $provisionalAverage === null ? ProvisionalReportedTat::INSUFFICIENT : null,
+                'value' => $provisionalAverage,
                 'year' => $reportedOn->year,
             ],
             'history' => $canSeeHistory

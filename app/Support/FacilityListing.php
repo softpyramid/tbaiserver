@@ -50,7 +50,11 @@ class FacilityListing
                 'id' => (string) $facility->id,
                 'href' => $administration ? route('facilities.edit', $facility->team) : null,
                 'cells' => $this->cells($facility),
-                'controls' => [],
+                'controls' => $administration ? [[
+                    'kind' => 'link',
+                    'url' => route('facilities.edit', $facility->team),
+                    'label' => __('entry.edit'),
+                ]] : [],
             ])
             ->values()
             ->all();

@@ -7,6 +7,7 @@ import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { FacilityTabBar } from '@/components/facility-tab-bar';
 import PendingInvitationsModal from '@/components/pending-invitations-modal';
 import { ReturnSync } from '@/components/return-sync';
+import { useSessionGuard } from '@/hooks/use-session-guard';
 import { cn } from '@/lib/utils';
 import type { DashboardInvitation } from '@/types';
 import type { AppLayoutProps } from '@/types';
@@ -17,6 +18,8 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     const { nav, i18n } = usePage().props;
     const facility = nav.shell === 'facility';
+
+    useSessionGuard();
 
     return (
         <AppShell variant="sidebar" drawerBelow={facility ? 768 : 1024}>

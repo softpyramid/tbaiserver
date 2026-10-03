@@ -64,6 +64,14 @@ class FacilityPolicy
     }
 
     /**
+     * Only a TB-AI admin may take a facility out of use.
+     */
+    public function deactivate(User $user, Facility $facility): bool
+    {
+        return $user->isTbaiAdmin();
+    }
+
+    /**
      * Any member of the facility team may record a screening.
      */
     public function screen(User $user, Facility $facility): bool

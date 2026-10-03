@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
+use App\Support\DataScope;
 use App\Support\NavigationShell;
 use App\Support\RoleHome;
 use App\Support\SidebarNavigation;
@@ -101,8 +102,9 @@ class HandleInertiaRequests extends Middleware
                 : null,
             'facilitiesUrl' => $isTbaiAdmin ? route('facilities.index') : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
-            'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
+            'currentTeam' => fn () => $this->displayTeam($user, $facilityTeam),
+            'teams' => fn () => $this->facilityChoices($user),
+            'scopeLabel' => fn () => $this->scopeLabel($user),
         ];
     }
 
@@ -161,5 +163,80 @@ class HandleInertiaRequests extends Middleware
         $current->loadMissing('facility');
 
         return $current->facility === null ? null : $current;
+    }
+
+    /**
+     * Facility shown in the sidebar. Personal teams stay hidden.
+     */
+    private function displayTeam(?User $user, ?Team $facilityTeam): ?array
+    {
+        $team = $this->chosenFacility($user, $facilityTeam);
+
+        if ($user === null || $team === null) {
+            return null;
+        }
+
+        return $user->toUserTeam($team)->toArray();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function facilityChoices(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        return $user->teams()
+            ->whereHas('facility')
+            ->orderByRaw('LOWER(teams.name)')
+            ->get()
+            ->map(fn (Team $team): array => $user->toUserTeam($team)->toArray())
+            ->all();
+    }
+
+    /**
+     * Read-only scope for a city officer, provincial viewer, or country viewer.
+     */
+    private function scopeLabel(?User $user): ?string
+    {
+        if ($user === null || $user->isTbaiAdmin()) {
+            return null;
+        }
+
+        if (! $user->programmeAssignments()->exists()) {
+            return null;
+        }
+
+        $label = app(DataScope::class)->label($user);
+
+        if ($label === '' || $label === __('entry.scope_all')) {
+            return null;
+        }
+
+        return $label;
+    }
+
+    private function chosenFacility(?User $user, ?Team $facilityTeam): ?Team
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        if ($facilityTeam !== null && $user->belongsToTeam($facilityTeam)) {
+            return $facilityTeam;
+        }
+
+        $current = $user->currentTeam;
+        $current?->loadMissing('facility');
+
+        if ($current?->facility !== null && $user->belongsToTeam($current)) {
+            return $current;
+        }
+
+        $team = $user->teams()->whereHas('facility')->first();
+
+        return $team instanceof Team ? $team : null;
     }
 }

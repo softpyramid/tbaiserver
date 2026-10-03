@@ -19,6 +19,7 @@ use App\Http\Controllers\TodayShortcutController;
 use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\WebManifestController;
 use App\Http\Middleware\EnsureTeamMembership;
+use App\Http\Middleware\RedirectProgrammeTeamUrl;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -99,7 +100,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('command/returns', [CommandCenterController::class, 'returns'])->name('command.returns');
     Route::get('command/returns/{dailyReturn}', [CommandCenterController::class, 'showReturn'])->name('command.returns.show');
 
+    Route::get('admin', fn () => redirect()->route('facilities.index'))->name('admin.home');
     Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');
+    Route::post('admin/facilities/{facility}/deactivate', [FacilityController::class, 'deactivate'])->name('facilities.deactivate');
     Route::get('admin/facilities/create', [FacilityController::class, 'create'])->name('facilities.create');
     Route::post('admin/facilities', [FacilityController::class, 'store'])->name('facilities.store');
 
@@ -113,13 +116,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/programme-assignments', [ProgrammeAdminController::class, 'assignments'])->name('admin.programme-assignments.index');
     Route::get('admin/access-requests', [ProgrammeAdminController::class, 'accessRequests'])->name('admin.access-requests.index');
     Route::patch('admin/access-requests/{accessRequest}', [ProgrammeAdminController::class, 'updateAccessRequest'])->name('admin.access-requests.update');
-    Route::get('admin/teams', [ProgrammeAdminController::class, 'teams'])->name('admin.teams.index');
+    Route::get('admin/programme-access', [ProgrammeAdminController::class, 'access'])->name('admin.programme-access.index');
+    Route::get('admin/teams', function () {
+        abort_unless(request()->user()?->isTbaiAdmin(), 403);
+
+        return redirect()->route('facilities.index', [], 301);
+    })->name('admin.teams.index');
 });
 
 require __DIR__.'/settings.php';
 
 Route::prefix('{current_team}')
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', RedirectProgrammeTeamUrl::class])
     ->group(function () {
         Route::middleware(EnsureTeamMembership::class)->group(function () {
             Route::get('dashboard', DashboardController::class)->name('dashboard');

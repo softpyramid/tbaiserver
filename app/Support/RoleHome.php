@@ -10,13 +10,18 @@ class RoleHome
     /**
      * Where this person should land after sign-in.
      *
-     * Technicians and facility in-charge open today's register.
-     * Programme viewers and TB-AI admins open the command center.
+     * Technicians and the facility in-charge open today's register.
+     * City, provincial, and country viewers open the command center.
+     * A TB-AI admin opens administration.
      * Anyone else opens their account page.
      */
     public function url(User $user): string
     {
-        if ($user->isTbaiAdmin() || $user->programmeAssignments()->exists()) {
+        if ($user->isTbaiAdmin()) {
+            return route('admin.home');
+        }
+
+        if ($user->programmeAssignments()->exists()) {
             return route('command.index');
         }
 

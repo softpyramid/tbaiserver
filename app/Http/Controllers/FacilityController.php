@@ -118,6 +118,9 @@ class FacilityController extends Controller
             'area' => $area->header($actor, $current_team, 'profile'),
             'teamSlug' => $current_team->slug,
             'canEdit' => Gate::allows('update', $facility),
+            'canDeactivate' => Gate::allows('deactivate', $facility)
+                && $facility->status === FacilityStatus::Active,
+            'deactivateUrl' => route('facilities.deactivate', $facility),
             'dateLabel' => EntryDate::label(),
             'summary' => [
                 'name' => $current_team->name,
@@ -157,7 +160,10 @@ class FacilityController extends Controller
         $facility = DB::transaction(function () use ($request, $facility): Facility {
             $team = Team::query()->whereKey($facility->team_id)->lockForUpdate()->firstOrFail();
             $team->update(['name' => $request->string('name')->toString()]);
-            $facility->update($this->attributes($request));
+            $facility->update([
+                ...$this->attributes($request),
+                'status' => $facility->status,
+            ]);
             $facility->setRelation('team', $team->refresh());
 
             return $facility;
@@ -183,6 +189,35 @@ class FacilityController extends Controller
         Inertia::flash('savedProfile', __('entry.profile_saved'));
 
         return to_route('facilities.edit', ['current_team' => $facility->team->slug]);
+    }
+
+    /**
+     * Take a facility out of use. The in-charge cannot do this.
+     */
+    public function deactivate(Request $request, Facility $facility, AuditLogger $audit): RedirectResponse
+    {
+        Gate::authorize('deactivate', $facility);
+
+        $actor = $request->user();
+        abort_unless($actor !== null, 403);
+
+        $facility->loadMissing('team');
+        $name = $facility->team->name;
+
+        if ($facility->status !== FacilityStatus::Inactive) {
+            $facility->update(['status' => FacilityStatus::Inactive]);
+
+            $audit->write($actor, 'facility.deactivated', $facility, [
+                'name' => $name,
+            ]);
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('entry.facility_deactivated'),
+        ]);
+
+        return back();
     }
 
     /**

@@ -133,7 +133,7 @@ class SidebarNavigation
                 $this->child('users', __('entry.nav_users'), route('admin.users.index')),
                 $this->child('programme_assignments', __('entry.nav_programme_assignments'), route('admin.programme-assignments.index')),
                 $this->child('access_requests', __('entry.nav_access_requests'), route('admin.access-requests.index'), $badge),
-                $this->child('teams', __('entry.nav_teams'), route('admin.teams.index')),
+                $this->child('programme_access', __('entry.nav_programme_access'), route('admin.programme-access.index')),
             ]),
         ];
     }

@@ -148,7 +148,7 @@ class TeamPolicy
      */
     public function delete(User $user, Team $team): bool
     {
-        if ($team->is_personal) {
+        if ($team->is_personal || $team->facility()->exists()) {
             return false;
         }
 

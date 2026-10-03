@@ -12,8 +12,8 @@ use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\User;
 use App\Support\AuditLogger;
+use App\Support\ProgrammeAccess;
 use App\Support\ResourceResponse;
-use App\Support\TeamDirectory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -289,17 +289,17 @@ class ProgrammeAdminController extends Controller
         return back()->with('status', __('entry.request_reviewed'));
     }
 
-    public function teams(Request $request, TeamDirectory $directory): Response
+    public function access(Request $request, ProgrammeAccess $access): Response|StreamedResponse
     {
         Gate::authorize('administer');
 
-        return Inertia::render('admin/teams', $directory->page($request));
+        return $access->page($request);
     }
 
     private function scopeName(ProgrammeAssignment $assignment): string
     {
         return match ($assignment->scope_type) {
-            null => __('entry.scope_all'),
+            null => __('entry.all_facilities'),
             ScopeType::Country => $this->placeName(Country::query()->find($assignment->scope_id)),
             ScopeType::Province => $this->placeName(Province::query()->find($assignment->scope_id)),
             ScopeType::City => $this->placeName(City::query()->find($assignment->scope_id)),
@@ -309,7 +309,7 @@ class ProgrammeAdminController extends Controller
     private function placeName(Country|Province|City|null $place): string
     {
         if ($place === null) {
-            return __('entry.not_available');
+            return __('entry.all_facilities');
         }
 
         return $place->name;

@@ -167,10 +167,16 @@ trait HasTeams
     {
         $role = $this->teamRole($team);
 
+        $isFacility = $team->facility()->exists();
+
         return new TeamPermissions(
             canUpdateTeam: $role?->hasPermission(TeamPermission::UpdateTeam) ?? false,
-            canDeleteTeam: (! $team->is_personal && $this->isTbaiAdmin())
-                || ($role?->hasPermission(TeamPermission::DeleteTeam) ?? false),
+            canDeleteTeam: ! $team->is_personal
+                && ! $isFacility
+                && (
+                    $this->isTbaiAdmin()
+                    || ($role?->hasPermission(TeamPermission::DeleteTeam) ?? false)
+                ),
             canAddMember: $role?->hasPermission(TeamPermission::AddMember) ?? false,
             canUpdateMember: $role?->hasPermission(TeamPermission::UpdateMember) ?? false,
             canRemoveMember: $role?->hasPermission(TeamPermission::RemoveMember) ?? false,

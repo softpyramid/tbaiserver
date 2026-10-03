@@ -25,7 +25,9 @@ class TeamArea
     public function header(User $user, Team $team, string $current): array
     {
         return [
-            'title' => __('entry.nav_team_members'),
+            'title' => $current === 'profile'
+                ? __('entry.nav_facility_long')
+                : __('entry.nav_team_members'),
             'description' => __('entry.team_area_description', ['name' => $team->name]),
             'tabsLabel' => __('entry.team_tabs_label'),
             'teamName' => $team->name,

@@ -6,6 +6,7 @@ use App\Enums\ProgrammeRole;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Facility;
+use App\Models\Membership;
 use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\User;
@@ -123,6 +124,64 @@ class DataScope
         }
 
         return $labels->implode(', ');
+    }
+
+    /**
+     * Place name for a programme scope, or every facility for an unscoped admin.
+     */
+    public function scopePlace(ProgrammeAssignment $assignment): string
+    {
+        if ($assignment->role === ProgrammeRole::TbaiAdmin || $assignment->scope_id === null) {
+            return __('entry.all_facilities');
+        }
+
+        $name = $this->assignmentLabel($assignment);
+
+        return $name !== '' ? $name : __('entry.all_facilities');
+    }
+
+    /**
+     * Display name for a seeded programme group, such as "Sindh viewers".
+     */
+    public function scopeTitle(ProgrammeAssignment $assignment): string
+    {
+        $place = $this->scopePlace($assignment);
+
+        return match ($assignment->role) {
+            ProgrammeRole::TbaiAdmin => __('entry.admin_group'),
+            ProgrammeRole::CountryViewer, ProgrammeRole::ProvincialViewer => __(':name viewers', ['name' => $place]),
+            ProgrammeRole::CityOfficer => __(':name officers', ['name' => $place]),
+        };
+    }
+
+    /**
+     * Facility column for a person. Never a blank or unavailable marker.
+     */
+    public function facilityColumn(User $user): string
+    {
+        $names = $user->teamMemberships
+            ->filter(fn (Membership $membership): bool => ! $membership->team->is_personal
+                && $membership->team->facility !== null)
+            ->map(fn (Membership $membership): string => $membership->team->name)
+            ->filter(fn (string $name): bool => $name !== '')
+            ->unique()
+            ->values();
+
+        if ($names->isNotEmpty()) {
+            return $names->implode(', ');
+        }
+
+        if ($user->isTbaiAdmin()) {
+            return __('entry.all_facilities');
+        }
+
+        $label = $this->label($user);
+
+        if ($label !== '' && $label !== __('entry.scope_all')) {
+            return $label;
+        }
+
+        return __('entry.all_facilities');
     }
 
     /**

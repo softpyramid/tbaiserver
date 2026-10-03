@@ -50,7 +50,7 @@ class UserAdminController extends Controller
             ['key' => 'name', 'label' => __('entry.column_name')],
             ['key' => 'email', 'label' => __('entry.column_email')],
             ['key' => 'role', 'label' => __('entry.column_role')],
-            ['key' => 'team', 'label' => __('entry.column_team')],
+            ['key' => 'facility', 'label' => __('entry.column_facility')],
             ['key' => 'assignments', 'label' => __('entry.column_assignments')],
             ['key' => 'active', 'label' => __('entry.active')],
         ];
@@ -59,7 +59,7 @@ class UserAdminController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role' => $this->roleSummary($user),
-            'team' => $this->teamSummary($user),
+            'facility' => app(DataScope::class)->facilityColumn($user),
             'assignments' => $this->assignmentSummary($user),
             'active' => $user->deactivated_at === null ? __('entry.yes') : __('entry.no'),
         ];
@@ -244,23 +244,6 @@ class UserAdminController extends Controller
         return $labels->isEmpty() ? '' : $labels->implode(', ');
     }
 
-    private function teamSummary(User $user): string
-    {
-        $names = $user->teamMemberships
-            ->filter(fn (Membership $membership): bool => ! $membership->team->is_personal
-                && $membership->team->facility !== null)
-            ->map(fn (Membership $membership): string => $membership->team->name)
-            ->values();
-
-        if ($names->isNotEmpty()) {
-            return $names->implode(', ');
-        }
-
-        $scope = app(DataScope::class)->label($user);
-
-        return $scope;
-    }
-
     private function assignmentSummary(User $user): string
     {
         $labels = collect($user->programmeAssignments)
@@ -269,7 +252,7 @@ class UserAdminController extends Controller
             ->values();
 
         if ($labels->isEmpty()) {
-            return __('entry.not_available');
+            return '';
         }
 
         return $labels->implode(', ');

@@ -112,10 +112,13 @@ test('viewers can open daily returns for their area', function () {
                 fn (array $item): bool => $item['key'] === 'daily_returns'
                     && $item['label'] === 'Daily returns'
                     && $item['href'] === route('command.returns'),
-            ) && collect($items)->contains(
-                fn (array $item): bool => $item['key'] === 'account'
-                    && $item['label'] === 'Account'
-                    && $item['href'] === route('profile.edit'),
+            ) && ! collect($items)->contains(
+                fn (array $item): bool => $item['key'] === 'account',
+            ))
+            ->where('nav.more', fn ($more) => collect($more)->contains(
+                fn (array $link): bool => $link['id'] === 'account'
+                    && $link['label'] === 'Account'
+                    && $link['href'] === route('profile.edit'),
             )));
 
     $this->actingAs($viewer)
@@ -145,7 +148,7 @@ test('return history links the whole row and formats the date', function () {
         ->get(route('returns.history', $facility->team))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('title', 'Return history')
+            ->where('title', 'Returns')
             ->where('rows.0.cells.date', '4 Oct 2026')
             ->where('rows.0.href', route('returns.today', [
                 'current_team' => $facility->team,

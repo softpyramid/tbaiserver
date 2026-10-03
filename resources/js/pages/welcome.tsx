@@ -123,7 +123,7 @@ export default function Welcome({
                     >
                         <div className="mx-auto grid max-w-[1200px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:py-20">
                             <div>
-                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase dark:text-indigo-300">
                                     About TB-AI
                                 </p>
                                 <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -166,7 +166,7 @@ export default function Welcome({
                     >
                         <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
                             <div className="max-w-2xl">
-                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase dark:text-indigo-300">
                                     What we do
                                 </p>
                                 <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -183,21 +183,21 @@ export default function Welcome({
                                     const Icon = service.icon;
 
                                     return (
-                                    <li
-                                        key={service.title}
-                                        className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy"
-                                    >
-                                        <Icon
-                                            aria-hidden
-                                            className="size-6 text-brand"
-                                        />
-                                        <h3 className="mt-4 font-serif text-xl font-bold">
-                                            {service.title}
-                                        </h3>
-                                        <p className="mt-2 text-sm leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
-                                            {service.body}
-                                        </p>
-                                    </li>
+                                        <li
+                                            key={service.title}
+                                            className="rounded-2xl border border-navy/10 bg-white p-6 shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-navy"
+                                        >
+                                            <Icon
+                                                aria-hidden
+                                                className="size-6 text-brand"
+                                            />
+                                            <h3 className="mt-4 font-serif text-xl font-bold">
+                                                {service.title}
+                                            </h3>
+                                            <p className="mt-2 text-sm leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
+                                                {service.body}
+                                            </p>
+                                        </li>
                                     );
                                 })}
                             </ul>
@@ -210,7 +210,7 @@ export default function Welcome({
                     >
                         <div className="mx-auto grid max-w-[1200px] items-start gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:py-20">
                             <div>
-                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase dark:text-indigo-300">
                                     For labs and programmes
                                 </p>
                                 <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -218,12 +218,12 @@ export default function Welcome({
                                 </h2>
                                 <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
                                     Labs and programmes keep a daily TB
-                                    register. Each facility files one return
-                                    for one date: suspects, people tested, and
+                                    register. Each facility files one return for
+                                    one date: suspects, people tested, and
                                     positive results. Positivity rate and
-                                    turnaround time are read from that return.
-                                    A heat map shows where the pathway sits
-                                    across districts.
+                                    turnaround time are read from that return. A
+                                    heat map shows where the pathway sits across
+                                    districts.
                                 </p>
                             </div>
                             <Preview />
@@ -236,7 +236,7 @@ export default function Welcome({
                     >
                         <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
                             <div className="max-w-2xl">
-                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase dark:text-indigo-300">
                                     Why choose us
                                 </p>
                                 <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -245,9 +245,9 @@ export default function Welcome({
                                 </h2>
                                 <p className="mt-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
                                     TB-AI bridges the gap between
-                                    state-of-the-art AI technology and the
-                                    field clinics that need it most. Our system
-                                    is designed to run on existing equipment
+                                    state-of-the-art AI technology and the field
+                                    clinics that need it most. Our system is
+                                    designed to run on existing equipment
                                     without expensive modifications.
                                 </p>
                             </div>
@@ -313,7 +313,7 @@ export default function Welcome({
                         <section className="border-b border-navy/10 dark:border-white/10">
                             <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
                                 <div className="max-w-2xl">
-                                    <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase">
+                                    <p className="text-xs font-semibold tracking-[0.22em] text-brand uppercase dark:text-indigo-300">
                                         Testimonials
                                     </p>
                                     <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-balance sm:text-4xl">

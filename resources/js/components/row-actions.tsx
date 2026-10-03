@@ -14,6 +14,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -34,7 +35,11 @@ function postAction(action: Extract<RowAction, { kind: 'post' }>): void {
     router.post(action.url, action.fields, { preserveScroll: true });
 }
 
-function pick(action: RowAction, role: string | undefined, confirm: (action: Extract<RowAction, { kind: 'post' }>) => void): void {
+function pick(
+    action: RowAction,
+    role: string | undefined,
+    confirm: (action: Extract<RowAction, { kind: 'post' }>) => void,
+): void {
     switch (action.kind) {
         case 'roles':
             if (role !== undefined) {
@@ -58,6 +63,13 @@ function pick(action: RowAction, role: string | undefined, confirm: (action: Ext
     }
 }
 
+function isDestructive(action: RowAction): boolean {
+    return (
+        action.kind === 'delete' ||
+        (action.kind === 'post' && action.destructive === true)
+    );
+}
+
 function ActionList({
     actions,
     onPick,
@@ -65,9 +77,12 @@ function ActionList({
     actions: RowAction[];
     onPick: (action: RowAction, role?: string) => void;
 }) {
+    const routine = actions.filter((action) => !isDestructive(action));
+    const destructive = actions.filter(isDestructive);
+
     return (
         <div className="flex flex-col gap-1">
-            {actions.map((action) => {
+            {routine.map((action) => {
                 if (action.kind === 'roles') {
                     return (
                         <div key={action.label} className="flex flex-col gap-1">
@@ -102,13 +117,34 @@ function ActionList({
                     </Button>
                 );
             })}
+            {destructive.length > 0 ? (
+                <div
+                    className="mt-3 flex flex-col gap-1 border-t pt-3"
+                    data-test="destructive-actions"
+                >
+                    {destructive.map((action) => (
+                        <Button
+                            key={action.label}
+                            type="button"
+                            variant="ghost"
+                            className="justify-start text-destructive hover:text-destructive dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                            onClick={() => onPick(action)}
+                        >
+                            {action.label}
+                        </Button>
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 }
 
 export default function RowActions({ actions, label }: Props) {
     const [sheetOpen, setSheetOpen] = useState(false);
-    const [confirming, setConfirming] = useState<Extract<RowAction, { kind: 'post' }> | null>(null);
+    const [confirming, setConfirming] = useState<Extract<
+        RowAction,
+        { kind: 'post' }
+    > | null>(null);
 
     if (actions.length === 0) {
         return null;
@@ -124,11 +160,18 @@ export default function RowActions({ actions, label }: Props) {
             <div className="md:hidden">
                 <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                     <SheetTrigger asChild>
-                        <Button type="button" variant="outline" data-test="member-actions">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            data-test="member-actions"
+                        >
                             {label}
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <SheetContent
+                        side="bottom"
+                        className="pb-[max(1rem,env(safe-area-inset-bottom))]"
+                    >
                         <SheetHeader>
                             <SheetTitle>{label}</SheetTitle>
                         </SheetHeader>
@@ -140,50 +183,91 @@ export default function RowActions({ actions, label }: Props) {
             <div className="hidden md:block">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" data-test="member-actions" aria-label={label}>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            data-test="member-actions"
+                            aria-label={label}
+                        >
                             <MoreHorizontal />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {actions.map((action) => {
-                            if (action.kind === 'roles') {
-                                return action.options.map((option) => (
-                                    <DropdownMenuItem
-                                        key={option.value}
-                                        data-test="member-role-option"
-                                        onSelect={() => onPick(action, option.value)}
-                                    >
-                                        {option.label}
-                                    </DropdownMenuItem>
-                                ));
-                            }
+                        {actions
+                            .filter((action) => !isDestructive(action))
+                            .map((action) => {
+                                if (action.kind === 'roles') {
+                                    return action.options.map((option) => (
+                                        <DropdownMenuItem
+                                            key={option.value}
+                                            data-test="member-role-option"
+                                            onSelect={() =>
+                                                onPick(action, option.value)
+                                            }
+                                        >
+                                            {option.label}
+                                        </DropdownMenuItem>
+                                    ));
+                                }
 
-                            return (
-                                <DropdownMenuItem key={action.label} onSelect={() => onPick(action)}>
-                                    {action.label}
-                                </DropdownMenuItem>
-                            );
-                        })}
+                                return (
+                                    <DropdownMenuItem
+                                        key={action.label}
+                                        onSelect={() => onPick(action)}
+                                    >
+                                        {action.label}
+                                    </DropdownMenuItem>
+                                );
+                            })}
+                        {actions.some(isDestructive) ? (
+                            <>
+                                <DropdownMenuSeparator />
+                                {actions.filter(isDestructive).map((action) => (
+                                    <DropdownMenuItem
+                                        key={action.label}
+                                        className="text-destructive focus:text-destructive dark:text-destructive-foreground dark:focus:text-destructive-foreground"
+                                        onSelect={() => onPick(action)}
+                                    >
+                                        {action.label}
+                                    </DropdownMenuItem>
+                                ))}
+                            </>
+                        ) : null}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
 
-            <Dialog open={confirming !== null} onOpenChange={(open) => {
-                if (!open) {
-                    setConfirming(null);
-                }
-            }}>
+            <Dialog
+                open={confirming !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setConfirming(null);
+                    }
+                }}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{confirming?.label}</DialogTitle>
-                        <DialogDescription>{confirming?.confirm}</DialogDescription>
+                        <DialogDescription>
+                            {confirming?.confirm}
+                        </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" variant="secondary" onClick={() => setConfirming(null)}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setConfirming(null)}
+                        >
                             Cancel
                         </Button>
                         <Button
                             type="button"
+                            variant={
+                                confirming?.destructive
+                                    ? 'destructive'
+                                    : 'default'
+                            }
                             data-test="confirm-action"
                             onClick={() => {
                                 if (confirming) {

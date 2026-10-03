@@ -74,6 +74,7 @@ export default function EditFacility(props: Props) {
             <TeamAreaShell area={props.area}>
                 <FacilityForm
                     titleKey="profile_title"
+                    embedded
                     savedMessage={savedMessage}
                     teamSlug={props.teamSlug}
                     canEdit={props.canEdit}
@@ -99,7 +100,10 @@ export default function EditFacility(props: Props) {
                     }
                 />
             </TeamAreaShell>
-            <Dialog open={confirmDeactivate} onOpenChange={setConfirmDeactivate}>
+            <Dialog
+                open={confirmDeactivate}
+                onOpenChange={setConfirmDeactivate}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{t('deactivate_facility')}</DialogTitle>

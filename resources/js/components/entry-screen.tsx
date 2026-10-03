@@ -7,6 +7,8 @@ type Props = {
     facilityName: string;
     dateLabel: string;
     action?: ReactNode;
+    /** The page already shows its own title, so skip the inner header card. */
+    headerless?: boolean;
     children: ReactNode;
 };
 
@@ -15,6 +17,7 @@ export default function EntryScreen({
     facilityName,
     dateLabel,
     action,
+    headerless = false,
     children,
 }: Props) {
     const { dir } = useEntryI18n();
@@ -26,23 +29,25 @@ export default function EntryScreen({
             className="entry-screen mx-auto flex w-full max-w-lg min-w-0 flex-col overflow-x-clip text-base"
             dir={dir}
         >
-            <header
-                className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur"
-                style={{
-                    paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
-                    paddingLeft: 'max(1rem, env(safe-area-inset-left))',
-                    paddingRight: 'max(1rem, env(safe-area-inset-right))',
-                    paddingBottom: '0.75rem',
-                }}
-            >
-                <p className="text-base font-semibold text-foreground">
-                    {facilityName}
-                </p>
-                <p className="text-base text-slate-700 dark:text-slate-200">
-                    {dateLabel}
-                </p>
-                <h1 className="text-base font-semibold">{title}</h1>
-            </header>
+            {headerless ? null : (
+                <header
+                    className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur"
+                    style={{
+                        paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+                        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+                        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+                        paddingBottom: '0.75rem',
+                    }}
+                >
+                    <p className="text-base font-semibold text-foreground">
+                        {facilityName}
+                    </p>
+                    <p className="text-base text-slate-700 dark:text-slate-200">
+                        {dateLabel}
+                    </p>
+                    <h1 className="text-base font-semibold">{title}</h1>
+                </header>
+            )}
             <div
                 className="flex flex-col gap-4 py-4"
                 style={{

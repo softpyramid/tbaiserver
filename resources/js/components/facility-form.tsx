@@ -63,6 +63,8 @@ type Props = {
     cities: CityOption[];
     talukas: TalukaOption[];
     belowFields?: ReactNode;
+    /** True when a page header above already names the facility and the page. */
+    embedded?: boolean;
 };
 
 type DraftValues = {
@@ -109,6 +111,7 @@ export default function FacilityForm({
     cities,
     talukas,
     belowFields,
+    embedded = false,
 }: Props) {
     const { t } = useEntryI18n();
     const draftKey = profileDraftKey(teamSlug ?? null);
@@ -118,7 +121,9 @@ export default function FacilityForm({
     });
     const [showSaved, setShowSaved] = useState(Boolean(savedMessage));
     const [saving, setSaving] = useState(false);
-    const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+    const [clientErrors, setClientErrors] = useState<Record<string, string>>(
+        {},
+    );
     const savingRef = useRef(false);
     const dirty =
         canEdit &&
@@ -160,6 +165,7 @@ export default function FacilityForm({
                 title={t(titleKey)}
                 facilityName={summary.name}
                 dateLabel={dateLabel}
+                headerless={embedded}
             >
                 <FacilitySummaryCard
                     name={summary.name}
@@ -178,6 +184,7 @@ export default function FacilityForm({
             title={t(titleKey)}
             facilityName={headerName}
             dateLabel={dateLabel}
+            headerless={embedded}
             action={
                 showSaved ? null : (
                     <Button
@@ -284,237 +291,264 @@ export default function FacilityForm({
                             clientErrors[key] || errors[key];
 
                         return (
-                        <>
-                            {!teamSlug ? (
-                                <p className="text-base text-foreground">
-                                    {t('create_description')}
-                                </p>
-                            ) : null}
-                            <div className="grid gap-2 rounded-xl border bg-card p-4">
-                                <Label htmlFor="name" className="text-base">
-                                    {t('facility_name')}
-                                </Label>
-                                <Input
-                                    id="name"
-                                    name="name"
-                                    value={values.name}
-                                    aria-required="true"
-                                    aria-invalid={Boolean(message('name'))}
-                                    aria-describedby={
-                                        message('name') ? 'name-error' : undefined
-                                    }
-                                    maxLength={255}
-                                    className="h-12 text-base md:text-base"
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            name: event.target.value,
-                                        }))
-                                    }
-                                />
-                                <FieldError id="name-error" message={message('name')} />
-                            </div>
-
-                            <div className="grid gap-2 rounded-xl border bg-card p-4">
-                                <Label htmlFor="sector" className="text-base">
-                                    {t('sector')}
-                                </Label>
-                                <select
-                                    id="sector"
-                                    name="sector"
-                                    className={selectClassName}
-                                    value={values.sector}
-                                    aria-required="true"
-                                    aria-invalid={Boolean(message('sector'))}
-                                    aria-describedby={
-                                        message('sector')
-                                            ? 'sector-error'
-                                            : undefined
-                                    }
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            sector: event.target.value,
-                                        }))
-                                    }
-                                >
-                                    <option value="" disabled>
-                                        {t('select_sector')}
-                                    </option>
-                                    {sectors.map((sector) => (
-                                        <option
-                                            key={sector.value}
-                                            value={sector.value}
-                                        >
-                                            {sector.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <FieldError
-                                    id="sector-error"
-                                    message={message('sector')}
-                                />
-                            </div>
-
-                            <div className="grid gap-2 rounded-xl border bg-card p-4">
-                                <Label htmlFor="kind" className="text-base">
-                                    {t('kind')}
-                                </Label>
-                                <select
-                                    id="kind"
-                                    name="kind"
-                                    className={selectClassName}
-                                    value={values.kind}
-                                    aria-required="true"
-                                    aria-invalid={Boolean(message('kind'))}
-                                    aria-describedby={
-                                        message('kind') ? 'kind-error' : undefined
-                                    }
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            kind: event.target.value,
-                                        }))
-                                    }
-                                >
-                                    <option value="" disabled>
-                                        {t('select_kind')}
-                                    </option>
-                                    {kinds.map((kind) => (
-                                        <option
-                                            key={kind.value}
-                                            value={kind.value}
-                                        >
-                                            {kind.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <FieldError id="kind-error" message={message('kind')} />
-                            </div>
-
-                            <div className="grid gap-2 rounded-xl border bg-card p-4">
-                                <Label htmlFor="city_id" className="text-base">
-                                    {t('city')}
-                                </Label>
-                                <select
-                                    id="city_id"
-                                    name="city_id"
-                                    className={selectClassName}
-                                    value={values.cityId}
-                                    aria-required="true"
-                                    aria-invalid={Boolean(message('city_id'))}
-                                    aria-describedby={
-                                        message('city_id')
-                                            ? 'city_id-error'
-                                            : undefined
-                                    }
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            cityId: event.target.value,
-                                            talukaId: '',
-                                        }))
-                                    }
-                                >
-                                    <option value="" disabled>
-                                        {t('select_city')}
-                                    </option>
-                                    {cities.map((city) => (
-                                        <option key={city.id} value={city.id}>
-                                            {city.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <FieldError
-                                    id="city_id-error"
-                                    message={message('city_id')}
-                                />
-                            </div>
-
-                            <div className="grid gap-2 rounded-xl border bg-card p-4">
-                                <Label
-                                    htmlFor="taluka_id"
-                                    className="text-base"
-                                >
-                                    {t('taluka')}
-                                </Label>
-                                <select
-                                    id="taluka_id"
-                                    name="taluka_id"
-                                    className={selectClassName}
-                                    value={values.talukaId}
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            talukaId: event.target.value,
-                                        }))
-                                    }
-                                >
-                                    <option value="">{t('none')}</option>
-                                    {talukasForCity.map((taluka) => (
-                                        <option
-                                            key={taluka.id}
-                                            value={taluka.id}
-                                        >
-                                            {taluka.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <FieldError message={errors.taluka_id} />
-                            </div>
-
-                            <div className="grid gap-2 rounded-xl border bg-card p-4">
-                                <Label htmlFor="code" className="text-base">
-                                    {t('programme_code')}
-                                </Label>
-                                <Input
-                                    id="code"
-                                    name="code"
-                                    value={values.code}
-                                    maxLength={255}
-                                    className="h-12 text-base md:text-base"
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            code: event.target.value,
-                                        }))
-                                    }
-                                />
-                                <FieldError message={errors.code} />
-                            </div>
-
-                            {teamSlug ? (
-                                <input
-                                    type="hidden"
-                                    name="active"
-                                    value={values.active ? '1' : '0'}
-                                />
-                            ) : (
-                                <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-card p-4">
-                                    <input
-                                        id="active"
-                                        name="active"
-                                        type="checkbox"
-                                        value="1"
-                                        checked={values.active}
+                            <>
+                                {!teamSlug ? (
+                                    <p className="text-base text-foreground">
+                                        {t('create_description')}
+                                    </p>
+                                ) : null}
+                                <div className="grid gap-2 rounded-xl border bg-card p-4">
+                                    <Label htmlFor="name" className="text-base">
+                                        {t('facility_name')}
+                                    </Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        value={values.name}
+                                        aria-required="true"
+                                        aria-invalid={Boolean(message('name'))}
+                                        aria-describedby={
+                                            message('name')
+                                                ? 'name-error'
+                                                : undefined
+                                        }
+                                        maxLength={255}
+                                        className="h-12 text-base md:text-base"
                                         onChange={(event) =>
                                             setValues((current) => ({
                                                 ...current,
-                                                active: event.target.checked,
+                                                name: event.target.value,
                                             }))
                                         }
-                                        className={cn(
-                                            'size-5 rounded border border-input',
-                                        )}
                                     />
-                                    <Label htmlFor="active" className="text-base">
-                                        {t('active')}
-                                    </Label>
+                                    <FieldError
+                                        id="name-error"
+                                        message={message('name')}
+                                    />
                                 </div>
-                            )}
-                            <FieldError message={errors.active} />
-                            {belowFields}
-                        </>
+
+                                <div className="grid gap-2 rounded-xl border bg-card p-4">
+                                    <Label
+                                        htmlFor="sector"
+                                        className="text-base"
+                                    >
+                                        {t('sector')}
+                                    </Label>
+                                    <select
+                                        id="sector"
+                                        name="sector"
+                                        className={selectClassName}
+                                        value={values.sector}
+                                        aria-required="true"
+                                        aria-invalid={Boolean(
+                                            message('sector'),
+                                        )}
+                                        aria-describedby={
+                                            message('sector')
+                                                ? 'sector-error'
+                                                : undefined
+                                        }
+                                        onChange={(event) =>
+                                            setValues((current) => ({
+                                                ...current,
+                                                sector: event.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="" disabled>
+                                            {t('select_sector')}
+                                        </option>
+                                        {sectors.map((sector) => (
+                                            <option
+                                                key={sector.value}
+                                                value={sector.value}
+                                            >
+                                                {sector.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FieldError
+                                        id="sector-error"
+                                        message={message('sector')}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2 rounded-xl border bg-card p-4">
+                                    <Label htmlFor="kind" className="text-base">
+                                        {t('kind')}
+                                    </Label>
+                                    <select
+                                        id="kind"
+                                        name="kind"
+                                        className={selectClassName}
+                                        value={values.kind}
+                                        aria-required="true"
+                                        aria-invalid={Boolean(message('kind'))}
+                                        aria-describedby={
+                                            message('kind')
+                                                ? 'kind-error'
+                                                : undefined
+                                        }
+                                        onChange={(event) =>
+                                            setValues((current) => ({
+                                                ...current,
+                                                kind: event.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="" disabled>
+                                            {t('select_kind')}
+                                        </option>
+                                        {kinds.map((kind) => (
+                                            <option
+                                                key={kind.value}
+                                                value={kind.value}
+                                            >
+                                                {kind.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FieldError
+                                        id="kind-error"
+                                        message={message('kind')}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2 rounded-xl border bg-card p-4">
+                                    <Label
+                                        htmlFor="city_id"
+                                        className="text-base"
+                                    >
+                                        {t('city')}
+                                    </Label>
+                                    <select
+                                        id="city_id"
+                                        name="city_id"
+                                        className={selectClassName}
+                                        value={values.cityId}
+                                        aria-required="true"
+                                        aria-invalid={Boolean(
+                                            message('city_id'),
+                                        )}
+                                        aria-describedby={
+                                            message('city_id')
+                                                ? 'city_id-error'
+                                                : undefined
+                                        }
+                                        onChange={(event) =>
+                                            setValues((current) => ({
+                                                ...current,
+                                                cityId: event.target.value,
+                                                talukaId: '',
+                                            }))
+                                        }
+                                    >
+                                        <option value="" disabled>
+                                            {t('select_city')}
+                                        </option>
+                                        {cities.map((city) => (
+                                            <option
+                                                key={city.id}
+                                                value={city.id}
+                                            >
+                                                {city.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FieldError
+                                        id="city_id-error"
+                                        message={message('city_id')}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2 rounded-xl border bg-card p-4">
+                                    <Label
+                                        htmlFor="taluka_id"
+                                        className="text-base"
+                                    >
+                                        {t('taluka')}
+                                    </Label>
+                                    <select
+                                        id="taluka_id"
+                                        name="taluka_id"
+                                        className={selectClassName}
+                                        value={values.talukaId}
+                                        onChange={(event) =>
+                                            setValues((current) => ({
+                                                ...current,
+                                                talukaId: event.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="">{t('none')}</option>
+                                        {talukasForCity.map((taluka) => (
+                                            <option
+                                                key={taluka.id}
+                                                value={taluka.id}
+                                            >
+                                                {taluka.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FieldError message={errors.taluka_id} />
+                                </div>
+
+                                <div className="grid gap-2 rounded-xl border bg-card p-4">
+                                    <Label htmlFor="code" className="text-base">
+                                        {t('programme_code')}
+                                    </Label>
+                                    <Input
+                                        id="code"
+                                        name="code"
+                                        value={values.code}
+                                        maxLength={255}
+                                        className="h-12 text-base md:text-base"
+                                        onChange={(event) =>
+                                            setValues((current) => ({
+                                                ...current,
+                                                code: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    <FieldError message={errors.code} />
+                                </div>
+
+                                {teamSlug ? (
+                                    <input
+                                        type="hidden"
+                                        name="active"
+                                        value={values.active ? '1' : '0'}
+                                    />
+                                ) : (
+                                    <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-card p-4">
+                                        <input
+                                            id="active"
+                                            name="active"
+                                            type="checkbox"
+                                            value="1"
+                                            checked={values.active}
+                                            onChange={(event) =>
+                                                setValues((current) => ({
+                                                    ...current,
+                                                    active: event.target
+                                                        .checked,
+                                                }))
+                                            }
+                                            className={cn(
+                                                'size-5 rounded border border-input',
+                                            )}
+                                        />
+                                        <Label
+                                            htmlFor="active"
+                                            className="text-base"
+                                        >
+                                            {t('active')}
+                                        </Label>
+                                    </div>
+                                )}
+                                <FieldError message={errors.active} />
+                                {belowFields}
+                            </>
                         );
                     }}
                 </Form>

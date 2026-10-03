@@ -1,7 +1,6 @@
-import { Form } from '@inertiajs/react';
-import { useRef } from 'react';
+import { Form, usePage } from '@inertiajs/react';
+import { useRef, useState } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -14,27 +13,55 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+/**
+ * Danger zone for the Account page. It sits below every routine setting, and
+ * the delete button only works after the person types their account email.
+ */
 export default function DeleteUser() {
+    const { auth } = usePage().props;
     const passwordInput = useRef<HTMLInputElement>(null);
+    const [typedEmail, setTypedEmail] = useState('');
+    const email = auth.user.email;
+    const emailMatches =
+        typedEmail.trim().toLowerCase() === email.trim().toLowerCase();
 
     return (
-        <div className="space-y-6">
-            <Heading
-                variant="small"
-                title="Delete account"
-                description="Delete your account and all of its resources"
-            />
-            <div className="space-y-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-                <div className="relative space-y-0.5 text-destructive">
-                    <p className="font-medium">Warning</p>
-                    <p className="text-sm">
-                        Please proceed with caution, this cannot be undone.
+        <section
+            aria-labelledby="danger-zone-heading"
+            data-test="danger-zone"
+            className="mt-12 space-y-4 border-t pt-8"
+        >
+            <div className="space-y-1">
+                <h2
+                    id="danger-zone-heading"
+                    className="text-base font-semibold text-destructive dark:text-destructive-foreground"
+                >
+                    Danger zone
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    Actions here cannot be undone.
+                </p>
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-destructive/30 p-4">
+                <div className="space-y-0.5">
+                    <p className="font-medium">Delete account</p>
+                    <p className="text-sm text-muted-foreground">
+                        Delete your account and all of its resources. You will
+                        be asked to type your email address to confirm.
                     </p>
                 </div>
 
-                <Dialog>
+                <Dialog
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setTypedEmail('');
+                        }
+                    }}
+                >
                     <DialogTrigger asChild>
                         <Button
                             variant="destructive"
@@ -49,9 +76,9 @@ export default function DeleteUser() {
                         </DialogTitle>
                         <DialogDescription>
                             Once your account is deleted, all of its resources
-                            and data will also be permanently deleted. Please
-                            enter your password to confirm you would like to
-                            permanently delete your account.
+                            and data will also be permanently deleted. Type your
+                            email address <strong>{email}</strong> and enter
+                            your password to confirm.
                         </DialogDescription>
 
                         <Form
@@ -65,6 +92,31 @@ export default function DeleteUser() {
                         >
                             {({ resetAndClearErrors, processing, errors }) => (
                                 <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="confirm_email">
+                                            Type your email address
+                                        </Label>
+
+                                        <Input
+                                            id="confirm_email"
+                                            name="confirm_email"
+                                            type="email"
+                                            autoComplete="off"
+                                            placeholder={email}
+                                            value={typedEmail}
+                                            onChange={(event) =>
+                                                setTypedEmail(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            data-test="delete-user-email"
+                                        />
+
+                                        <InputError
+                                            message={errors.confirm_email}
+                                        />
+                                    </div>
+
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="password"
@@ -88,9 +140,10 @@ export default function DeleteUser() {
                                         <DialogClose asChild>
                                             <Button
                                                 variant="secondary"
-                                                onClick={() =>
-                                                    resetAndClearErrors()
-                                                }
+                                                onClick={() => {
+                                                    resetAndClearErrors();
+                                                    setTypedEmail('');
+                                                }}
                                             >
                                                 Cancel
                                             </Button>
@@ -98,7 +151,9 @@ export default function DeleteUser() {
 
                                         <Button
                                             variant="destructive"
-                                            disabled={processing}
+                                            disabled={
+                                                processing || !emailMatches
+                                            }
                                             asChild
                                         >
                                             <button
@@ -115,6 +170,6 @@ export default function DeleteUser() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </div>
+        </section>
     );
 }

@@ -72,7 +72,7 @@ type Props = {
     canSave: boolean;
     returnUpdatedAt: string | null;
     lastUpdated: LastUpdated | null;
-    screeningSuspects: number;
+    screeningSuspects: number | null;
     return: Counts;
     provisionalTat: {
         label: string;
@@ -509,7 +509,8 @@ function RegisterForm(props: Props) {
                                                     : 'next'
                                             }
                                             hint={
-                                                field.name === 'suspects'
+                                                field.name === 'suspects' &&
+                                                props.screeningSuspects !== null
                                                     ? t(
                                                           props.isToday
                                                               ? 'suspects_today'

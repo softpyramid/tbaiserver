@@ -66,7 +66,15 @@ test('the team edit page can be rendered', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('teams/edit')
             ->where('members.0.role', TeamRole::Owner->value)
-            ->where('members.0.role_label', TeamRole::Owner->label()),
+            ->where('members.0.role_label', 'Facility in-charge')
+            ->where('availableRoles.0', [
+                'value' => TeamRole::Admin->value,
+                'label' => 'Senior technician',
+            ])
+            ->where('availableRoles.1', [
+                'value' => TeamRole::Member->value,
+                'label' => 'Technician',
+            ]),
         );
 });
 

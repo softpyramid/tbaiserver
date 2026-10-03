@@ -58,9 +58,9 @@ export default function InviteMemberModal({
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Invite a team member</DialogTitle>
+                                <DialogTitle>Invite staff</DialogTitle>
                                 <DialogDescription>
-                                    Send an invitation to join this team.
+                                    Send an invitation to join this facility.
                                 </DialogDescription>
                             </DialogHeader>
 

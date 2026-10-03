@@ -9,11 +9,15 @@ enum TeamRole: string
     case Member = 'member';
 
     /**
-     * Get the display label for the role.
+     * Facility name for this stored team role.
      */
     public function label(): string
     {
-        return ucfirst($this->value);
+        return match ($this) {
+            self::Owner => 'Facility in-charge',
+            self::Admin => 'Senior technician',
+            self::Member => 'Technician',
+        };
     }
 
     /**

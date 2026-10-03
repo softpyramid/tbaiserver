@@ -1,4 +1,8 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
+import type { ShellTile } from '@/components/page-shell';
+import TeamAreaShell from '@/components/team-area-shell';
+import { Button } from '@/components/ui/button';
+import type { TeamAreaHeader } from '@/types/team-area';
 
 type Line = {
     label: string;
@@ -6,41 +10,59 @@ type Line = {
 };
 
 type Props = {
-    title: string;
+    area: TeamAreaHeader;
+    tiles: ShellTile[];
+    action: { href: string; label: string };
     dateLabel: string;
-    name: string;
     lines: Line[];
     links: { href: string; label: string }[];
 };
 
-export default function FacilityHome({ title, dateLabel, name, lines, links }: Props) {
+export default function FacilityHome({
+    area,
+    tiles,
+    action,
+    lines,
+    links,
+}: Props) {
     return (
-        <>
-            <Head title={title} />
-
-            <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-6">
-                <p className="text-sm text-muted-foreground">{dateLabel}</p>
-                <h1 className="text-xl font-semibold">{name}</h1>
-                <dl className="flex flex-col gap-3">
+        <TeamAreaShell
+            area={area}
+            tiles={tiles}
+            action={
+                <Button asChild data-test="open-register">
+                    <Link href={action.href}>{action.label}</Link>
+                </Button>
+            }
+        >
+            <section
+                className="rounded-xl border bg-card p-4 md:p-6"
+                data-test="facility-lines"
+            >
+                <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {lines.map((line) => (
                         <div key={line.label}>
-                            <dt className="text-sm text-muted-foreground">{line.label}</dt>
-                            <dd>{line.value}</dd>
+                            <dt className="text-sm text-muted-foreground">
+                                {line.label}
+                            </dt>
+                            <dd className="font-medium">{line.value}</dd>
                         </div>
                     ))}
                 </dl>
-                <div className="flex flex-col gap-3">
+            </section>
+            {links.length > 0 ? (
+                <div className="flex flex-wrap gap-4">
                     {links.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className="font-medium underline-offset-2 hover:underline"
+                            className="text-sm font-medium underline underline-offset-2"
                         >
                             {link.label}
                         </Link>
                     ))}
                 </div>
-            </div>
-        </>
+            ) : null}
+        </TeamAreaShell>
     );
 }

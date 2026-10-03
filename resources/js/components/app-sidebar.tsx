@@ -7,10 +7,12 @@ import {
     ClipboardPlus,
     Globe,
     History,
+    FileText,
     Inbox,
     LayoutGrid,
     List,
     MapPinned,
+    ScrollText,
     Users,
     type LucideIcon,
 } from 'lucide-react';
@@ -50,6 +52,8 @@ const icons: Record<string, LucideIcon> = {
     facilities: List,
     data: CalendarDays,
     people: Users,
+    returns: FileText,
+    audit_log: ScrollText,
     revisions: History,
     screening_sessions: ClipboardPlus,
     users: Users,
@@ -62,7 +66,8 @@ export function AppSidebar() {
     const page = usePage();
     const { isMobile, setOpenMobile } = useSidebar();
     const groups = page.props.nav.groups as NavGroup[];
-    const homeUrl = typeof page.props.homeUrl === 'string' ? page.props.homeUrl : '/';
+    const homeUrl =
+        typeof page.props.homeUrl === 'string' ? page.props.homeUrl : '/';
 
     const closeMobileDrawer = () => {
         if (isMobile) {
@@ -84,7 +89,11 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={homeUrl} prefetch onClick={closeMobileDrawer}>
+                            <Link
+                                href={homeUrl}
+                                prefetch
+                                onClick={closeMobileDrawer}
+                            >
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

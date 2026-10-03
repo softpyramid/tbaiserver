@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TeamRole;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\AdminTabs;
 use App\Support\AuditLogger;
 use App\Support\DataScope;
 use App\Support\ResourceResponse;
@@ -160,6 +161,11 @@ class UserAdminController extends Controller
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => __('entry.people_description'),
+                'title' => __('entry.nav_people'),
+                'tabs' => AdminTabs::people('users'),
+            ],
         );
     }
 

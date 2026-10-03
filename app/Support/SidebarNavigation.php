@@ -21,6 +21,7 @@ class SidebarNavigation
      *         href: string|null,
      *         badge: int|null,
      *         expanded: bool,
+     *         current: bool,
      *         children: list<array{key: string, label: string, href: string, badge: int|null}>
      *     }>
      * }>
@@ -37,6 +38,37 @@ class SidebarNavigation
     }
 
     /**
+     * The command center has one sidebar link for the TB-AI admin, so the
+     * pages under it (Overview, Registered, Map, Alerts) are reached with a tab
+     * strip on the page itself. Everyone else has those in the sidebar.
+     *
+     * @return list<array{id: string, label: string, href: string, current: bool, badge: int|null}>
+     */
+    public function commandAreaTabs(?User $user): array
+    {
+        $name = request()->route()?->getName();
+
+        if ($user === null || ! $user->isTbaiAdmin() || $name === null || ! str_starts_with($name, 'command.')) {
+            return [];
+        }
+
+        $rows = [
+            ['overview', __('entry.nav_overview'), route('command.index'), $name === 'command.index'],
+            ['registered', __('entry.nav_registered'), route('command.sectors.show', ['sector' => Sector::Public->value]), str_starts_with($name, 'command.sectors.') || str_starts_with($name, 'command.districts.')],
+            ['map', __('entry.command_map'), route('command.map'), $name === 'command.map'],
+            ['alerts', __('entry.command_alerts'), route('command.alerts'), str_starts_with($name, 'command.alerts')],
+        ];
+
+        return array_map(fn (array $row): array => [
+            'id' => $row[0],
+            'label' => $row[1],
+            'href' => $row[2],
+            'current' => $row[3],
+            'badge' => null,
+        ], $rows);
+    }
+
+    /**
      * @return list<array{
      *     key: string,
      *     label: string,
@@ -46,6 +78,7 @@ class SidebarNavigation
      *         href: string|null,
      *         badge: int|null,
      *         expanded: bool,
+     *         current: bool,
      *         children: list<array{key: string, label: string, href: string, badge: int|null}>
      *     }>
      * }>
@@ -54,7 +87,9 @@ class SidebarNavigation
     {
         if ($user->isTbaiAdmin()) {
             return [
-                $this->group('command', __('entry.nav_group_command'), $this->commandItems()),
+                $this->group('command', '', [
+                    $this->link('command', __('entry.nav_command'), route('command.index'), null, ['command.']),
+                ]),
                 $this->group('administration', __('entry.nav_group_administration'), $this->administrationItems()),
             ];
         }
@@ -81,20 +116,21 @@ class SidebarNavigation
      *     href: string|null,
      *     badge: int|null,
      *     expanded: bool,
+     *     current: bool,
      *     children: list<array{key: string, label: string, href: string, badge: int|null}>
      * }>
      */
     private function commandItems(): array
     {
         $items = [
-            $this->link('command', __('entry.cumulative_title'), route('command.index')),
+            $this->link('command', __('entry.nav_overview'), route('command.index'), null, ['command.index']),
             $this->parent('registered', __('entry.nav_registered'), [
                 $this->child('public', Sector::Public->label(), route('command.sectors.show', ['sector' => Sector::Public->value])),
                 $this->child('private', Sector::Private->label(), route('command.sectors.show', ['sector' => Sector::Private->value])),
                 $this->child('ppm', Sector::Ppm->label(), route('command.sectors.show', ['sector' => Sector::Ppm->value])),
             ]),
-            $this->link('command_map', __('entry.command_map'), route('command.map')),
-            $this->link('command_alerts', __('entry.command_alerts'), route('command.alerts')),
+            $this->link('command_map', __('entry.command_map'), route('command.map'), null, ['command.map']),
+            $this->link('command_alerts', __('entry.command_alerts'), route('command.alerts'), null, ['command.alerts']),
         ];
 
         if (config('tbai.features.drivers')) {
@@ -105,8 +141,7 @@ class SidebarNavigation
             $items[] = $this->link('command_incidence', __('entry.incidence_title'), route('command.incidence'));
         }
 
-        $items[] = $this->link('daily_returns', __('entry.nav_daily_returns'), route('command.returns'));
-        $items[] = $this->link('account', __('entry.nav_account'), route('profile.edit'));
+        $items[] = $this->link('daily_returns', __('entry.nav_daily_returns'), route('command.returns'), null, ['command.returns']);
 
         return $items;
     }
@@ -118,6 +153,7 @@ class SidebarNavigation
      *     href: string|null,
      *     badge: int|null,
      *     expanded: bool,
+     *     current: bool,
      *     children: list<array{key: string, label: string, href: string, badge: int|null}>
      * }>
      */
@@ -128,24 +164,11 @@ class SidebarNavigation
             ->count();
         $badge = $pending > 0 ? $pending : null;
 
-        $dataChildren = [
-            $this->child('daily_returns', __('entry.nav_daily_returns'), route('admin.daily-returns.index')),
-            $this->child('revisions', __('entry.nav_revisions'), route('admin.revisions.index')),
-        ];
-
-        if (config('tbai.features.screening')) {
-            $dataChildren[] = $this->child('screening_sessions', __('entry.nav_screening_sessions'), route('admin.screening-sessions.index'));
-        }
-
         return [
-            $this->link('facilities', __('entry.nav_all_facilities'), route('facilities.index')),
-            $this->parent('data', __('entry.nav_data'), $dataChildren),
-            $this->parent('people', __('entry.nav_people'), [
-                $this->child('users', __('entry.nav_users'), route('admin.users.index')),
-                $this->child('programme_assignments', __('entry.nav_programme_assignments'), route('admin.programme-assignments.index')),
-                $this->child('access_requests', __('entry.nav_access_requests'), route('admin.access-requests.index'), $badge),
-                $this->child('programme_access', __('entry.nav_programme_access'), route('admin.programme-access.index')),
-            ]),
+            $this->link('facilities', __('entry.nav_facilities'), route('facilities.index'), null, ['facilities.']),
+            $this->link('returns', __('entry.nav_returns'), route('admin.daily-returns.index'), null, ['admin.daily-returns', 'admin.revisions', 'admin.screening-sessions']),
+            $this->link('people', __('entry.nav_people'), route('admin.users.index'), $badge, ['admin.users', 'admin.memberships', 'admin.programme-', 'admin.access-requests']),
+            $this->link('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), null, ['admin.audit-log']),
         ];
     }
 
@@ -156,6 +179,7 @@ class SidebarNavigation
      *     href: string|null,
      *     badge: int|null,
      *     expanded: bool,
+     *     current: bool,
      *     children: list<array{key: string, label: string, href: string, badge: int|null}>
      * }>
      */
@@ -163,25 +187,18 @@ class SidebarNavigation
     {
         $role = $user->teamRole($facilityTeam);
         $items = [
-            $this->link('register', __('entry.nav_register_long'), route('returns.today', $facilityTeam)),
+            $this->link('register', __('entry.nav_register_long'), route('returns.today', $facilityTeam), null, ['returns.today', 'returns.update']),
         ];
 
         if ($role === TeamRole::Owner) {
-            $items[] = $this->link('returns_history', __('entry.nav_returns_history'), route('returns.history', $facilityTeam));
+            $items[] = $this->link('returns_history', __('entry.nav_returns'), route('returns.history', $facilityTeam), null, ['returns.history']);
         }
 
         if (config('tbai.features.screening')) {
-            $items[] = $this->link('screening', __('entry.nav_screening'), route('screening.create', $facilityTeam));
+            $items[] = $this->link('screening', __('entry.nav_screening'), route('screening.create', $facilityTeam), null, ['screening.']);
         }
 
-        $items[] = $this->link('my_facility', __('entry.nav_facility'), route('facilities.home', $facilityTeam));
-
-        if ($role === TeamRole::Owner || $role === TeamRole::Admin) {
-            $items[] = $this->link('facility_profile', __('entry.nav_facility_long'), route('facilities.edit', $facilityTeam));
-            $items[] = $this->link('team_members', __('entry.nav_team_members'), route('facilities.members', $facilityTeam));
-        }
-
-        $items[] = $this->link('account', __('entry.nav_account'), route('profile.edit'));
+        $items[] = $this->link('my_facility', __('entry.nav_facility'), route('facilities.home', $facilityTeam), null, ['facilities.']);
 
         return $items;
     }
@@ -193,6 +210,7 @@ class SidebarNavigation
      *     href: string|null,
      *     badge: int|null,
      *     expanded: bool,
+     *     current: bool,
      *     children: list<array{key: string, label: string, href: string, badge: int|null}>
      * }>  $items
      * @return array{
@@ -204,6 +222,7 @@ class SidebarNavigation
      *         href: string|null,
      *         badge: int|null,
      *         expanded: bool,
+     *         current: bool,
      *         children: list<array{key: string, label: string, href: string, badge: int|null}>
      *     }>
      * }
@@ -218,25 +237,48 @@ class SidebarNavigation
     }
 
     /**
+     * @param  list<string>  $routes  Route name prefixes that mark this link as current.
      * @return array{
      *     key: string,
      *     label: string,
      *     href: string|null,
      *     badge: int|null,
      *     expanded: bool,
+     *     current: bool,
      *     children: list<array{key: string, label: string, href: string, badge: int|null}>
      * }
      */
-    private function link(string $key, string $label, string $href): array
+    private function link(string $key, string $label, string $href, ?int $badge = null, array $routes = []): array
     {
         return [
             'key' => $key,
             'label' => $label,
             'href' => $href,
-            'badge' => null,
+            'badge' => $badge,
             'expanded' => false,
+            'current' => $this->onRoute($routes),
             'children' => [],
         ];
+    }
+
+    /**
+     * @param  list<string>  $prefixes
+     */
+    private function onRoute(array $prefixes): bool
+    {
+        $name = request()->route()?->getName();
+
+        if ($name === null) {
+            return false;
+        }
+
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($name, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -247,6 +289,7 @@ class SidebarNavigation
      *     href: null,
      *     badge: int|null,
      *     expanded: bool,
+     *     current: bool,
      *     children: list<array{key: string, label: string, href: string, badge: int|null}>
      * }
      */
@@ -258,6 +301,7 @@ class SidebarNavigation
             'href' => null,
             'badge' => null,
             'expanded' => false,
+            'current' => false,
             'children' => $children,
         ];
     }
@@ -285,6 +329,7 @@ class SidebarNavigation
      *         href: string|null,
      *         badge: int|null,
      *         expanded: bool,
+     *         current: bool,
      *         children: list<array{key: string, label: string, href: string, badge: int|null}>
      *     }>
      * }>  $groups
@@ -297,6 +342,7 @@ class SidebarNavigation
      *         href: string|null,
      *         badge: int|null,
      *         expanded: bool,
+     *         current: bool,
      *         children: list<array{key: string, label: string, href: string, badge: int|null}>
      *     }>
      * }>

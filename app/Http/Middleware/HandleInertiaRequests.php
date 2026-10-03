@@ -90,11 +90,7 @@ class HandleInertiaRequests extends Middleware
             'myFacilityUrl' => $user !== null && $facilityTeam !== null && ($isTbaiAdmin || $user->belongsToTeam($facilityTeam))
                 ? route('facilities.home', ['current_team' => $facilityTeam->slug])
                 : null,
-            'nav' => [
-                'shell' => app(NavigationShell::class)->for($user, $facilityTeam),
-                'activeTab' => app(FacilityTabs::class)->active($request),
-                'groups' => app(SidebarNavigation::class)->groups($user, $facilityTeam),
-            ],
+            'nav' => $this->navigation($request, $user, $facilityTeam),
             'i18n' => [
                 'locale' => app()->getLocale(),
                 'dir' => in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr',
@@ -108,6 +104,26 @@ class HandleInertiaRequests extends Middleware
             'currentTeam' => fn () => $this->displayTeam($user, $facilityTeam),
             'teams' => fn () => $this->facilityChoices($user),
             'scopeLabel' => fn () => $this->scopeLabel($user),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function navigation(Request $request, ?User $user, ?Team $facilityTeam): array
+    {
+        $phone = app(FacilityTabs::class)->for($user, $facilityTeam, $request);
+
+        return [
+            'shell' => app(NavigationShell::class)->for($user, $facilityTeam),
+            'activeTab' => $phone['active'],
+            'tabs' => $phone['tabs'],
+            'more' => $phone['more'],
+            'commandTabs' => app(SidebarNavigation::class)->commandAreaTabs($user),
+            'tabsLabel' => __('entry.nav_tabs'),
+            'moreLabel' => __('entry.nav_more'),
+            'logoutLabel' => __('entry.nav_log_out'),
+            'groups' => app(SidebarNavigation::class)->groups($user, $facilityTeam),
         ];
     }
 

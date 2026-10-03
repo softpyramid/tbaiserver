@@ -81,7 +81,7 @@ test('alerts link to a district or facility and skip rules the returns cannot an
             $page->component('command/alerts')
                 ->where('badge', 'Thresholds pending the TB programme')
                 ->where('canEdit', true)
-                ->where('title', 'Alert Center');
+                ->where('title', 'Alerts');
 
             $alerts = collect($page->toArray()['props']['alerts']);
             $encoded = json_encode($alerts);

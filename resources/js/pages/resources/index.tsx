@@ -1,6 +1,10 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { MoreHorizontal } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import PageShell, {
+    type ShellTab,
+    type ShellTile,
+} from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -94,6 +98,11 @@ type Props = {
     exportUrl: string;
     labels: Labels;
     status: string | null;
+    heading?: string | null;
+    description?: string | null;
+    tabs?: ShellTab[];
+    tiles?: ShellTile[];
+    empty?: { title: string; body: string } | null;
 };
 
 function pathOf(url: string): string {
@@ -104,7 +113,9 @@ function actionName(label: string, person?: string): string {
     return person ? `${label} ${person}` : label;
 }
 
-function fieldData(fields: { name: string; value: string }[]): Record<string, string> {
+function fieldData(
+    fields: { name: string; value: string }[],
+): Record<string, string> {
     return Object.fromEntries(fields.map((field) => [field.name, field.value]));
 }
 
@@ -123,14 +134,24 @@ export default function ResourceIndex({
     exportUrl,
     labels,
     status,
+    heading = null,
+    description = null,
+    tabs = [],
+    tiles = [],
+    empty = null,
 }: Props) {
     const page = usePage();
     const path = pathOf(page.url);
-    const [pending, setPending] = useState<Extract<Control, { kind: 'button' }> | null>(null);
+    const [pending, setPending] = useState<Extract<
+        Control,
+        { kind: 'button' }
+    > | null>(null);
     const [confirming, setConfirming] = useState(false);
     const hasControls = rows.some((row) => row.controls.length > 0);
 
-    function currentQuery(extra: Record<string, string> = {}): Record<string, string> {
+    function currentQuery(
+        extra: Record<string, string> = {},
+    ): Record<string, string> {
         const query: Record<string, string> = {};
 
         for (const filter of filters) {
@@ -157,7 +178,8 @@ export default function ResourceIndex({
     }
 
     function onSort(key: string) {
-        const nextDirection = sort === key && direction === 'asc' ? 'desc' : 'asc';
+        const nextDirection =
+            sort === key && direction === 'asc' ? 'desc' : 'asc';
 
         router.get(
             path,
@@ -168,43 +190,46 @@ export default function ResourceIndex({
 
     return (
         <>
-            <Head title={title} />
-
-            <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 px-4 py-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-xl font-semibold">{title}</h1>
-                    <div className="flex flex-wrap gap-2">
-                        {createUrl && createLabel ? (
-                            <Button asChild>
-                                <Link href={createUrl}>{createLabel}</Link>
-                            </Button>
-                        ) : null}
-                        <Button variant="outline" asChild>
-                            <a href={exportUrl}>{labels.export}</a>
+            <PageShell
+                title={heading ?? title}
+                headTitle={title}
+                description={description}
+                tabs={tabs}
+                tiles={tiles}
+                action={
+                    createUrl && createLabel ? (
+                        <Button asChild>
+                            <Link href={createUrl}>{createLabel}</Link>
                         </Button>
-                    </div>
-                </div>
-
+                    ) : null
+                }
+            >
                 {status ? (
                     <p className="text-sm text-muted-foreground">{status}</p>
                 ) : null}
 
                 {filters.length > 0 ? (
                     <form
-                        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
                         onSubmit={onFilter}
                     >
                         {filters.map((filter) => (
-                            <label key={filter.key} className="flex flex-col gap-1 text-sm">
+                            <label
+                                key={filter.key}
+                                className="flex flex-col gap-1 text-sm"
+                            >
                                 <span>{filter.label}</span>
                                 {filter.type === 'select' ? (
                                     <select
                                         name={filter.key}
                                         defaultValue={filter.value}
-                                        className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm"
+                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-base md:text-sm"
                                     >
                                         {filter.options?.map((option) => (
-                                            <option key={option.value} value={option.value}>
+                                            <option
+                                                key={option.value}
+                                                value={option.value}
+                                            >
                                                 {option.label}
                                             </option>
                                         ))}
@@ -212,7 +237,11 @@ export default function ResourceIndex({
                                 ) : (
                                     <Input
                                         name={filter.key}
-                                        type={filter.type === 'date' ? 'date' : 'search'}
+                                        type={
+                                            filter.type === 'date'
+                                                ? 'date'
+                                                : 'search'
+                                        }
                                         defaultValue={filter.value}
                                         aria-label={filter.label}
                                     />
@@ -225,30 +254,70 @@ export default function ResourceIndex({
                                 type="button"
                                 variant="outline"
                                 onClick={() =>
-                                    router.get(path, {}, { preserveScroll: true })
+                                    router.get(
+                                        path,
+                                        {},
+                                        { preserveScroll: true },
+                                    )
                                 }
                             >
                                 {labels.clear}
                             </Button>
+                            <Button variant="outline" asChild>
+                                <a href={exportUrl} data-test="export-link">
+                                    {labels.export}
+                                </a>
+                            </Button>
                         </div>
                     </form>
-                ) : null}
+                ) : (
+                    <div className="flex justify-end">
+                        <Button variant="outline" asChild>
+                            <a href={exportUrl} data-test="export-link">
+                                {labels.export}
+                            </a>
+                        </Button>
+                    </div>
+                )}
 
                 {showing ? (
                     <p className="text-sm text-muted-foreground">{showing}</p>
                 ) : null}
 
+                {rows.length === 0 && empty ? (
+                    <section
+                        className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-12 text-center"
+                        data-test="resource-empty-state"
+                    >
+                        <h2 className="text-base font-semibold">
+                            {empty.title}
+                        </h2>
+                        <p className="max-w-md text-sm text-muted-foreground">
+                            {empty.body}
+                        </p>
+                    </section>
+                ) : null}
+
                 {rows.length > 0 ? (
-                    <ul className="space-y-3 md:hidden">
+                    <ul
+                        className="space-y-2 md:hidden"
+                        data-test="resource-cards"
+                    >
                         {rows.map((row) => (
-                            <li key={row.id} className="relative rounded-lg border p-3">
+                            <li
+                                key={row.id}
+                                className="relative rounded-lg border px-3 py-2"
+                            >
                                 {row.href && row.controls.length === 0 ? (
                                     <RowLink row={row} columns={columns} />
                                 ) : null}
                                 <RowBody
                                     row={row}
                                     columns={columns}
-                                    linked={Boolean(row.href) && row.controls.length === 0}
+                                    linked={
+                                        Boolean(row.href) &&
+                                        row.controls.length === 0
+                                    }
                                     onConfirm={setPending}
                                 />
                             </li>
@@ -256,8 +325,19 @@ export default function ResourceIndex({
                     </ul>
                 ) : null}
 
-                <div className={rows.length === 0 ? 'overflow-x-auto' : 'hidden overflow-x-auto md:block'}>
-                    <table className="w-full border-collapse text-sm" data-test="resource-table">
+                <div
+                    className={
+                        rows.length === 0
+                            ? empty
+                                ? 'hidden'
+                                : 'overflow-x-auto'
+                            : 'hidden overflow-x-auto rounded-xl border md:block'
+                    }
+                >
+                    <table
+                        className="w-full border-collapse text-sm"
+                        data-test="resource-table"
+                    >
                         <thead>
                             <tr className="border-b text-left">
                                 {columns.map((column) => (
@@ -284,14 +364,19 @@ export default function ResourceIndex({
                                     </th>
                                 ))}
                                 {hasControls ? (
-                                    <th className="px-2 py-2 font-medium">Actions</th>
+                                    <th className="px-2 py-2 font-medium">
+                                        Actions
+                                    </th>
                                 ) : null}
                             </tr>
                         </thead>
                         <tbody>
                             {rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={columns.length} className="px-2 py-4">
+                                    <td
+                                        colSpan={columns.length}
+                                        className="px-2 py-4"
+                                    >
                                         <p
                                             className="text-sm text-muted-foreground"
                                             data-test="resource-empty"
@@ -303,31 +388,52 @@ export default function ResourceIndex({
                             ) : (
                                 rows.map((row) => {
                                     const wholeRow =
-                                        Boolean(row.href) && row.controls.length === 0;
+                                        Boolean(row.href) &&
+                                        row.controls.length === 0;
 
                                     return (
-                                    <tr key={row.id} className="relative border-b align-top">
-                                        {columns.map((column) => (
-                                            <td key={column.key} className="px-2 py-2">
-                                                {column.key === columns[0]?.key && wholeRow ? (
-                                                    <RowLink row={row} columns={columns} />
-                                                ) : null}
-                                                {column.key === columns[0]?.key && !wholeRow ? (
-                                                    <CellLink row={row} value={row.cells[column.key] ?? ''} />
-                                                ) : (
-                                                    row.cells[column.key]
-                                                )}
-                                            </td>
-                                        ))}
-                                        {hasControls ? (
-                                            <td className="relative z-20 px-2 py-2">
-                                                <RowMenu
-                                                    controls={row.controls}
-                                                    onConfirm={setPending}
-                                                />
-                                            </td>
-                                        ) : null}
-                                    </tr>
+                                        <tr
+                                            key={row.id}
+                                            className="relative border-b align-top"
+                                        >
+                                            {columns.map((column) => (
+                                                <td
+                                                    key={column.key}
+                                                    className="px-2 py-2"
+                                                >
+                                                    {column.key ===
+                                                        columns[0]?.key &&
+                                                    wholeRow ? (
+                                                        <RowLink
+                                                            row={row}
+                                                            columns={columns}
+                                                        />
+                                                    ) : null}
+                                                    {column.key ===
+                                                        columns[0]?.key &&
+                                                    !wholeRow ? (
+                                                        <CellLink
+                                                            row={row}
+                                                            value={
+                                                                row.cells[
+                                                                    column.key
+                                                                ] ?? ''
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        row.cells[column.key]
+                                                    )}
+                                                </td>
+                                            ))}
+                                            {hasControls ? (
+                                                <td className="relative z-20 px-2 py-2">
+                                                    <RowMenu
+                                                        controls={row.controls}
+                                                        onConfirm={setPending}
+                                                    />
+                                                </td>
+                                            ) : null}
+                                        </tr>
                                     );
                                 })
                             )}
@@ -347,7 +453,7 @@ export default function ResourceIndex({
                         </Button>
                     ) : null}
                 </div>
-            </div>
+            </PageShell>
             <Dialog
                 open={pending !== null}
                 onOpenChange={(open) => {
@@ -418,20 +524,37 @@ function RowBody({
     linked: boolean;
     onConfirm: (control: Extract<Control, { kind: 'button' }>) => void;
 }) {
+    const [first, ...rest] = columns;
+
     return (
-        <div className="relative flex flex-col gap-2">
-            {columns.map((column) => (
-                <div key={column.key} className="relative">
-                    <div className="text-sm text-muted-foreground">{column.label}</div>
-                    <div>
-                        {column.key === columns[0]?.key && !linked ? (
-                            <CellLink row={row} value={row.cells[column.key] ?? ''} />
-                        ) : (
-                            row.cells[column.key]
-                        )}
-                    </div>
+        <div className="relative flex flex-col gap-1">
+            {first ? (
+                <div className="font-medium">
+                    {linked ? (
+                        row.cells[first.key]
+                    ) : (
+                        <CellLink
+                            row={row}
+                            value={row.cells[first.key] ?? ''}
+                        />
+                    )}
                 </div>
-            ))}
+            ) : null}
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+                {rest.map((column) => (
+                    <div
+                        key={column.key}
+                        className="flex min-w-0 items-baseline gap-1.5"
+                    >
+                        <dt className="shrink-0 text-xs text-muted-foreground">
+                            {column.label}
+                        </dt>
+                        <dd className="min-w-0 text-sm break-words">
+                            {row.cells[column.key]}
+                        </dd>
+                    </div>
+                ))}
+            </dl>
             <Controls controls={row.controls} onConfirm={onConfirm} />
         </div>
     );
@@ -470,7 +593,12 @@ function RowMenu({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label="Row actions">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Row actions"
+                >
                     <MoreHorizontal className="size-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -487,7 +615,10 @@ function CellLink({ row, value }: { row: Row; value: string }) {
     }
 
     return (
-        <Link href={row.href} className="font-medium underline-offset-2 hover:underline">
+        <Link
+            href={row.href}
+            className="font-medium underline-offset-2 hover:underline"
+        >
             {value}
         </Link>
     );
@@ -510,28 +641,44 @@ function Controls({
                 switch (control.kind) {
                     case 'link':
                         return (
-                            <Button key={control.url + control.label} variant="outline" asChild>
+                            <Button
+                                key={control.url + control.label}
+                                variant="outline"
+                                asChild
+                            >
                                 <Link href={control.url}>{control.label}</Link>
                             </Button>
                         );
                     case 'select':
                         return (
-                            <label key={control.url + control.label} className="flex flex-col gap-1 text-sm">
+                            <label
+                                key={control.url + control.label}
+                                className="flex flex-col gap-1 text-sm"
+                            >
                                 <span>{control.label}</span>
                                 <select
-                                    className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm"
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-base md:text-sm"
                                     defaultValue={control.value}
-                                    aria-label={actionName(control.label, control.person)}
+                                    aria-label={actionName(
+                                        control.label,
+                                        control.person,
+                                    )}
                                     onChange={(event) => {
                                         router.visit(control.url, {
                                             method: control.method,
-                                            data: { [control.name]: event.target.value },
+                                            data: {
+                                                [control.name]:
+                                                    event.target.value,
+                                            },
                                             preserveScroll: true,
                                         });
                                     }}
                                 >
                                     {control.options.map((option) => (
-                                        <option key={option.value} value={option.value}>
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                        >
                                             {option.label}
                                         </option>
                                     ))}
@@ -544,7 +691,10 @@ function Controls({
                                 key={control.url + control.label}
                                 type="button"
                                 variant="outline"
-                                aria-label={actionName(control.label, control.person)}
+                                aria-label={actionName(
+                                    control.label,
+                                    control.person,
+                                )}
                                 onClick={() => {
                                     if (control.confirm) {
                                         onConfirm(control);

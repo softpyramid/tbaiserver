@@ -4,8 +4,8 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import { FacilityTabBar } from '@/components/facility-tab-bar';
 import PendingInvitationsModal from '@/components/pending-invitations-modal';
+import { PhoneTabBar } from '@/components/phone-tab-bar';
 import { ReturnSync } from '@/components/return-sync';
 import { useSessionGuard } from '@/hooks/use-session-guard';
 import { cn } from '@/lib/utils';
@@ -18,26 +18,31 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     const { nav, i18n } = usePage().props;
     const facility = nav.shell === 'facility';
+    const phoneTabs = nav.tabs.length > 0;
 
     useSessionGuard();
 
     return (
         <AppShell variant="sidebar" drawerBelow={facility ? 768 : 1024}>
-            <NavShellMarker shell={nav.shell} dir={i18n.dir} />
+            <NavShellMarker
+                shell={nav.shell}
+                phoneTabs={phoneTabs}
+                dir={i18n.dir}
+            />
             <AppSidebar />
             <AppContent
                 variant="sidebar"
                 className={cn(
                     'min-w-0 overflow-x-clip',
-                    facility && 'max-md:pb-[var(--entry-tab-offset)]',
+                    phoneTabs && 'max-md:pb-[var(--entry-tab-offset)]',
                 )}
             >
-                <div className={facility ? 'max-md:hidden' : undefined}>
+                <div className={phoneTabs ? 'max-md:hidden' : undefined}>
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 </div>
                 {children}
             </AppContent>
-            {facility ? <FacilityTabBar /> : null}
+            {phoneTabs ? <PhoneTabBar /> : null}
             <ReturnSync />
             <PendingInvitations />
         </AppShell>
@@ -60,11 +65,20 @@ function PendingInvitations() {
     );
 }
 
-function NavShellMarker({ shell, dir }: { shell: string; dir: 'ltr' | 'rtl' }) {
+function NavShellMarker({
+    shell,
+    phoneTabs,
+    dir,
+}: {
+    shell: string;
+    phoneTabs: boolean;
+    dir: 'ltr' | 'rtl';
+}) {
     useEffect(() => {
         document.documentElement.dataset.navShell = shell;
+        document.documentElement.dataset.phoneTabs = phoneTabs ? '1' : '0';
         document.documentElement.dir = dir;
-    }, [dir, shell]);
+    }, [dir, shell, phoneTabs]);
 
     return null;
 }

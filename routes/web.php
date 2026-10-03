@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessRequestController;
+use App\Http\Controllers\AuditLogAdminController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DailyReturnAdminController;
 use App\Http\Controllers\DailyReturnController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\WebManifestController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\RedirectProgrammeTeamUrl;
+use App\Models\Team;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -126,6 +128,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/access-requests', [ProgrammeAdminController::class, 'accessRequests'])->name('admin.access-requests.index');
     Route::patch('admin/access-requests/{accessRequest}', [ProgrammeAdminController::class, 'updateAccessRequest'])->name('admin.access-requests.update');
     Route::get('admin/programme-access', [ProgrammeAdminController::class, 'access'])->name('admin.programme-access.index');
+    Route::get('admin/audit-log', [AuditLogAdminController::class, 'index'])->name('admin.audit-log.index');
     Route::get('admin/teams', function () {
         abort_unless(request()->user()?->isTbaiAdmin(), 403);
 
@@ -146,16 +149,27 @@ Route::prefix('{current_team}')
         Route::put('returns/today', [DailyReturnController::class, 'update'])->name('returns.update');
         Route::get('returns/history', FacilityReturnHistoryController::class)->name('returns.history');
 
-        Route::get('my-facility', FacilityHomeController::class)->name('facilities.home');
-        Route::get('members', [TeamAreaController::class, 'members'])->name('facilities.members');
-        Route::post('members/{user}/active', [TeamAreaController::class, 'active'])->name('facilities.members.active');
-        Route::get('invites', [TeamAreaController::class, 'invites'])->name('facilities.invites');
-        Route::post('invitations/{invitation}/resend', [TeamAreaController::class, 'resend'])->name('facilities.invitations.resend');
-        Route::get('roles', [TeamAreaController::class, 'roles'])->name('facilities.roles');
-        Route::get('activity', [TeamAreaController::class, 'activity'])->name('facilities.activity');
+        // One Facility area with tabs: Overview, Profile, Staff, Invites, Activity.
+        Route::get('facility', FacilityHomeController::class)->name('facilities.home');
+        Route::get('facility/profile', [FacilityController::class, 'edit'])->name('facilities.edit');
+        Route::put('facility/profile', [FacilityController::class, 'update'])->name('facilities.update');
+        Route::get('facility/staff', [TeamAreaController::class, 'members'])->name('facilities.members');
+        Route::post('facility/staff/{user}/active', [TeamAreaController::class, 'active'])->name('facilities.members.active');
+        Route::get('facility/invites', [TeamAreaController::class, 'invites'])->name('facilities.invites');
+        Route::post('facility/invites/{invitation}/resend', [TeamAreaController::class, 'resend'])->name('facilities.invitations.resend');
+        Route::get('facility/activity', [TeamAreaController::class, 'activity'])->name('facilities.activity');
 
-        Route::get('profile', [FacilityController::class, 'edit'])->name('facilities.edit');
-        Route::put('profile', [FacilityController::class, 'update'])->name('facilities.update');
+        // Old addresses keep working. Roles and access now sits on the Staff tab.
+        foreach ([
+            'my-facility' => 'facilities.home',
+            'profile' => 'facilities.edit',
+            'members' => 'facilities.members',
+            'invites' => 'facilities.invites',
+            'roles' => 'facilities.members',
+            'activity' => 'facilities.activity',
+        ] as $legacy => $target) {
+            Route::get($legacy, fn (Team $current_team) => redirect()->route($target, $current_team, 301));
+        }
 
         Route::middleware('feature:screening')->group(function () {
             Route::get('screening/new', [ScreeningController::class, 'create'])->name('screening.create');

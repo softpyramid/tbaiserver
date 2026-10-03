@@ -1,6 +1,7 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { Fragment, FormEvent, type ReactNode, useState } from 'react';
+import PageShell from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import {
     Breadcrumb,
@@ -164,48 +165,40 @@ export function CommandShell({
     banner?: ReactNode;
     children: ReactNode;
 }) {
+    const areaTabs = usePage().props.nav.commandTabs;
+
     return (
-        <>
-            <Head title={title} />
+        <PageShell
+            title={title}
+            tabs={areaTabs}
+            tabsLabel={title}
+            description={scope}
+            eyebrow={eyebrow}
+            crumbs={<CommandCrumbs crumbs={crumbs} />}
+        >
+            {banner}
+            {tabs}
+            <FilterBar
+                filters={filters}
+                options={options}
+                show={show}
+                labels={labels}
+                preserved={preserved}
+            />
+            {children}
 
-            <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 overflow-x-hidden px-4 py-6">
-                <div className="flex min-w-0 flex-col gap-2">
-                    <CommandCrumbs crumbs={crumbs} />
-                    {eyebrow ? (
-                        <p className="text-sm text-muted-foreground">
-                            {eyebrow}
-                        </p>
-                    ) : null}
-                    <h1 className="text-xl font-semibold">{title}</h1>
-                    {scope ? (
-                        <p className="text-sm text-muted-foreground">{scope}</p>
-                    ) : null}
-                </div>
-
-                {banner}
-                {tabs}
-                <FilterBar
-                    filters={filters}
-                    options={options}
-                    show={show}
-                    labels={labels}
-                    preserved={preserved}
-                />
-                {children}
-
-                <div className="flex flex-wrap gap-4 text-sm">
-                    {links.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className="underline-offset-2 hover:underline"
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
-                </div>
+            <div className="flex flex-wrap gap-4 text-sm">
+                {links.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className="underline-offset-2 hover:underline"
+                    >
+                        {link.label}
+                    </Link>
+                ))}
             </div>
-        </>
+        </PageShell>
     );
 }
 

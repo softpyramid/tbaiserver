@@ -40,7 +40,7 @@ test('cumulative data is summed live and year to date is the default range', fun
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('command/index')
-            ->where('title', 'Cumulative Data')
+            ->where('title', 'Overview')
             ->where('filters.from', '2026-01-01')
             ->where('filters.to', '2026-10-03')
             ->where('totals.suspects', 15)
@@ -118,17 +118,34 @@ test('not collected measures are labelled and have no numeric value', function (
                     ['key' => 'treatment_success', 'status' => 'not_collected', 'label' => 'Treatment success'],
                     ['key' => 'lost_to_follow_up', 'status' => 'not_collected', 'label' => 'Lost to follow-up'],
                     ['key' => 'mdr_rr', 'status' => 'not_collected', 'label' => 'MDR/RR'],
-                    ['key' => 'ai_assisted_tests', 'status' => 'not_collected', 'label' => 'AI-assisted tests'],
                 ],
             ])
             ->missing('notCollected.items.0.value')
             ->missing('notCollected.items.1.value')
             ->missing('notCollected.items.2.value')
-            ->missing('notCollected.items.3.value')
             ->missing('totals.treatment_success')
             ->missing('totals.lost_to_follow_up')
             ->missing('totals.mdr_rr')
             ->missing('totals.ai_assisted_tests'));
+});
+
+test('the AI-assisted tests tile is flagged off by default and returns with the flag', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notCollected.items', fn ($items) => ! in_array('ai_assisted_tests', array_column($items->toArray(), 'key'), true)));
+
+    config()->set('tbai.features.ai_tests', true);
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notCollected.items', fn ($items) => in_array('ai_assisted_tests', array_column($items->toArray(), 'key'), true)));
 });
 
 test('a city officer cannot see another city or widen scope with query params', function () {

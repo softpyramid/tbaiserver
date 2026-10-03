@@ -185,8 +185,9 @@ export default function FacilityForm({
             facilityName={headerName}
             dateLabel={dateLabel}
             headerless={embedded}
+            wide={embedded}
             action={
-                showSaved ? null : (
+                showSaved || (embedded && !dirty && !saving) ? null : (
                     <Button
                         type="submit"
                         form="facility-form"
@@ -236,7 +237,7 @@ export default function FacilityForm({
                 <Form
                     {...(teamSlug ? update.form(teamSlug) : store.form())}
                     id="facility-form"
-                    className="flex flex-col gap-4"
+                    className="grid grid-cols-1 gap-4 lg:grid-cols-2"
                     noValidate
                     disableWhileProcessing
                     onBefore={() => {
@@ -293,7 +294,7 @@ export default function FacilityForm({
                         return (
                             <>
                                 {!teamSlug ? (
-                                    <p className="text-base text-foreground">
+                                    <p className="text-base text-foreground lg:col-span-2">
                                         {t('create_description')}
                                     </p>
                                 ) : null}
@@ -520,7 +521,7 @@ export default function FacilityForm({
                                         value={values.active ? '1' : '0'}
                                     />
                                 ) : (
-                                    <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-card p-4">
+                                    <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-card p-4 lg:col-span-2">
                                         <input
                                             id="active"
                                             name="active"
@@ -547,7 +548,11 @@ export default function FacilityForm({
                                     </div>
                                 )}
                                 <FieldError message={errors.active} />
-                                {belowFields}
+                                {belowFields ? (
+                                    <div className="lg:col-span-2">
+                                        {belowFields}
+                                    </div>
+                                ) : null}
                             </>
                         );
                     }}

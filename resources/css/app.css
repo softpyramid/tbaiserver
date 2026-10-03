@@ -189,7 +189,7 @@
 }
 
 @media (max-width: 767px) {
-    html[data-nav-shell='facility'] {
+    html[data-phone-tabs='1'] {
         --entry-tab-offset: calc(
             3.5rem + 1px + env(safe-area-inset-bottom, 0px)
         );
@@ -247,7 +247,7 @@
 }
 
 @media (max-width: 767px) {
-    html[data-nav-shell='facility'] [data-sonner-toaster] {
+    html[data-phone-tabs='1'] [data-sonner-toaster] {
         bottom: calc(var(--entry-tab-offset, 0px) + 0.75rem) !important;
     }
 }

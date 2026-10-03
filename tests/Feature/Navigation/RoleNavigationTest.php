@@ -25,11 +25,13 @@ test('a tb-ai admin sees the administration group and can open it', function () 
         ->assertInertia(fn (Assert $page) => $page
             ->where('nav.shell', 'sidebar')
             ->where('nav.groups.0.key', 'command')
+            ->has('nav.groups.0.items', 1)
             ->where('nav.groups.1.key', 'administration')
-            ->has('nav.groups.1.items', 3)
+            ->has('nav.groups.1.items', 4)
             ->where('nav.groups.1.items.0.key', 'facilities')
-            ->where('nav.groups.1.items.1.key', 'data')
-            ->where('nav.groups.1.items.2.key', 'people'),
+            ->where('nav.groups.1.items.1.key', 'returns')
+            ->where('nav.groups.1.items.2.key', 'people')
+            ->where('nav.groups.1.items.3.key', 'audit_log'),
         );
 
     $this->actingAs($admin)->get(route('facilities.index'))->assertOk();
@@ -61,9 +63,6 @@ test('an in-charge sees facility links and cannot open administration', function
                 'register',
                 'returns_history',
                 'my_facility',
-                'facility_profile',
-                'team_members',
-                'account',
             ])->and(navGroupKeys($page))->not->toContain('administration');
         });
 
@@ -85,7 +84,6 @@ test('a technician sees register and facility only', function () {
             expect(navItemKeys($page))->toBe([
                 'register',
                 'my_facility',
-                'account',
             ])->and($page->toArray()['props']['nav']['shell'])->toBe('facility');
         });
 
@@ -202,9 +200,6 @@ test('a senior technician sees the facility profile and not owner-only links', f
             expect(navItemKeys($page))->toBe([
                 'register',
                 'my_facility',
-                'facility_profile',
-                'team_members',
-                'account',
             ])->and(navGroupKeys($page))->toBe(['facility']);
         });
 
@@ -215,36 +210,111 @@ test('a senior technician sees the facility profile and not owner-only links', f
 });
 
 test('the parent of the active page is marked open', function () {
-    $admin = User::factory()->create();
-    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $province = Province::factory()->create();
+    $viewer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $viewer->id,
+        'role' => ProgrammeRole::ProvincialViewer,
+        'scope_type' => ScopeType::Province,
+        'scope_id' => $province->id,
+    ]);
 
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('command.sectors.show', ['sector' => 'public']))
         ->assertOk()
         ->assertInertia(function (Assert $page) {
             $registered = navEntry($page, 'command', 'registered');
-            $cumulative = navEntry($page, 'command', 'command');
+            $overview = navEntry($page, 'command', 'command');
 
             expect($registered['expanded'])->toBeTrue()
-                ->and($cumulative['expanded'])->toBeFalse()
+                ->and($overview['expanded'])->toBeFalse()
+                ->and($overview['current'])->toBeFalse()
                 ->and(array_column($registered['children'], 'label'))->toBe(['Public', 'Private', 'PPM']);
         });
 
-    $this->actingAs($admin)
-        ->get(route('admin.daily-returns.index'))
-        ->assertOk()
-        ->assertInertia(function (Assert $page) {
-            expect(navEntry($page, 'administration', 'data')['expanded'])->toBeTrue()
-                ->and(navEntry($page, 'administration', 'people')['expanded'])->toBeFalse();
-        });
+    $west = City::factory()->create(['name' => 'Karachi West', 'province_id' => $province->id]);
 
-    $west = City::factory()->create(['name' => 'Karachi West']);
-
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('command.districts.show', ['sector' => 'public', 'city' => $west->id]))
         ->assertOk()
         ->assertInertia(function (Assert $page) {
             expect(navEntry($page, 'command', 'registered')['expanded'])->toBeTrue();
+        });
+});
+
+test('exactly one admin sidebar link is current on each admin page', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $facility = Facility::factory()->create();
+
+    $pages = [
+        [route('command.index'), 'command'],
+        [route('command.map'), 'command'],
+        [route('facilities.index'), 'facilities'],
+        [route('facilities.home', $facility->team), 'facilities'],
+        [route('admin.daily-returns.index'), 'returns'],
+        [route('admin.revisions.index'), 'returns'],
+        [route('admin.users.index'), 'people'],
+        [route('admin.access-requests.index'), 'people'],
+        [route('admin.programme-assignments.index'), 'people'],
+        [route('admin.programme-access.index'), 'people'],
+        [route('admin.audit-log.index'), 'audit_log'],
+    ];
+
+    foreach ($pages as [$url, $expected]) {
+        $this->actingAs($admin)
+            ->get($url)
+            ->assertOk()
+            ->assertInertia(function (Assert $page) use ($expected, $url) {
+                $current = collect($page->toArray()['props']['nav']['groups'])
+                    ->flatMap(fn (array $group): array => $group['items'])
+                    ->filter(fn (array $item): bool => $item['current'])
+                    ->pluck('key')
+                    ->all();
+
+                expect($current)->toBe([$expected], $url);
+            });
+    }
+});
+
+test('the admin sidebar has no repeated viewer list and no duplicate names', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertInertia(function (Assert $page) {
+            $items = collect($page->toArray()['props']['nav']['groups'])
+                ->flatMap(fn (array $group): array => $group['items']);
+            $labels = $items->pluck('label');
+
+            expect($labels->all())->toBe(['Command center', 'Facilities', 'Returns', 'People and access', 'Audit log'])
+                ->and($labels->unique()->count())->toBe($labels->count())
+                ->and($items->pluck('key')->all())->not->toContain('registered')
+                ->and($items->pluck('key')->all())->not->toContain('daily_returns')
+                ->and($items->every(fn (array $item): bool => $item['children'] === []))->toBeTrue();
+        });
+});
+
+test('the viewer sidebar is the short list with the renamed labels and no account link', function () {
+    $province = Province::factory()->create();
+    $viewer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $viewer->id,
+        'role' => ProgrammeRole::ProvincialViewer,
+        'scope_type' => ScopeType::Province,
+        'scope_id' => $province->id,
+    ]);
+
+    $this->actingAs($viewer)
+        ->get(route('command.index'))
+        ->assertInertia(function (Assert $page) {
+            $labels = collect($page->toArray()['props']['nav']['groups'])
+                ->flatMap(fn (array $group): array => $group['items'])
+                ->pluck('label')
+                ->all();
+
+            expect($labels)->toBe(['Overview', 'Registered', 'Map', 'Alerts', 'Daily returns']);
         });
 });
 
@@ -280,12 +350,17 @@ test('pending access requests show a count on the access requests link', functio
         ->assertOk()
         ->assertInertia(function (Assert $page) {
             $people = navEntry($page, 'administration', 'people');
-            $access = collect($people['children'])->firstWhere('key', 'access_requests');
-            $users = collect($people['children'])->firstWhere('key', 'users');
 
-            expect($access['badge'])->toBe(2)
-                ->and($users['badge'])->toBeNull()
-                ->and($people['badge'])->toBeNull();
+            expect($people['badge'])->toBe(2);
+        });
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.index'))
+        ->assertInertia(function (Assert $page) {
+            $tabs = collect($page->toArray()['props']['tabs']);
+
+            expect($tabs->firstWhere('id', 'access_requests')['badge'])->toBe(2)
+                ->and($tabs->firstWhere('id', 'users')['badge'])->toBeNull();
         });
 });
 
@@ -486,9 +561,9 @@ test('screening links are removed for every role while the flag is off and retur
     $this->actingAs($member)->get(route('screening.create', $facility->team))->assertOk();
 
     $this->actingAs($admin)
-        ->get(route('command.index'))
+        ->get(route('admin.daily-returns.index'))
         ->assertInertia(function (Assert $page) {
-            expect(navEntry($page, 'administration', 'data')['children'][2]['key'])->toBe('screening_sessions');
+            expect(array_column($page->toArray()['props']['tabs'], 'id'))->toContain('screening_sessions');
         });
 });
 

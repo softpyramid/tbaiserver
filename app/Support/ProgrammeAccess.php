@@ -90,6 +90,11 @@ class ProgrammeAccess
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => __('entry.people_description'),
+                'title' => __('entry.nav_people'),
+                'tabs' => AdminTabs::people('programme_access'),
+            ],
         );
     }
 }

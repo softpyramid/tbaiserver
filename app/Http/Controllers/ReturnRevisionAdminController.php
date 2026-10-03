@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DailyReturnRevision;
 use App\Models\Facility;
+use App\Support\AdminTabs;
 use App\Support\ResourceResponse;
 use App\Support\ReturnRevisionPresenter;
 use Illuminate\Database\Eloquent\Builder;
@@ -119,6 +120,11 @@ class ReturnRevisionAdminController extends Controller
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => __('entry.returns_description'),
+                'title' => __('entry.nav_returns'),
+                'tabs' => AdminTabs::returns('revisions'),
+            ],
         );
     }
 }

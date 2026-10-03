@@ -70,6 +70,13 @@ class DailyReturnListing
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: $administration ? [
+                'description' => __('entry.returns_description'),
+                'title' => __('entry.nav_returns'),
+                'tabs' => AdminTabs::returns('daily_returns'),
+            ] : [
+                'description' => __('entry.command_returns_description'),
+            ],
         );
     }
 

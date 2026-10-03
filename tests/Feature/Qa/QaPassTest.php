@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AccessRequestStatus;
+use App\Enums\FacilityStatus;
 use App\Enums\ProgrammeRole;
 use App\Enums\ScopeType;
 use App\Enums\TeamRole;
@@ -79,7 +80,7 @@ test('each role lands on its home and the empty dashboard is gone', function () 
 
     $this->actingAs($admin)
         ->get(route('dashboard'))
-        ->assertRedirect(route('command.index'));
+        ->assertRedirect(route('admin.home'));
 });
 
 test('viewers can open daily returns for their area', function () {
@@ -180,7 +181,7 @@ test('users and access requests use the person labels and hide self deactivate',
             $person = $rows->firstWhere('id', (string) $technician->id);
 
             expect($person['cells']['role'])->toBe('Technician')
-                ->and($person['cells']['team'])->toBe('West BMU')
+                ->and($person['cells']['facility'])->toBe('West BMU')
                 ->and($person['cells']['role'])->not->toBe('Not available')
                 ->and(collect($self['controls'])->contains(
                     fn (array $control): bool => ($control['label'] ?? '') === 'Deactivate',
@@ -202,7 +203,7 @@ test('users and access requests use the person labels and hide self deactivate',
             ->where('rows.0.controls.0.confirm', true));
 });
 
-test('delete team is offered to the owner and a tb-ai admin only', function () {
+test('only a tb-ai admin can deactivate a facility', function () {
     $facility = Facility::factory()->create();
     $owner = User::factory()->create();
     $senior = User::factory()->create();
@@ -213,23 +214,37 @@ test('delete team is offered to the owner and a tb-ai admin only', function () {
     qaGiveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
 
     $this->actingAs($owner)
-        ->get(route('teams.edit', $facility->team))
+        ->get(route('facilities.edit', $facility->team))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('permissions.canDeleteTeam', true));
+        ->assertInertia(fn (Assert $page) => $page->where('canDeactivate', false));
 
     $this->actingAs($senior)
-        ->get(route('teams.edit', $facility->team))
+        ->get(route('facilities.edit', $facility->team))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('permissions.canDeleteTeam', false));
+        ->assertInertia(fn (Assert $page) => $page->where('canDeactivate', false));
+
+    $this->actingAs($owner)
+        ->delete(route('teams.destroy', $facility->team))
+        ->assertForbidden();
 
     $this->actingAs($senior)
         ->delete(route('teams.destroy', $facility->team))
         ->assertForbidden();
 
+    $this->actingAs($owner)
+        ->post(route('facilities.deactivate', $facility))
+        ->assertForbidden();
+
     $this->actingAs($admin)
-        ->get(route('teams.edit', $facility->team))
+        ->get(route('facilities.edit', $facility->team))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('permissions.canDeleteTeam', true));
+        ->assertInertia(fn (Assert $page) => $page->where('canDeactivate', true));
+
+    $this->actingAs($admin)
+        ->post(route('facilities.deactivate', $facility))
+        ->assertRedirect();
+
+    expect($facility->refresh()->status)->toBe(FacilityStatus::Inactive);
 });
 
 test('missing forbidden and expired pages stay inside the app', function () {

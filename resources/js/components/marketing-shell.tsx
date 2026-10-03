@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { Menu, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
-import { dashboard, home, login, privacy, terms } from '@/routes';
+import { home, login, privacy, terms } from '@/routes';
 import { create as requestAccess } from '@/routes/access-requests';
 import type { RouteDefinition } from '@/wayfinder';
 
@@ -23,9 +23,9 @@ const focusRing =
 
 export function MarketingShell({ children }: { children: ReactNode }) {
     const page = usePage();
-    const { auth, currentTeam, tbai } = page.props;
+    const { auth, tbai } = page.props;
     const signedIn = Boolean(auth.user);
-    const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
+    const dashboardUrl = typeof page.props.homeUrl === 'string' ? page.props.homeUrl : '/';
     const onRequestAccess =
         page.url === '/request-access' ||
         page.url.startsWith('/request-access?');

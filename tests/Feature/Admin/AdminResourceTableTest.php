@@ -43,7 +43,7 @@ test('empty daily returns, return history, and screening sessions keep column he
         );
 });
 
-test('users and roles names the person column Name and teams names the team column Team', function () {
+test('users and roles names the person column Name and programme access names the facility column Facility', function () {
     $admin = User::factory()->create();
     giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
 
@@ -57,11 +57,15 @@ test('users and roles names the person column Name and teams names the team colu
         );
 
     $this->actingAs($admin)
-        ->get(route('admin.teams.index'))
+        ->get(route('admin.programme-access.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('title', 'Teams')
-            ->where('columns.0.label', 'Team')
-            ->where('columns.0.key', 'team'),
+            ->where('title', 'Programme access')
+            ->where('columns.0.label', 'Scope')
+            ->where('columns.1.label', 'Name')
+            ->where('columns.2.label', 'Email')
+            ->where('columns.3.label', 'Role')
+            ->where('columns.4.label', 'Facility')
+            ->where('columns.4.key', 'facility'),
         );
 });

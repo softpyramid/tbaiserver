@@ -21,6 +21,10 @@ class RedirectProgrammeTeamUrl
     {
         $team = $request->route('current_team');
 
+        if (is_string($team)) {
+            $team = Team::query()->where('slug', $team)->first();
+        }
+
         if ($team instanceof Team) {
             $team->loadMissing('facility');
 

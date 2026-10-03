@@ -48,6 +48,8 @@ type Props = {
         clear: string;
         actions: string;
         member: string;
+        email: string;
+        facility: string;
         returns: string;
         joined: string;
         lastActive: string;
@@ -248,8 +250,10 @@ export default function FacilityMembers({
                                     <thead>
                                         <tr className="border-b text-left">
                                             <th className="px-4 py-3 font-medium">{labels.member}</th>
-                                            <th className="px-4 py-3 font-medium">{labels.returns}</th>
+                                            <th className="px-4 py-3 font-medium">{labels.email}</th>
                                             <th className="px-4 py-3 font-medium">{labels.role}</th>
+                                            <th className="px-4 py-3 font-medium">{labels.facility}</th>
+                                            <th className="px-4 py-3 font-medium">{labels.returns}</th>
                                             <th className="px-4 py-3 font-medium">{labels.joined}</th>
                                             <th className="px-4 py-3 font-medium">{labels.lastActive}</th>
                                             <th className="px-4 py-3">
@@ -267,7 +271,7 @@ export default function FacilityMembers({
                                                 <td className="px-4 py-3">
                                                     <MemberIdentity member={member} />
                                                 </td>
-                                                <td className="px-4 py-3">{member.returnsThisMonth}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">{member.email}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col items-start gap-1">
                                                         <RoleBadge label={member.roleLabel} />
@@ -278,6 +282,8 @@ export default function FacilityMembers({
                                                         ) : null}
                                                     </div>
                                                 </td>
+                                                <td className="px-4 py-3 text-muted-foreground">{area.teamName}</td>
+                                                <td className="px-4 py-3">{member.returnsThisMonth}</td>
                                                 <td className="px-4 py-3 text-muted-foreground">
                                                     {member.joined}
                                                 </td>

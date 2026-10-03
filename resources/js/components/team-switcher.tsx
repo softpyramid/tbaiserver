@@ -1,16 +1,15 @@
 import { router, usePage } from '@inertiajs/react';
-import { Check, ChevronsUpDown, Plus, Users } from 'lucide-react';
-import CreateTeamModal from '@/components/create-team-modal';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useEntryI18n } from '@/lib/i18n';
 import { switchMethod } from '@/routes/teams';
 import type { Team } from '@/types';
 
@@ -20,23 +19,65 @@ type TeamSwitcherProps = {
 
 export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
     const page = usePage();
+    const { t } = useEntryI18n();
     const isMobile = useIsMobile();
+    const scopeLabel =
+        typeof page.props.scopeLabel === 'string' ? page.props.scopeLabel : null;
+    const facilities = (page.props.teams ?? []).filter((team) => !team.isPersonal);
     const currentTeam = page.props.currentTeam;
-    const teams = page.props.teams ?? [];
+    const current =
+        currentTeam && !currentTeam.isPersonal
+            ? currentTeam
+            : (facilities.find((team) => team.isCurrent) ?? facilities[0] ?? null);
 
-    const switchTeam = (team: Team) => {
-        const previousTeamSlug = currentTeam?.slug;
+    if (scopeLabel) {
+        return (
+            <p
+                data-test="scope-label"
+                className={
+                    inHeader
+                        ? 'max-w-[160px] truncate px-2 text-sm'
+                        : 'truncate px-2 text-sm group-data-[collapsible=icon]:hidden'
+                }
+            >
+                <span className="text-muted-foreground">{t('scope_prefix')}: </span>
+                <span className="font-medium">{scopeLabel}</span>
+            </p>
+        );
+    }
+
+    if (facilities.length < 2 || current === null) {
+        if (current === null) {
+            return null;
+        }
+
+        return (
+            <p
+                data-test="current-facility"
+                className={
+                    inHeader
+                        ? 'max-w-[160px] truncate px-2 text-sm font-medium'
+                        : 'truncate px-2 text-sm font-medium group-data-[collapsible=icon]:hidden'
+                }
+            >
+                {current.name}
+            </p>
+        );
+    }
+
+    const switchFacility = (team: Team) => {
+        const previousSlug = current.slug;
 
         router.visit(switchMethod(team.slug), {
             onFinish: () => {
-                if (!previousTeamSlug || typeof window === 'undefined') {
+                if (!previousSlug || typeof window === 'undefined') {
                     router.reload();
 
                     return;
                 }
 
                 const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-                const segment = `/${previousTeamSlug}`;
+                const segment = `/${previousSlug}`;
 
                 if (currentUrl.includes(segment)) {
                     router.visit(currentUrl.replace(segment, `/${team.slug}`), {
@@ -56,6 +97,7 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
+                    aria-label={t('switch_facility')}
                     data-test="team-switcher-trigger"
                     className={
                         inHeader
@@ -63,13 +105,6 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                             : 'w-full justify-start px-2 has-[>svg]:px-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
                     }
                 >
-                    <Users
-                        className={
-                            inHeader
-                                ? 'hidden'
-                                : 'hidden size-4 shrink-0 group-data-[collapsible=icon]:block'
-                        }
-                    />
                     <div
                         className={
                             inHeader
@@ -77,6 +112,9 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                                 : 'grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden'
                         }
                     >
+                        <span className="text-xs text-muted-foreground">
+                            {t('switch_facility')}
+                        </span>
                         <span
                             className={
                                 inHeader
@@ -84,7 +122,7 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                                     : 'truncate font-semibold'
                             }
                         >
-                            {currentTeam?.name ?? 'Select team'}
+                            {current.name}
                         </span>
                     </div>
                     <ChevronsUpDown
@@ -107,9 +145,9 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                 sideOffset={inHeader ? undefined : 4}
             >
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Teams
+                    {t('switch_facility')}
                 </DropdownMenuLabel>
-                {teams.map((team) => (
+                {facilities.map((team) => (
                     <DropdownMenuItem
                         key={team.id}
                         data-test="team-switcher-item"
@@ -118,10 +156,10 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                                 ? 'cursor-pointer gap-2'
                                 : 'cursor-pointer gap-2 p-2'
                         }
-                        onSelect={() => switchTeam(team)}
+                        onSelect={() => switchFacility(team)}
                     >
                         {team.name}
-                        {currentTeam?.id === team.id && (
+                        {current.id === team.id && (
                             <Check
                                 className={
                                     inHeader
@@ -132,21 +170,6 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                         )}
                     </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator />
-                <CreateTeamModal>
-                    <DropdownMenuItem
-                        data-test="team-switcher-new-team"
-                        className={
-                            inHeader
-                                ? 'cursor-pointer gap-2'
-                                : 'cursor-pointer gap-2 p-2'
-                        }
-                        onSelect={(event) => event.preventDefault()}
-                    >
-                        <Plus className={inHeader ? 'size-4' : 'h-4 w-4'} />
-                        <span className="text-muted-foreground">New team</span>
-                    </DropdownMenuItem>
-                </CreateTeamModal>
             </DropdownMenuContent>
         </DropdownMenu>
     );

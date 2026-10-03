@@ -49,8 +49,7 @@ export default function DeleteTeamModal({ team, open, onOpenChange }: Props) {
                             <DialogHeader>
                                 <DialogTitle>Are you sure?</DialogTitle>
                                 <DialogDescription>
-                                    This action cannot be undone. This will
-                                    permanently delete the team{' '}
+                                    This will deactivate the facility{' '}
                                     <strong>"{team.name}"</strong>.
                                 </DialogDescription>
                             </DialogHeader>
@@ -71,7 +70,7 @@ export default function DeleteTeamModal({ team, open, onOpenChange }: Props) {
                                                 event.target.value,
                                             )
                                         }
-                                        placeholder="Enter team name"
+                                        placeholder="Enter the facility name"
                                         autoComplete="off"
                                     />
                                     <InputError message={errors.name} />
@@ -89,7 +88,7 @@ export default function DeleteTeamModal({ team, open, onOpenChange }: Props) {
                                     data-test="delete-team-confirm"
                                     disabled={!canDeleteTeam || processing}
                                 >
-                                    Delete team
+                                    Deactivate facility
                                 </Button>
                             </DialogFooter>
                         </>

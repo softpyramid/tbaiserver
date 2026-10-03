@@ -12,7 +12,7 @@ export default function About() {
                 <div className="mt-6 space-y-4 text-base leading-relaxed text-[#374151] dark:text-[#E2E8F0]">
                     <p>
                         TB-AI is a register and decision-support tool for TB
-                        programme staff. Facility teams enter daily counts.
+                        programme staff. Facilities enter daily counts.
                         City, provincial, and country viewers read those counts
                         for their area.
                     </p>

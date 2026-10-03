@@ -164,7 +164,7 @@ test('the members page shows returns this month and last active', function () {
         });
 });
 
-test('administration teams filter by district and open the members tab', function () {
+test('administration lists facilities apart from programme access', function () {
     $admin = User::factory()->create(['name' => 'Programme Admin']);
     giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
 
@@ -186,41 +186,50 @@ test('administration teams filter by district and open the members tab', functio
 
     $this->actingAs($admin)
         ->get(route('admin.teams.index'))
+        ->assertStatus(301)
+        ->assertRedirect(route('facilities.index'));
+
+    $this->actingAs($admin)
+        ->get(route('facilities.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('title', 'Teams')
+            ->where('title', 'Facilities')
             ->where('rows', fn ($rows) => collect($rows)->contains(
-                fn (array $row): bool => $row['team'] === 'West BMU'
-                    && $row['district'] === 'Karachi West'
-                    && $row['href'] === route('facilities.members', $facility->team),
+                fn (array $row): bool => ($row['cells']['name'] ?? '') === 'West BMU'
+                    && ($row['cells']['city'] ?? '') === 'Karachi West'
+                    && $row['href'] === route('facilities.edit', $facility->team),
+            )),
+        )
+        ->assertDontSee("Programme Admin's Team");
+
+    $this->actingAs($admin)
+        ->get(route('facilities.index', ['city' => $thatta->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rows', fn ($rows) => collect($rows)->contains(
+                fn (array $row): bool => ($row['cells']['name'] ?? '') === 'Thatta BMU',
+            ) && collect($rows)->doesntContain(
+                fn (array $row): bool => ($row['cells']['name'] ?? '') === 'West BMU',
             )),
         );
 
     $this->actingAs($admin)
-        ->get(route('admin.teams.index', ['district' => $thatta->id]))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('rows', fn ($rows) => collect($rows)->contains(fn (array $row): bool => $row['team'] === 'Thatta BMU')
-                && collect($rows)->doesntContain(fn (array $row): bool => $row['team'] === 'West BMU')),
-        );
-
-    $this->actingAs($admin)
-        ->get(route('admin.teams.index', ['sector' => Sector::Private->value]))
+        ->get(route('facilities.index', ['sector' => Sector::Private->value]))
         ->assertOk()
         ->assertDontSee('West BMU');
 
     $this->actingAs($admin)
-        ->get(route('admin.teams.index'))
+        ->get(route('admin.programme-access.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('columns.1.key', 'type')
-            ->where('columns.1.label', 'Type')
+            ->where('title', 'Programme access')
+            ->where('columns.0.label', 'Scope')
+            ->where('columns.4.label', 'Facility')
             ->where('rows', fn ($rows) => collect($rows)->contains(
-                fn (array $row): bool => $row['team'] === "Programme Admin's Team"
-                    && $row['type'] === 'Personal'
-                    && $row['href'] === null,
-            ) && collect($rows)->contains(
-                fn (array $row): bool => $row['team'] === 'West BMU' && $row['type'] === 'Facility',
+                fn (array $row): bool => ($row['cells']['scope'] ?? '') === 'TB-AI Admin group'
+                    && ($row['cells']['facility'] ?? '') === 'All facilities',
+            ) && collect($rows)->doesntContain(
+                fn (array $row): bool => ($row['cells']['name'] ?? '') === 'West BMU',
             )),
         );
 });

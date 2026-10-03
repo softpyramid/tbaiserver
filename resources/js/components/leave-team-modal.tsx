@@ -38,7 +38,7 @@ export default function LeaveTeamModal({ team, open, onOpenChange }: Props) {
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Leave team</DialogTitle>
+                    <DialogTitle>Leave facility</DialogTitle>
                     <DialogDescription>
                         Are you sure you want to leave{' '}
                         <strong>{team?.name}</strong>?
@@ -56,7 +56,7 @@ export default function LeaveTeamModal({ team, open, onOpenChange }: Props) {
                         disabled={processing}
                         onClick={leaveTeam}
                     >
-                        Leave team
+                        Leave facility
                     </Button>
                 </DialogFooter>
             </DialogContent>

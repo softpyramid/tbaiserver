@@ -1,5 +1,5 @@
 import { Form, router } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import EntryScreen from '@/components/entry-screen';
 import FacilitySummaryCard from '@/components/facility-summary-card';
 import FieldError from '@/components/field-error';
@@ -62,6 +62,7 @@ type Props = {
     kinds: Choice[];
     cities: CityOption[];
     talukas: TalukaOption[];
+    belowFields?: ReactNode;
 };
 
 type DraftValues = {
@@ -107,6 +108,7 @@ export default function FacilityForm({
     kinds,
     cities,
     talukas,
+    belowFields,
 }: Props) {
     const { t } = useEntryI18n();
     const draftKey = profileDraftKey(teamSlug ?? null);
@@ -481,28 +483,37 @@ export default function FacilityForm({
                                 <FieldError message={errors.code} />
                             </div>
 
-                            <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-card p-4">
+                            {teamSlug ? (
                                 <input
-                                    id="active"
+                                    type="hidden"
                                     name="active"
-                                    type="checkbox"
-                                    value="1"
-                                    checked={values.active}
-                                    onChange={(event) =>
-                                        setValues((current) => ({
-                                            ...current,
-                                            active: event.target.checked,
-                                        }))
-                                    }
-                                    className={cn(
-                                        'size-5 rounded border border-input',
-                                    )}
+                                    value={values.active ? '1' : '0'}
                                 />
-                                <Label htmlFor="active" className="text-base">
-                                    {t('active')}
-                                </Label>
-                            </div>
+                            ) : (
+                                <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-card p-4">
+                                    <input
+                                        id="active"
+                                        name="active"
+                                        type="checkbox"
+                                        value="1"
+                                        checked={values.active}
+                                        onChange={(event) =>
+                                            setValues((current) => ({
+                                                ...current,
+                                                active: event.target.checked,
+                                            }))
+                                        }
+                                        className={cn(
+                                            'size-5 rounded border border-input',
+                                        )}
+                                    />
+                                    <Label htmlFor="active" className="text-base">
+                                        {t('active')}
+                                    </Label>
+                                </div>
+                            )}
                             <FieldError message={errors.active} />
+                            {belowFields}
                         </>
                         );
                     }}

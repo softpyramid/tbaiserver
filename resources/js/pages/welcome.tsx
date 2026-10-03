@@ -7,7 +7,6 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { AuthActions, MarketingShell } from '@/components/marketing-shell';
-import { dashboard } from '@/routes';
 
 type FeatureTile = {
     title: string;
@@ -66,9 +65,11 @@ export default function Welcome({
     testimonials,
     supporters,
 }: WelcomeProps) {
-    const { auth, currentTeam, tbai } = usePage().props;
+    const page = usePage();
+    const { auth, tbai } = page.props;
     const signedIn = Boolean(auth.user);
-    const dashboardUrl = currentTeam ? dashboard(currentTeam.slug) : '/';
+    const dashboardUrl =
+        typeof page.props.homeUrl === 'string' ? page.props.homeUrl : '/';
     const visibleServices = tbai.showTelehealth
         ? services
         : services.filter((service) => service.title !== 'Telehealth');

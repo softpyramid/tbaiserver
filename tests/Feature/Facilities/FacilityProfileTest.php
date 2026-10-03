@@ -193,7 +193,7 @@ test('a facility owner can edit the profile and cannot create one', function () 
     expect($facility->team->name)->toBe('Updated BMU')
         ->and($facility->team->slug)->toBe('updated-bmu')
         ->and($facility->code)->toBeNull()
-        ->and($facility->status)->toBe(FacilityStatus::Inactive)
+        ->and($facility->status)->toBe(FacilityStatus::Active)
         ->and($facility->city_id)->toBe($city->id);
 });
 

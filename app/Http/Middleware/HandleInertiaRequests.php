@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Data\UserTeam;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
@@ -168,7 +169,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Facility shown in the sidebar. Personal teams stay hidden.
      */
-    private function displayTeam(?User $user, ?Team $facilityTeam): ?array
+    private function displayTeam(?User $user, ?Team $facilityTeam): ?UserTeam
     {
         $team = $this->chosenFacility($user, $facilityTeam);
 
@@ -176,11 +177,11 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        return $user->toUserTeam($team)->toArray();
+        return $user->toUserTeam($team);
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return list<UserTeam>
      */
     private function facilityChoices(?User $user): array
     {
@@ -192,7 +193,7 @@ class HandleInertiaRequests extends Middleware
             ->whereHas('facility')
             ->orderByRaw('LOWER(teams.name)')
             ->get()
-            ->map(fn (Team $team): array => $user->toUserTeam($team)->toArray())
+            ->map(fn (Team $team): UserTeam => $user->toUserTeam($team))
             ->all();
     }
 

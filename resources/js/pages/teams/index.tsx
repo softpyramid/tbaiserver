@@ -1,10 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
-import { Eye, LogOut, Pencil, Plus } from 'lucide-react';
+import { Eye, LogOut, Pencil } from 'lucide-react';
 import { useState } from 'react';
-import CreateTeamModal from '@/components/create-team-modal';
 import Heading from '@/components/heading';
 import LeaveTeamModal from '@/components/leave-team-modal';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -30,29 +28,22 @@ export default function TeamsIndex({ teams }: Props) {
 
     return (
         <>
-            <Head title="Teams" />
+            <Head title="Facilities" />
 
-            <h1 className="text-xl font-semibold">Teams</h1>
+            <h1 className="text-xl font-semibold">Facilities</h1>
 
             <div className="flex flex-col space-y-6">
                 <div className="flex items-center justify-between">
                     <Heading
                         variant="small"
-                        title="Teams"
-                        description="Manage your teams and team memberships"
+                        title="Facilities"
+                        description="Facilities you can open"
                     />
-
-                    <CreateTeamModal>
-                        <Button data-test="teams-new-team-button">
-                            <Plus /> New team
-                        </Button>
-                    </CreateTeamModal>
                 </div>
 
                 <div className="space-y-3">
-                    {teams.map((team) => {
-                        const canLeaveTeam =
-                            !team.isPersonal && team.role !== 'owner';
+                    {teams.filter((team) => !team.isPersonal).map((team) => {
+                        const canLeaveTeam = team.role !== 'owner';
 
                         return (
                             <div
@@ -66,11 +57,6 @@ export default function TeamsIndex({ teams }: Props) {
                                             <span className="font-medium">
                                                 {team.name}
                                             </span>
-                                            {team.isPersonal ? (
-                                                <Badge variant="secondary">
-                                                    Personal
-                                                </Badge>
-                                            ) : null}
                                         </div>
                                         <span className="text-sm text-muted-foreground">
                                             {team.roleLabel}
@@ -97,7 +83,7 @@ export default function TeamsIndex({ teams }: Props) {
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>Leave team</p>
+                                                    <p>Leave facility</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         ) : null}
@@ -121,7 +107,7 @@ export default function TeamsIndex({ teams }: Props) {
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>View team</p>
+                                                    <p>View facility</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         ) : (
@@ -143,7 +129,7 @@ export default function TeamsIndex({ teams }: Props) {
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>Edit team</p>
+                                                    <p>Edit facility</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         )}
@@ -155,7 +141,7 @@ export default function TeamsIndex({ teams }: Props) {
 
                     {teams.length === 0 ? (
                         <p className="py-8 text-center text-muted-foreground">
-                            You don't belong to any teams yet.
+                            You do not belong to a facility yet.
                         </p>
                     ) : null}
                 </div>
@@ -173,7 +159,7 @@ export default function TeamsIndex({ teams }: Props) {
 TeamsIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Teams',
+            title: 'Facilities',
             href: index(),
         },
     ],

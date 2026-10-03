@@ -39,10 +39,10 @@ class TeamInvitation extends Notification implements ShouldQueue
         $inviter = $this->invitation->inviter;
 
         return (new MailMessage)
-            ->subject(__("You've been invited to join :teamName", ['teamName' => $team->name]))
-            ->line(__(':inviterName has invited you to join the :teamName team.', [
+            ->subject(__('You have been invited to join :name', ['name' => $team->name]))
+            ->line(__(':inviterName has invited you to join :name.', [
                 'inviterName' => $inviter->name,
-                'teamName' => $team->name,
+                'name' => $team->name,
             ]))
             ->line(__('Log in and visit your dashboard to accept or decline this invitation.'))
             ->action(

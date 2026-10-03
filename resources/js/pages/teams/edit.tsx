@@ -2,7 +2,6 @@ import { Form, Head, router } from '@inertiajs/react';
 import { ChevronDown, Mail, UserPlus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CancelInvitationModal from '@/components/cancel-invitation-modal';
-import DeleteTeamModal from '@/components/delete-team-modal';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import InviteMemberModal from '@/components/invite-member-modal';
@@ -53,7 +52,6 @@ export default function TeamEdit({
     const getInitials = useInitials();
 
     const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
     const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(
         null,
@@ -100,8 +98,8 @@ export default function TeamEdit({
                         <>
                             <Heading
                                 variant="small"
-                                title="Team settings"
-                                description="Update your team name and settings"
+                                title="Facility profile"
+                                description="Update the facility name and profile"
                             />
 
                             <Form
@@ -113,7 +111,7 @@ export default function TeamEdit({
                                     <>
                                         <div className="grid gap-2">
                                             <Label htmlFor="name">
-                                                Team name
+                                                Facility name
                                             </Label>
                                             <Input
                                                 id="name"
@@ -325,31 +323,6 @@ export default function TeamEdit({
                     </div>
                 ) : null}
 
-                {permissions.canDeleteTeam && !team.isPersonal ? (
-                    <div className="space-y-6">
-                        <Heading
-                            variant="small"
-                            title="Delete team"
-                            description="Permanently delete your team"
-                        />
-                        <div className="space-y-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-                            <div className="relative space-y-0.5 text-destructive">
-                                <p className="font-medium">Warning</p>
-                                <p className="text-sm">
-                                    Please proceed with caution, this cannot be
-                                    undone.
-                                </p>
-                            </div>
-                            <Button
-                                variant="destructive"
-                                data-test="delete-team-button"
-                                onClick={() => setDeleteDialogOpen(true)}
-                            >
-                                Delete team
-                            </Button>
-                        </div>
-                    </div>
-                ) : null}
             </div>
 
             {permissions.canCreateInvitation ? (
@@ -375,13 +348,6 @@ export default function TeamEdit({
                 onOpenChange={setCancelInvitationDialogOpen}
             />
 
-            {permissions.canDeleteTeam && !team.isPersonal ? (
-                <DeleteTeamModal
-                    team={team}
-                    open={deleteDialogOpen}
-                    onOpenChange={setDeleteDialogOpen}
-                />
-            ) : null}
         </>
     );
 }
@@ -389,7 +355,7 @@ export default function TeamEdit({
 TeamEdit.layout = (props: { team: { name: string; slug: string } }) => ({
     breadcrumbs: [
         {
-            title: 'Teams',
+            title: 'Facilities',
             href: index(),
         },
         {

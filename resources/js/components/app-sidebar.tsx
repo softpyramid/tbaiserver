@@ -55,7 +55,7 @@ const icons: Record<string, LucideIcon> = {
     users: Users,
     programme_assignments: MapPinned,
     access_requests: Inbox,
-    teams: Users,
+    programme_access: Users,
 };
 
 export function AppSidebar() {

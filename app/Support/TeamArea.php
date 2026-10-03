@@ -131,6 +131,8 @@ class TeamArea
                 'clear' => __('entry.clear'),
                 'actions' => __('entry.actions'),
                 'member' => __('entry.column_member'),
+                'email' => __('entry.column_email'),
+                'facility' => __('entry.column_facility'),
                 'returns' => __('entry.returns_this_month'),
                 'joined' => __('entry.joined'),
                 'lastActive' => __('entry.last_active'),

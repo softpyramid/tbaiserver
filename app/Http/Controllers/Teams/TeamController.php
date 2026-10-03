@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teams;
 
 use App\Actions\Teams\CreateTeam;
+use App\Data\UserTeam;
 use App\Enums\TeamRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\DeleteTeamRequest;
@@ -10,6 +11,7 @@ use App\Http\Requests\Teams\SaveTeamRequest;
 use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\RoleHome;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,12 +24,19 @@ class TeamController extends Controller
     /**
      * Display a listing of the user's teams.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        if ($this->usesRoleHome($user)) {
+            return redirect()->to(app(RoleHome::class)->url($user));
+        }
 
         return Inertia::render('teams/index', [
-            'teams' => $user->toUserTeams(includeCurrent: true),
+            'teams' => $user->toUserTeams(includeCurrent: true)
+                ->reject(fn (UserTeam $team): bool => $team->isPersonal)
+                ->values(),
         ]);
     }
 
@@ -38,7 +47,7 @@ class TeamController extends Controller
     {
         $team = $createTeam->handle($request->user(), $request->validated('name'));
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Team created.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility created.')]);
 
         return to_route('teams.edit', ['team' => $team->slug]);
     }
@@ -46,9 +55,24 @@ class TeamController extends Controller
     /**
      * Show the team edit page.
      */
-    public function edit(Request $request, Team $team): Response
+    public function edit(Request $request, Team $team): Response|RedirectResponse
     {
         $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        $team->loadMissing('facility');
+
+        if ($team->facility !== null) {
+            if (Gate::forUser($user)->allows('openProfile', $team->facility)) {
+                return redirect()->route('facilities.edit', $team);
+            }
+
+            return redirect()->to(app(RoleHome::class)->url($user));
+        }
+
+        if ($this->usesRoleHome($user)) {
+            return redirect()->to(app(RoleHome::class)->url($user));
+        }
 
         return Inertia::render('teams/edit', [
             'team' => [
@@ -100,7 +124,7 @@ class TeamController extends Controller
             return $team;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Team updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility updated.')]);
 
         return to_route('teams.edit', ['team' => $team->slug]);
     }
@@ -138,7 +162,7 @@ class TeamController extends Controller
             $user->switchTeam($fallbackTeam);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('You left the team ":name"', ['name' => $team->name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('You left :name.', ['name' => $team->name])]);
 
         return to_route('teams.index');
     }
@@ -167,8 +191,17 @@ class TeamController extends Controller
             $user->switchTeam($fallbackTeam);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Team deleted.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility removed.')]);
 
         return to_route('teams.index');
+    }
+
+    /**
+     * Facility staff and programme roles do not use the settings list.
+     */
+    private function usesRoleHome(User $user): bool
+    {
+        return $user->programmeAssignments()->exists()
+            || $user->teams()->whereHas('facility')->exists();
     }
 }

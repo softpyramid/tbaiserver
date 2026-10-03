@@ -45,7 +45,7 @@ test('login seeder creates verified accounts that can sign in', function () {
     $this->post(route('login.store'), [
         'email' => 'reviewer@example.com',
         'password' => 'server-secret',
-    ])->assertRedirect(route('command.index'));
+    ])->assertRedirect(route('admin.home'));
 
     $this->assertAuthenticatedAs($reviewer);
 });
@@ -79,7 +79,11 @@ test('login seeder wires programme scope and facility ownership', function () {
     $country = User::query()->where('email', 'country@tbai.test')->first();
     $team = Team::query()->where('slug', 'karachi-west-bmu')->first();
 
-    expect($incharge)->not->toBeNull()
+    expect(Team::query()->where('slug', 'tb-ai-admins-team')->value('name'))->toBe('TB-AI Admin group')
+        ->and(Team::query()->where('slug', 'country-viewers-team')->value('name'))->toBe('Pakistan viewers')
+        ->and(Team::query()->where('slug', 'provincial-viewers-team')->value('name'))->toBe('Sindh viewers')
+        ->and(Team::query()->where('slug', 'karachi-west-officers-team')->value('name'))->toBe('Karachi West officers')
+        ->and($incharge)->not->toBeNull()
         ->and(Hash::check('password', $incharge->password))->toBeTrue()
         ->and($team)->not->toBeNull()
         ->and($incharge->ownsTeam($team))->toBeTrue()

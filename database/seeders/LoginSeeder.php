@@ -183,20 +183,51 @@ class LoginSeeder extends Seeder
 
     private function ensurePersonalTeam(User $user): void
     {
-        if ($user->personalTeam() !== null) {
+        $group = $this->programmeGroup($user->email);
+        $existing = $user->personalTeam();
+
+        if ($existing !== null) {
+            if ($group !== null && $existing->name !== $group['name']) {
+                Team::withoutEvents(function () use ($existing, $group): void {
+                    $existing->forceFill(['name' => $group['name']])->save();
+                });
+            }
+
             return;
         }
 
-        $team = Team::query()->create([
-            'name' => $user->name."'s Team",
+        $team = new Team([
+            'name' => $group['name'] ?? $user->name."'s Team",
             'is_personal' => true,
         ]);
+
+        if ($group !== null) {
+            $team->slug = $group['slug'];
+        }
+
+        $team->save();
 
         $team->members()->attach($user, [
             'role' => TeamRole::Owner->value,
         ]);
 
         $user->switchTeam($team);
+    }
+
+    /**
+     * Display name for a seeded programme group. The slug stays on the old address.
+     *
+     * @return array{name: string, slug: string}|null
+     */
+    private function programmeGroup(string $email): ?array
+    {
+        return match ($email) {
+            'admin@tbai.test' => ['name' => 'TB-AI Admin group', 'slug' => 'tb-ai-admins-team'],
+            'country@tbai.test' => ['name' => 'Pakistan viewers', 'slug' => 'country-viewers-team'],
+            'sindh@tbai.test' => ['name' => 'Sindh viewers', 'slug' => 'provincial-viewers-team'],
+            'karachi-west@tbai.test' => ['name' => 'Karachi West officers', 'slug' => 'karachi-west-officers-team'],
+            default => null,
+        };
     }
 
     /**

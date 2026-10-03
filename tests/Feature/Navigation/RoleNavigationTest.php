@@ -39,7 +39,11 @@ test('a tb-ai admin sees the administration group and can open it', function () 
     $this->actingAs($admin)->get(route('admin.users.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.programme-assignments.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.access-requests.index'))->assertOk();
-    $this->actingAs($admin)->get(route('admin.teams.index'))->assertOk();
+    $this->actingAs($admin)->get(route('admin.programme-access.index'))->assertOk();
+    $this->actingAs($admin)
+        ->get(route('admin.teams.index'))
+        ->assertStatus(301)
+        ->assertRedirect(route('facilities.index'));
 });
 
 test('an in-charge sees facility links and cannot open administration', function () {

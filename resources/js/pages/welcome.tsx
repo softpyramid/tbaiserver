@@ -109,7 +109,7 @@ export default function Welcome({
                             </div>
                             <div className="flex justify-center">
                                 <img
-                                    src="/logo.jpeg"
+                                    src="/logo.png"
                                     alt="TB-AI"
                                     className="w-full max-w-sm rounded-2xl shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]"
                                 />

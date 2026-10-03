@@ -204,7 +204,7 @@ class CommandCenterPage
     private function frame(User $user, array $selection, string $current, bool $showSector, bool $showPlace): array
     {
         return [
-            'scope' => $this->scope->label($user),
+            'scope' => $this->scopeLine($user, $selection, $showSector),
             'screens' => $this->screens($selection, $current),
             'filters' => [
                 'from' => $selection['period']->from,
@@ -247,6 +247,29 @@ class CommandCenterPage
                 'definition' => ProvisionalReportedTat::LABEL,
             ],
         ];
+    }
+
+    /**
+     * The scope name, plus the sector when the sector filter is narrowing
+     * the figures, so the page says what the numbers cover.
+     *
+     * @param  array{
+     *     period: CommandPeriod,
+     *     provinceId: int|null,
+     *     cityId: int|null,
+     *     sector: Sector|null,
+     *     facilityId: int|null
+     * }  $selection
+     */
+    private function scopeLine(User $user, array $selection, bool $showSector): string
+    {
+        $scope = $this->scope->label($user);
+
+        if ($showSector && $selection['sector'] instanceof Sector) {
+            return $scope.', '.$selection['sector']->label();
+        }
+
+        return $scope;
     }
 
     /**
@@ -366,14 +389,19 @@ class CommandCenterPage
      */
     private function notCollected(): array
     {
+        $items = [
+            ['key' => 'treatment_success', 'status' => 'not_collected', 'label' => __('entry.treatment_success')],
+            ['key' => 'lost_to_follow_up', 'status' => 'not_collected', 'label' => __('entry.lost_to_follow_up')],
+            ['key' => 'mdr_rr', 'status' => 'not_collected', 'label' => __('entry.mdr_rr')],
+        ];
+
+        if (config('tbai.features.ai_tests')) {
+            $items[] = ['key' => 'ai_assisted_tests', 'status' => 'not_collected', 'label' => __('entry.ai_assisted_tests')];
+        }
+
         return [
             'heading' => __('entry.not_collected_yet'),
-            'items' => [
-                ['key' => 'treatment_success', 'status' => 'not_collected', 'label' => __('entry.treatment_success')],
-                ['key' => 'lost_to_follow_up', 'status' => 'not_collected', 'label' => __('entry.lost_to_follow_up')],
-                ['key' => 'mdr_rr', 'status' => 'not_collected', 'label' => __('entry.mdr_rr')],
-                ['key' => 'ai_assisted_tests', 'status' => 'not_collected', 'label' => __('entry.ai_assisted_tests')],
-            ],
+            'items' => $items,
         ];
     }
 

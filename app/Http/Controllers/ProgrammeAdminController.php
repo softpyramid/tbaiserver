@@ -11,6 +11,7 @@ use App\Models\Country;
 use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\User;
+use App\Support\AdminTabs;
 use App\Support\AuditLogger;
 use App\Support\ProgrammeAccess;
 use App\Support\ResourceResponse;
@@ -18,7 +19,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -121,6 +121,11 @@ class ProgrammeAdminController extends Controller
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => __('entry.people_description'),
+                'title' => __('entry.nav_people'),
+                'tabs' => AdminTabs::people('programme_assignments'),
+            ],
         );
     }
 
@@ -254,6 +259,15 @@ class ProgrammeAdminController extends Controller
             createUrl: null,
             createLabel: null,
             exportUrl: ResourceResponse::exportUrl($request),
+            shell: [
+                'description' => __('entry.people_description'),
+                'title' => __('entry.nav_people'),
+                'tabs' => AdminTabs::people('access_requests'),
+                'empty' => [
+                    'title' => __('entry.access_requests_empty_title'),
+                    'body' => __('entry.access_requests_empty_body'),
+                ],
+            ],
         );
     }
 

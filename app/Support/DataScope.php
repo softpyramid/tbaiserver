@@ -93,6 +93,18 @@ class DataScope
         return $query->exists();
     }
 
+    public function allowsCity(User $user, int $cityId): bool
+    {
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        $query = City::query()->whereKey($cityId);
+        $this->constrainCities($query, $user);
+
+        return $query->exists();
+    }
+
     public function label(User $user): string
     {
         if ($user->isTbaiAdmin()) {

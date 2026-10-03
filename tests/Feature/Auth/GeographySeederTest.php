@@ -6,12 +6,13 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\ProgrammeAssignment;
 use App\Models\Province;
+use App\Models\Taluka;
 use App\Models\User;
 use Database\Seeders\GeographySeeder;
 use Database\Seeders\ProgrammeRoleSeeder;
 use Illuminate\Support\Facades\Hash;
 
-test('geography seeder creates pakistan, sindh, and the seven pitch cities', function () {
+test('geography seeder creates pakistan, sindh, pitch cities, and sindh test districts', function () {
     $this->seed(GeographySeeder::class);
     $this->seed(GeographySeeder::class);
 
@@ -23,9 +24,25 @@ test('geography seeder creates pakistan, sindh, and the seven pitch cities', fun
         ->and($sindh)->not->toBeNull()
         ->and($sindh->country_id)->toBe($pakistan->id)
         ->and(Province::query()->count())->toBe(1)
-        ->and(City::query()->count())->toBe(7)
+        ->and(City::query()->count())->toBe(11)
         ->and(City::query()->where('slug', 'karachi-west')->value('latitude'))->toEqual('25.00000')
-        ->and(City::query()->where('slug', 'thatta')->value('longitude'))->toEqual('67.92000');
+        ->and(City::query()->where('slug', 'thatta')->value('longitude'))->toEqual('67.92000')
+        ->and(Taluka::query()->count())->toBe(15);
+
+    foreach ([
+        'karachi-west' => 3,
+        'karachi-east' => 3,
+        'hyderabad' => 2,
+        'sukkur' => 3,
+        'larkana' => 2,
+        'mirpurkhas' => 2,
+    ] as $slug => $talukas) {
+        $city = City::query()->where('slug', $slug)->first();
+
+        expect($city)->not->toBeNull()
+            ->and($city->province_id)->toBe($sindh->id)
+            ->and($city->talukas()->count())->toBe($talukas);
+    }
 });
 
 test('programme role seeder assigns each login to its geography', function () {

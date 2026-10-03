@@ -2,11 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Sector;
+use App\Http\Requests\StoreIncidenceTargetRequest;
+use App\Http\Requests\UpdateAlertRuleRequest;
+use App\Models\AlertRule;
+use App\Models\City;
 use App\Models\DailyReturn;
-use App\Models\Facility;
+use App\Models\IncidenceTarget;
+use App\Support\CommandCenterPage;
 use App\Support\DailyReturnDetail;
 use App\Support\DailyReturnListing;
 use App\Support\DataScope;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -16,42 +23,108 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class CommandCenterController extends Controller
 {
     /**
-     * Scoped landing for programme roles. Not an analytics dashboard.
+     * Cumulative Data for the viewer's programme scope.
      */
-    public function index(Request $request, DataScope $scope): Response
+    public function index(Request $request, CommandCenterPage $page): Response
     {
         Gate::authorize('viewCommandCenter');
 
         $user = $request->user();
         abort_unless($user !== null, 403);
 
-        $facilities = Facility::query();
-        $scope->constrainFacilities($facilities, $user);
+        return Inertia::render('command/index', $page->cumulative($request, $user));
+    }
 
-        $returns = DailyReturn::query()->whereIn(
-            'facility_id',
-            (clone $facilities)->select('facilities.id'),
+    public function map(Request $request, CommandCenterPage $page): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return Inertia::render('command/map', $page->map($request, $user));
+    }
+
+    public function alerts(Request $request, CommandCenterPage $page): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return Inertia::render('command/alerts', $page->alerts($request, $user));
+    }
+
+    public function updateAlertRule(UpdateAlertRuleRequest $request, AlertRule $alertRule): RedirectResponse
+    {
+        $alertRule->update($request->validated());
+
+        return back();
+    }
+
+    public function drivers(Request $request, CommandCenterPage $page): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return Inertia::render('command/drivers', $page->drivers($request, $user));
+    }
+
+    public function incidence(Request $request, CommandCenterPage $page): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return Inertia::render('command/incidence', $page->incidence($request, $user));
+    }
+
+    public function storeIncidence(StoreIncidenceTargetRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        IncidenceTarget::query()->updateOrCreate(
+            [
+                'province_id' => (int) $data['province_id'],
+                'year' => (int) $data['year'],
+            ],
+            [
+                'month' => null,
+                'value' => $data['value'],
+            ],
         );
 
-        return Inertia::render('command/index', [
-            'title' => __('entry.nav_command'),
-            'scope' => $scope->label($user),
-            'intro' => __('entry.command_intro'),
-            'facilitiesLine' => __('entry.command_facility_count', [
-                'count' => (clone $facilities)->count(),
-            ]),
-            'returnsLine' => __('entry.command_return_count', [
-                'count' => (clone $returns)->count(),
-            ]),
-            'facilitiesUrl' => $user->isTbaiAdmin()
-                ? route('facilities.index')
-                : route('command.facilities'),
-            'facilitiesLabel' => __('entry.nav_facilities'),
-            'returnsUrl' => $user->isTbaiAdmin()
-                ? route('admin.daily-returns.index')
-                : route('command.returns'),
-            'returnsLabel' => __('entry.nav_daily_returns'),
-        ]);
+        return back();
+    }
+
+    public function sector(Request $request, string $sector, CommandCenterPage $page): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        $sectorEnum = Sector::tryFrom($sector);
+        abort_unless($sectorEnum !== null, 404);
+
+        return Inertia::render('command/sector', $page->sector($request, $user, $sectorEnum));
+    }
+
+    public function district(Request $request, string $sector, City $city, CommandCenterPage $page, DataScope $scope): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        $sectorEnum = Sector::tryFrom($sector);
+        abort_unless($sectorEnum !== null, 404);
+        abort_unless($scope->allowsCity($user, $city->id), 403);
+
+        return Inertia::render('command/district', $page->district($request, $user, $sectorEnum, $city));
     }
 
     public function returns(Request $request, DailyReturnListing $listing): Response|StreamedResponse

@@ -22,6 +22,10 @@ class SidebarNavigation
             return [
                 $this->group('platform', __('entry.nav_group_platform'), [
                     $this->item('command', __('entry.nav_command'), route('command.index')),
+                    $this->item('command_map', __('entry.command_map'), route('command.map')),
+                    $this->item('command_alerts', __('entry.command_alerts'), route('command.alerts')),
+                    $this->item('command_drivers', __('entry.drivers_title'), route('command.drivers')),
+                    $this->item('command_incidence', __('entry.incidence_title'), route('command.incidence')),
                 ]),
                 $this->group('administration', __('entry.nav_group_administration'), [
                     $this->item('facilities', __('entry.nav_facilities'), route('facilities.index')),
@@ -40,6 +44,10 @@ class SidebarNavigation
             return [
                 $this->group('platform', __('entry.nav_group_platform'), [
                     $this->item('command', __('entry.nav_command'), route('command.index')),
+                    $this->item('command_map', __('entry.command_map'), route('command.map')),
+                    $this->item('command_alerts', __('entry.command_alerts'), route('command.alerts')),
+                    $this->item('command_drivers', __('entry.drivers_title'), route('command.drivers')),
+                    $this->item('command_incidence', __('entry.incidence_title'), route('command.incidence')),
                     $this->item('facilities', $this->facilitiesLabel($user), route('command.facilities')),
                 ]),
             ];

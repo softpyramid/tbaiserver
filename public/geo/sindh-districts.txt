@@ -1,0 +1,9 @@
+Sindh district boundaries for the command center map.
+
+Source: OCHA Field Information Services, "Pakistan - Subnational Administrative Boundaries", published on HDX.
+Dataset: https://data.humdata.org/dataset/cod-ab-pak
+File extracted: pak_admin2.geojson (COD-AB v01, valid_on 2022-09-09)
+License: Creative Commons Attribution for Intergovernmental Organisations (CC BY-IGO)
+License text: https://creativecommons.org/licenses/by/3.0/igo/
+
+Sindh admin-2 districts were copied out of that file. Coordinates were simplified for display. The screen labels these boundaries as indicative, not official.

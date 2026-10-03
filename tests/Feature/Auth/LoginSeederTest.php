@@ -103,10 +103,11 @@ test('login seeder wires programme scope and facility ownership', function () {
         ->scope_type->toBe(ScopeType::City)
         ->scope_id->toBe($karachiWestId);
 
-    $today = CarbonImmutable::now('Asia/Karachi')->toDateString();
+    $today = CarbonImmutable::now('Asia/Karachi')->startOfDay();
 
-    expect(DailyReturn::query()->count())->toBe(5)
-        ->and(DailyReturn::query()->whereDate('reported_on', '>=', $today)->exists())->toBeFalse()
+    expect(DailyReturn::query()->count())->toBeGreaterThan(100)
+        ->and(DailyReturn::query()->whereDate('reported_on', '>', $today->subDay()->toDateString())->exists())->toBeFalse()
+        ->and(DailyReturn::query()->whereDate('reported_on', '<', $today->subDays(60)->toDateString())->exists())->toBeFalse()
         ->and(DailyReturnRevision::query()->count())->toBe(1)
         ->and(DailyReturnRevision::query()->first()->changed_by)->toBe($incharge->id);
 });

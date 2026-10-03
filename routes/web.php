@@ -82,6 +82,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');
 
     Route::get('command', [CommandCenterController::class, 'index'])->name('command.index');
+    Route::get('command/map', [CommandCenterController::class, 'map'])->name('command.map');
+    Route::get('command/alerts', [CommandCenterController::class, 'alerts'])->name('command.alerts');
+    Route::patch('command/alerts/rules/{alertRule}', [CommandCenterController::class, 'updateAlertRule'])->name('command.alerts.update');
+    Route::get('command/drivers', [CommandCenterController::class, 'drivers'])->name('command.drivers');
+    Route::get('command/incidence', [CommandCenterController::class, 'incidence'])->name('command.incidence');
+    Route::post('command/incidence', [CommandCenterController::class, 'storeIncidence'])->name('command.incidence.store');
+    Route::get('command/sectors/{sector}', [CommandCenterController::class, 'sector'])
+        ->whereIn('sector', ['public', 'private', 'ppm'])
+        ->name('command.sectors.show');
+    Route::get('command/sectors/{sector}/districts/{city}', [CommandCenterController::class, 'district'])
+        ->whereIn('sector', ['public', 'private', 'ppm'])
+        ->name('command.districts.show');
     Route::get('command/facilities', [FacilityController::class, 'scoped'])->name('command.facilities');
     Route::get('command/returns', [CommandCenterController::class, 'returns'])->name('command.returns');
     Route::get('command/returns/{dailyReturn}', [CommandCenterController::class, 'showReturn'])->name('command.returns.show');

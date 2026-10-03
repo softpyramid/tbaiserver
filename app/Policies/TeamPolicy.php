@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\TeamPermission;
+use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\User;
 
@@ -88,6 +89,38 @@ class TeamPolicy
     public function cancelInvitation(User $user, Team $team): bool
     {
         return $user->hasTeamPermission($team, TeamPermission::CancelInvitation);
+    }
+
+    /**
+     * Facility in-charge may open the team roster. Technicians may not.
+     */
+    public function viewRoster(User $user, Team $team): bool
+    {
+        if ($team->is_personal || $team->facility === null) {
+            return false;
+        }
+
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        return $user->teamRole($team) === TeamRole::Owner;
+    }
+
+    /**
+     * Facility in-charge may open returns history for their facility.
+     */
+    public function viewReturns(User $user, Team $team): bool
+    {
+        if ($team->facility === null) {
+            return false;
+        }
+
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        return $user->teamRole($team) === TeamRole::Owner;
     }
 
     /**

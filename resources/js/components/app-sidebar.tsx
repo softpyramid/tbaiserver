@@ -1,11 +1,16 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Building2,
+    CalendarDays,
     ClipboardList,
     ClipboardPlus,
     Globe,
+    History,
+    Inbox,
     LayoutGrid,
     List,
+    MapPinned,
+    Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -21,58 +26,42 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useCurrentUrl } from '@/hooks/use-current-url';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
+const icons = {
+    command: LayoutGrid,
+    register: ClipboardList,
+    returns_history: History,
+    screening: ClipboardPlus,
+    my_facility: Building2,
+    facility_profile: Building2,
+    team_members: Users,
+    facilities: List,
+    daily_returns: CalendarDays,
+    revisions: History,
+    screening_sessions: ClipboardPlus,
+    users: Users,
+    programme_assignments: MapPinned,
+    access_requests: Inbox,
+    teams: Users,
+} as const;
+
+type NavKey = keyof typeof icons;
+
+function isNavKey(key: string): key is NavKey {
+    return key in icons;
+}
+
 export function AppSidebar() {
     const page = usePage();
+    const { currentUrl } = useCurrentUrl();
     const dashboardUrl = page.props.currentTeam
         ? dashboard(page.props.currentTeam.slug)
         : '/';
-
-    const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboardUrl,
-            icon: LayoutGrid,
-        },
-        ...(page.props.registerUrl
-            ? [
-                  {
-                      title: "Today's register",
-                      href: page.props.registerUrl,
-                      icon: ClipboardList,
-                  },
-              ]
-            : []),
-        ...(page.props.screeningUrl
-            ? [
-                  {
-                      title: 'Screening',
-                      href: page.props.screeningUrl,
-                      icon: ClipboardPlus,
-                  },
-              ]
-            : []),
-        ...(page.props.profileUrl
-            ? [
-                  {
-                      title: 'Facility profile',
-                      href: page.props.profileUrl,
-                      icon: Building2,
-                  },
-              ]
-            : []),
-        ...(page.props.facilitiesUrl
-            ? [
-                  {
-                      title: 'Facilities',
-                      href: page.props.facilitiesUrl,
-                      icon: List,
-                  },
-              ]
-            : []),
-    ];
+    const groups = page.props.nav.groups ?? [];
+    const hrefs = groups.flatMap((group) => group.items.map((item) => item.href));
 
     const footerNavItems: NavItem[] = [
         {
@@ -102,7 +91,18 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {groups.map((group) => (
+                    <NavMain
+                        key={group.key}
+                        label={group.label}
+                        items={group.items.map((item) => ({
+                            title: item.label,
+                            href: item.href,
+                            icon: isNavKey(item.key) ? icons[item.key] : null,
+                            isActive: itemIsActive(item.href, currentUrl, hrefs),
+                        }))}
+                    />
+                ))}
             </SidebarContent>
 
             <SidebarFooter>
@@ -111,4 +111,23 @@ export function AppSidebar() {
             </SidebarFooter>
         </Sidebar>
     );
+}
+
+function itemIsActive(href: string, currentPath: string, hrefs: string[]): boolean {
+    const target = href.split('?')[0] ?? href;
+    const path = currentPath.split('?')[0] ?? currentPath;
+
+    if (path === target) {
+        return true;
+    }
+
+    if (!path.startsWith(`${target}/`)) {
+        return false;
+    }
+
+    return !hrefs.some((other) => {
+        const candidate = other.split('?')[0] ?? other;
+
+        return candidate !== target && (path === candidate || path.startsWith(`${candidate}/`));
+    });
 }

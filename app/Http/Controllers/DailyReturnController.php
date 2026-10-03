@@ -8,6 +8,7 @@ use App\Models\DailyReturn;
 use App\Models\DailyReturnRevision;
 use App\Models\ScreeningSession;
 use App\Models\Team;
+use App\Support\EntryDate;
 use App\Support\ProvisionalReportedTat;
 use App\Support\ReturnDatePolicy;
 use Carbon\CarbonImmutable;
@@ -50,20 +51,29 @@ class DailyReturnController extends Controller
             ->count();
 
         $canSeeHistory = $dates->canSeeHistory($user, $current_team);
+        $today = EntryDate::now()->startOfDay();
+        $canChooseDate = $user->isTbaiAdmin()
+            || ($user->teamRole($current_team)?->isAtLeast(TeamRole::Admin) ?? false);
+        $dailyReturn?->loadMissing('submitter');
 
         return Inertia::render('returns/today', [
+            'teamSlug' => $current_team->slug,
             'facility' => [
                 'name' => $current_team->name,
                 'sector' => $facility->sector->label(),
                 'city' => $facility->city->name,
             ],
             'reportedOn' => $reportedOn->toDateString(),
-            'isToday' => $reportedOn->isSameDay(CarbonImmutable::now((string) config('app.timezone'))),
-            'earliestDate' => ($user->isTbaiAdmin() || ($user->teamRole($current_team)?->isAtLeast(TeamRole::Admin) ?? false))
-                ? null
-                : now()->subDay()->toDateString(),
-            'latestDate' => now()->toDateString(),
+            'reportedOnLabel' => EntryDate::label($reportedOn),
+            'isToday' => $reportedOn->isSameDay($today),
+            'todayDate' => $today->toDateString(),
+            'yesterdayDate' => $today->subDay()->toDateString(),
+            'canChooseDate' => $canChooseDate,
+            'earliestDate' => $canChooseDate ? null : $today->subDay()->toDateString(),
+            'latestDate' => $today->toDateString(),
             'canSave' => $user->belongsToTeam($current_team),
+            'returnUpdatedAt' => $dailyReturn?->updated_at?->toISOString(),
+            'lastUpdated' => $this->lastUpdated($dailyReturn),
             'screeningSuspects' => $screeningSuspects,
             'return' => [
                 'suspects' => $dailyReturn->suspects ?? 0,
@@ -121,7 +131,7 @@ class DailyReturnController extends Controller
         ]);
         $dailyReturn->save();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Return saved.')]);
+        Inertia::flash('savedReturn', true);
 
         return to_route('returns.today', [
             'current_team' => $current_team->slug,
@@ -143,6 +153,28 @@ class DailyReturnController extends Controller
         } catch (InvalidFormatException) {
             return CarbonImmutable::now($timezone)->startOfDay();
         }
+    }
+
+    /**
+     * @return array{name: string, at: string, line: string}|null
+     */
+    private function lastUpdated(?DailyReturn $dailyReturn): ?array
+    {
+        if ($dailyReturn === null || $dailyReturn->updated_at === null) {
+            return null;
+        }
+
+        $name = $dailyReturn->submitter->name;
+        $at = EntryDate::time($dailyReturn->updated_at);
+
+        return [
+            'name' => $name,
+            'at' => $at,
+            'line' => __('entry.last_updated', [
+                'name' => $name,
+                'time' => $at,
+            ]),
+        ];
     }
 
     /**

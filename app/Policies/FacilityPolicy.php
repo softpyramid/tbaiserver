@@ -17,11 +17,15 @@ class FacilityPolicy
     }
 
     /**
-     * Opening the profile is the same gate as saving it.
+     * Facility staff may open a read-only profile. Saving stays on update.
      */
     public function view(User $user, Facility $facility): bool
     {
-        return $this->update($user, $facility);
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        return $user->belongsToTeam($facility->team);
     }
 
     /**

@@ -1,12 +1,23 @@
 <?php
 
 use App\Http\Controllers\AccessRequestController;
+use App\Http\Controllers\CommandCenterController;
+use App\Http\Controllers\DailyReturnAdminController;
 use App\Http\Controllers\DailyReturnController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FacilityController;
+use App\Http\Controllers\FacilityHomeController;
+use App\Http\Controllers\FacilityMemberController;
+use App\Http\Controllers\FacilityReturnHistoryController;
+use App\Http\Controllers\ProgrammeAdminController;
 use App\Http\Controllers\ProgrammeAssignmentController;
+use App\Http\Controllers\ReturnRevisionAdminController;
 use App\Http\Controllers\ScreeningController;
+use App\Http\Controllers\ScreeningSessionAdminController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Controllers\TodayShortcutController;
+use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\WebManifestController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +74,37 @@ Route::post('access-requests', [AccessRequestController::class, 'store'])
     ->name('access-requests.store');
 Route::redirect('register', '/request-access');
 
+Route::get('manifest.webmanifest', WebManifestController::class)->name('manifest');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('today', TodayShortcutController::class)->name('returns.home');
+
+    Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');
+
+    Route::get('command', [CommandCenterController::class, 'index'])->name('command.index');
+    Route::get('command/facilities', [FacilityController::class, 'scoped'])->name('command.facilities');
+    Route::get('command/returns', [CommandCenterController::class, 'returns'])->name('command.returns');
+    Route::get('command/returns/{dailyReturn}', [CommandCenterController::class, 'showReturn'])->name('command.returns.show');
+
+    Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');
+    Route::get('admin/facilities/create', [FacilityController::class, 'create'])->name('facilities.create');
+    Route::post('admin/facilities', [FacilityController::class, 'store'])->name('facilities.store');
+
+    Route::get('admin/daily-returns', [DailyReturnAdminController::class, 'index'])->name('admin.daily-returns.index');
+    Route::get('admin/daily-returns/{dailyReturn}', [DailyReturnAdminController::class, 'show'])->name('admin.daily-returns.show');
+    Route::get('admin/return-revisions', [ReturnRevisionAdminController::class, 'index'])->name('admin.revisions.index');
+    Route::get('admin/screening-sessions', [ScreeningSessionAdminController::class, 'index'])->name('admin.screening-sessions.index');
+    Route::get('admin/users', [UserAdminController::class, 'index'])->name('admin.users.index');
+    Route::patch('admin/users/{user}', [UserAdminController::class, 'update'])->name('admin.users.update');
+    Route::patch('admin/memberships/{membership}', [UserAdminController::class, 'updateMembership'])->name('admin.memberships.update');
+    Route::get('admin/programme-assignments', [ProgrammeAdminController::class, 'assignments'])->name('admin.programme-assignments.index');
+    Route::get('admin/access-requests', [ProgrammeAdminController::class, 'accessRequests'])->name('admin.access-requests.index');
+    Route::patch('admin/access-requests/{accessRequest}', [ProgrammeAdminController::class, 'updateAccessRequest'])->name('admin.access-requests.update');
+    Route::get('admin/teams', [ProgrammeAdminController::class, 'teams'])->name('admin.teams.index');
+});
+
+require __DIR__.'/settings.php';
+
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified'])
     ->group(function () {
@@ -72,6 +114,10 @@ Route::prefix('{current_team}')
 
         Route::get('returns/today', [DailyReturnController::class, 'edit'])->name('returns.today');
         Route::put('returns/today', [DailyReturnController::class, 'update'])->name('returns.update');
+        Route::get('returns/history', FacilityReturnHistoryController::class)->name('returns.history');
+
+        Route::get('my-facility', FacilityHomeController::class)->name('facilities.home');
+        Route::get('members', FacilityMemberController::class)->name('facilities.members');
 
         Route::get('profile', [FacilityController::class, 'edit'])->name('facilities.edit');
         Route::put('profile', [FacilityController::class, 'update'])->name('facilities.update');
@@ -84,13 +130,3 @@ Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
-
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');
-
-    Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');
-    Route::get('admin/facilities/create', [FacilityController::class, 'create'])->name('facilities.create');
-    Route::post('admin/facilities', [FacilityController::class, 'store'])->name('facilities.store');
-});
-
-require __DIR__.'/settings.php';

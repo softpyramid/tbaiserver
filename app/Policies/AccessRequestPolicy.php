@@ -32,7 +32,7 @@ class AccessRequestPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->isAdministrator($user);
+        return $user->isTbaiAdmin() || $this->isAdministrator($user);
     }
 
     /**
@@ -40,7 +40,15 @@ class AccessRequestPolicy
      */
     public function view(User $user, AccessRequest $accessRequest): bool
     {
-        return $this->isAdministrator($user);
+        return $user->isTbaiAdmin() || $this->isAdministrator($user);
+    }
+
+    /**
+     * Approve or reject a request. This does not create a user.
+     */
+    public function review(User $user, AccessRequest $accessRequest): bool
+    {
+        return $user->isTbaiAdmin() || $this->isAdministrator($user);
     }
 
     /**

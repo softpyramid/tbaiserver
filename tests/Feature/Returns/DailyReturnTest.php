@@ -116,7 +116,10 @@ test('a tb-ai admin can see history without being a facility member', function (
     $this->actingAs($admin)
         ->get(route('returns.today', $facility->team))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->has('history', 1));
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('history', 1)
+            ->where('nav.shell', 'sidebar'),
+        );
 
     $this->actingAs($admin)
         ->put(route('returns.update', $facility->team), $payload)
@@ -129,7 +132,7 @@ test('the form opens the return that already exists for that date', function () 
     $facility->team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
     $reportedOn = now()->subDay()->toDateString();
 
-    DailyReturn::factory()->create([
+    $dailyReturn = DailyReturn::factory()->create([
         'facility_id' => $facility->id,
         'reported_on' => $reportedOn,
         'submitted_by' => $owner->id,
@@ -155,8 +158,12 @@ test('the form opens the return that already exists for that date', function () 
             ->where('facility.sector', 'Public')
             ->where('facility.city', $facility->city->name)
             ->where('earliestDate', null)
+            ->where('canChooseDate', true)
             ->where('latestDate', now()->toDateString())
-            ->where('provisionalTat.helper', ProvisionalReportedTat::HELPER),
+            ->where('provisionalTat.helper', ProvisionalReportedTat::HELPER)
+            ->where('lastUpdated.name', $owner->name)
+            ->where('lastUpdated.at', $dailyReturn->updated_at->timezone('Asia/Karachi')->format('H:i'))
+            ->where('nav.shell', 'facility'),
         );
 
     $this->actingAs($owner)
@@ -181,7 +188,11 @@ test('technicians can open today and yesterday only', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('earliestDate', now()->subDay()->toDateString())
-            ->where('latestDate', now()->toDateString()),
+            ->where('latestDate', now()->toDateString())
+            ->where('canChooseDate', false)
+            ->where('todayDate', now()->toDateString())
+            ->where('yesterdayDate', now()->subDay()->toDateString())
+            ->where('nav.shell', 'facility'),
         );
 
     $this->actingAs($member)
@@ -204,7 +215,10 @@ test('senior technicians can backfill any past date', function () {
     $this->actingAs($senior)
         ->get(route('returns.today', $facility->team))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('earliestDate', null));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('earliestDate', null)
+            ->where('canChooseDate', true),
+        );
 
     $this->actingAs($senior)
         ->put(route('returns.update', $facility->team), returnPayload(now()->subDays(10)->toDateString()))
@@ -255,7 +269,9 @@ test('positive and negative must add up to tested', function () {
             ...returnPayload(now()->toDateString()),
             'negative' => 0,
         ])
-        ->assertSessionHasErrors('tested');
+        ->assertSessionHasErrors([
+            'tested' => 'Positive and negative must add up to tested (now 1 of 4).',
+        ]);
 });
 
 /**

@@ -14,8 +14,22 @@ declare module '@inertiajs/core' {
             auth: Auth;
             registerUrl: string | null;
             profileUrl: string | null;
+            myFacilityUrl: string | null;
             screeningUrl: string | null;
             facilitiesUrl: string | null;
+            nav: {
+                shell: 'facility' | 'sidebar';
+                groups: {
+                    key: string;
+                    label: string;
+                    items: { key: string; label: string; href: string }[];
+                }[];
+            };
+            i18n: {
+                locale: string;
+                dir: 'ltr' | 'rtl';
+                entry: Record<string, string>;
+            };
             sidebarOpen: boolean;
             currentTeam: Team | null;
             teams: Team[];

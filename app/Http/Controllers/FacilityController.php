@@ -10,38 +10,43 @@ use App\Models\City;
 use App\Models\Facility;
 use App\Models\Taluka;
 use App\Models\Team;
+use App\Support\AuditLogger;
+use App\Support\EntryDate;
+use App\Support\FacilityListing;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FacilityController extends Controller
 {
     /**
      * List facilities for TB-AI admins.
      */
-    public function index(): Response
+    public function index(Request $request, FacilityListing $listing): Response|StreamedResponse
     {
         Gate::authorize('viewAny', Facility::class);
 
-        $facilities = Facility::query()
-            ->with(['team', 'city'])
-            ->get()
-            ->sortBy(fn (Facility $facility): string => mb_strtolower($facility->team->name))
-            ->values()
-            ->map(fn (Facility $facility): array => [
-                'slug' => $facility->team->slug,
-                'name' => $facility->team->name,
-                'sector' => $facility->sector->label(),
-                'city' => $facility->city->name,
-                'active' => $facility->status === FacilityStatus::Active,
-            ])
-            ->all();
+        $user = $request->user();
+        abort_unless($user !== null, 403);
 
-        return Inertia::render('facilities/index', [
-            'facilities' => $facilities,
-        ]);
+        return $listing->respond($request, $user, administration: true);
+    }
+
+    /**
+     * Read-only facilities inside a programme viewer's scope.
+     */
+    public function scoped(Request $request, FacilityListing $listing): Response|StreamedResponse
+    {
+        Gate::authorize('viewCommandCenter');
+
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return $listing->respond($request, $user, administration: false);
     }
 
     /**
@@ -51,7 +56,11 @@ class FacilityController extends Controller
     {
         Gate::authorize('create', Facility::class);
 
-        return Inertia::render('facilities/create', $this->formOptions());
+        return Inertia::render('facilities/create', [
+            'dateLabel' => EntryDate::label(),
+            'canEdit' => true,
+            ...$this->formOptions(),
+        ]);
     }
 
     /**
@@ -73,7 +82,19 @@ class FacilityController extends Controller
 
         $facility->load('team');
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility created.')]);
+        $actor = $request->user();
+
+        if ($actor !== null) {
+            app(AuditLogger::class)->write($actor, 'facility.created', $facility, [
+                'name' => $facility->team->name,
+                'city_id' => $facility->city_id,
+                'sector' => $facility->sector->value,
+                'kind' => $facility->kind->value,
+                'status' => $facility->status->value,
+            ]);
+        }
+
+        Inertia::flash('savedProfile', __('entry.facility_created'));
 
         return to_route('facilities.edit', ['current_team' => $facility->team->slug]);
     }
@@ -87,9 +108,17 @@ class FacilityController extends Controller
         abort_unless($facility !== null, 404);
 
         Gate::authorize('view', $facility);
+        $facility->loadMissing('city');
 
         return Inertia::render('facilities/edit', [
             'teamSlug' => $current_team->slug,
+            'canEdit' => Gate::allows('update', $facility),
+            'dateLabel' => EntryDate::label(),
+            'summary' => [
+                'name' => $current_team->name,
+                'sector' => $facility->sector->label(),
+                'city' => $facility->city->name,
+            ],
             'facility' => [
                 'name' => $current_team->name,
                 'sector' => $facility->sector->value,
@@ -111,6 +140,15 @@ class FacilityController extends Controller
         $facility = $current_team->facility;
         abort_unless($facility !== null, 404);
 
+        $before = [
+            'name' => $current_team->name,
+            'city_id' => $facility->city_id,
+            'sector' => $facility->sector->value,
+            'kind' => $facility->kind->value,
+            'status' => $facility->status->value,
+            'code' => $facility->code,
+        ];
+
         $facility = DB::transaction(function () use ($request, $facility): Facility {
             $team = Team::query()->whereKey($facility->team_id)->lockForUpdate()->firstOrFail();
             $team->update(['name' => $request->string('name')->toString()]);
@@ -120,7 +158,23 @@ class FacilityController extends Controller
             return $facility;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility profile saved.')]);
+        $actor = $request->user();
+
+        if ($actor !== null) {
+            app(AuditLogger::class)->write($actor, 'facility.updated', $facility, [
+                'before' => $before,
+                'after' => [
+                    'name' => $facility->team->name,
+                    'city_id' => $facility->city_id,
+                    'sector' => $facility->sector->value,
+                    'kind' => $facility->kind->value,
+                    'status' => $facility->status->value,
+                    'code' => $facility->code,
+                ],
+            ]);
+        }
+
+        Inertia::flash('savedProfile', __('entry.profile_saved'));
 
         return to_route('facilities.edit', ['current_team' => $facility->team->slug]);
     }

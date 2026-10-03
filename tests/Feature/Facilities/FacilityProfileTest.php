@@ -31,7 +31,8 @@ test('a tb-ai admin can create a facility and open the facilities list', functio
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('facilitiesUrl', route('facilities.index'))
-            ->has('facilities', 0),
+            ->has('rows', 0)
+            ->where('createUrl', route('facilities.create')),
         );
 
     $this->actingAs($admin)
@@ -158,14 +159,18 @@ test('a technician cannot edit or create a facility profile', function () {
         ->get(route('returns.today', $facility->team))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('profileUrl', null)
+            ->where('profileUrl', route('facilities.edit', $facility->team))
             ->where('screeningUrl', route('screening.create', $facility->team))
             ->where('facilitiesUrl', null),
         );
 
     $this->actingAs($member)
         ->get(route('facilities.edit', $facility->team))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('canEdit', false)
+            ->where('nav.shell', 'facility'),
+        );
 
     $this->actingAs($member)
         ->put(route('facilities.update', $facility->team), facilityFormPayload($facility->city))
@@ -187,7 +192,8 @@ test('a senior technician cannot edit a facility profile', function () {
 
     $this->actingAs($senior)
         ->get(route('facilities.edit', $facility->team))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('canEdit', false));
 
     $this->actingAs($senior)
         ->put(route('facilities.update', $facility->team), facilityFormPayload($facility->city))

@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import FacilityForm from '@/components/facility-form';
+import { useEntryI18n } from '@/lib/i18n';
 
 type Choice = {
     value: string;
@@ -18,6 +19,8 @@ type TalukaOption = {
 };
 
 type Props = {
+    dateLabel: string;
+    canEdit: boolean;
     sectors: Choice[];
     kinds: Choice[];
     cities: CityOption[];
@@ -25,14 +28,12 @@ type Props = {
 };
 
 export default function CreateFacility(props: Props) {
+    const { t } = useEntryI18n();
+
     return (
         <>
-            <Head title="Create facility" />
-            <FacilityForm
-                title="Create facility"
-                description="Staff join by invitation."
-                {...props}
-            />
+            <Head title={t('create_title')} />
+            <FacilityForm titleKey="create_title" {...props} />
         </>
     );
 }

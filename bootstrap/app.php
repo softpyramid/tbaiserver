@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleAppearance::class,
+            EnsureAccountIsActive::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             SetTeamUrlDefaults::class,

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreScreeningRequest;
 use App\Models\ScreeningSession;
 use App\Models\Team;
+use App\Support\EntryDate;
 use App\Support\ScreeningScore;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -30,6 +31,7 @@ class ScreeningController extends Controller
 
         return Inertia::render('screening/new', [
             'facilityName' => $current_team->name,
+            'dateLabel' => EntryDate::label(),
             'teamSlug' => $current_team->slug,
             'notice' => $questions === [] ? ScreeningScore::NOT_READY : null,
             'questions' => array_map(
@@ -70,8 +72,6 @@ class ScreeningController extends Controller
             'score' => $result['score'],
             'is_suspect' => $result['is_suspect'],
         ]);
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('screening.create', ['current_team' => $current_team->slug])
             ->with('screeningConfirmation', [

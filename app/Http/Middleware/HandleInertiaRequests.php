@@ -2,9 +2,10 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\NavigationShell;
+use App\Support\SidebarNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,9 +42,9 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $facilityTeam = $this->facilityTeam($request, $user);
         $isTbaiAdmin = $user?->isTbaiAdmin() ?? false;
-        $canEditProfile = $user !== null
+        $canOpenProfile = $user !== null
             && $facilityTeam !== null
-            && ($isTbaiAdmin || $user->teamRole($facilityTeam) === TeamRole::Owner);
+            && ($isTbaiAdmin || $user->belongsToTeam($facilityTeam));
 
         $showValidatedClaims = (bool) config('tbai.show_validated_claims');
 
@@ -75,9 +76,21 @@ class HandleInertiaRequests extends Middleware
 
                 return route('returns.today', ['current_team' => $team->slug]);
             },
-            'profileUrl' => $canEditProfile && $facilityTeam !== null
+            'profileUrl' => $canOpenProfile
                 ? route('facilities.edit', ['current_team' => $facilityTeam->slug])
                 : null,
+            'myFacilityUrl' => $user !== null && $facilityTeam !== null && ($isTbaiAdmin || $user->belongsToTeam($facilityTeam))
+                ? route('facilities.home', ['current_team' => $facilityTeam->slug])
+                : null,
+            'nav' => [
+                'shell' => app(NavigationShell::class)->for($user, $facilityTeam),
+                'groups' => app(SidebarNavigation::class)->groups($user, $facilityTeam),
+            ],
+            'i18n' => [
+                'locale' => app()->getLocale(),
+                'dir' => in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr',
+                'entry' => trans('entry'),
+            ],
             'screeningUrl' => $user !== null && $facilityTeam !== null && $user->belongsToTeam($facilityTeam)
                 ? route('screening.create', ['current_team' => $facilityTeam->slug])
                 : null,

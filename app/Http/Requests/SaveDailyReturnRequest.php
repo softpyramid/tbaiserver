@@ -51,7 +51,10 @@ class SaveDailyReturnRequest extends FormRequest
             $tested = (int) $this->input('tested');
 
             if ($positive + $negative !== $tested) {
-                $validator->errors()->add('tested', 'TB positive and TB negative must add up to tested.');
+                $validator->errors()->add('tested', __('entry.tested_mismatch', [
+                    'sum' => $positive + $negative,
+                    'tested' => $tested,
+                ]));
             }
 
             $team = $this->route('current_team');
@@ -64,7 +67,7 @@ class SaveDailyReturnRequest extends FormRequest
             $date = CarbonImmutable::parse($this->string('reported_on')->toString(), (string) config('app.timezone'));
 
             if (! app(ReturnDatePolicy::class)->canEdit($user, $team, $date)) {
-                $validator->errors()->add('reported_on', 'That date is not open for your role.');
+                $validator->errors()->add('reported_on', __('entry.date_closed'));
             }
         });
     }

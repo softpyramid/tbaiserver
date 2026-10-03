@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
+use App\Models\User;
 use App\Http\Responses\PasskeyLoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Http\Responses\TwoFactorLoginResponse;
@@ -12,6 +13,7 @@ use App\Http\Responses\VerifyEmailResponse;
 use App\Models\TeamInvitation;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -55,6 +57,23 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $email = $request->string(Fortify::username())->toString();
+            $user = User::query()->where('email', $email)->first();
+
+            if ($user === null || $user->deactivated_at !== null) {
+                return null;
+            }
+
+            $password = $request->string('password')->toString();
+
+            if (! Hash::check($password, $user->password)) {
+                return null;
+            }
+
+            return $user;
+        });
     }
 
     /**

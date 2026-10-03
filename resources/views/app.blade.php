@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr' }}" data-nav-shell="{{ data_get($page, 'props.nav.shell', 'sidebar') }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="theme-color" content="#14294c">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script nonce="{{ Vite::cspNonce() }}">
@@ -33,6 +37,7 @@
         <link rel="icon" href="/favicon.ico" sizes="48x48">
         <link rel="icon" href="/logo.png" type="image/png">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="manifest" href="{{ route('manifest') }}">
 
         {{-- Remove noindex and open robots.txt at public launch, after the MoU is signed and Hira approves the copy. --}}
         <meta name="robots" content="noindex, nofollow">

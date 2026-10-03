@@ -173,33 +173,39 @@ class FacilitySeeder extends Seeder
         foreach ($this->sampleDays() as $daysAgo => $sample) {
             $reportedOn = $today->subDays($daysAgo)->toDateString();
 
-            $return = DailyReturn::query()->firstOrCreate(
-                [
-                    'facility_id' => $facility->id,
-                    'reported_on' => $reportedOn,
-                ],
-                [
-                    'submitted_by' => $editor->id,
-                    'suspects' => $sample['suspects'],
-                    'tested' => 4,
-                    'positive' => 1,
-                    'negative' => 3,
-                    'started_treatment' => 1,
-                    'follow_up' => 0,
-                    'median_tat_days' => '2.00',
-                ],
-            );
+            $exists = DailyReturn::query()
+                ->where('facility_id', $facility->id)
+                ->whereDate('reported_on', $reportedOn)
+                ->exists();
 
-            if (! $sample['edited'] || ! $return->wasRecentlyCreated) {
+            if ($exists) {
                 continue;
             }
 
-            Auth::login($editor);
+            $return = DailyReturn::query()->create([
+                'facility_id' => $facility->id,
+                'reported_on' => $reportedOn,
+                'submitted_by' => $editor->id,
+                'suspects' => $sample['suspects'],
+                'tested' => 4,
+                'positive' => 1,
+                'negative' => 3,
+                'started_treatment' => 1,
+                'follow_up' => 0,
+                'median_tat_days' => '2.00',
+            ]);
+
+            if (! $sample['edited']) {
+                continue;
+            }
+
+            $guard = Auth::guard();
+            $guard->setUser($editor);
 
             try {
                 $return->update(['suspects' => $sample['suspects_after_edit']]);
             } finally {
-                Auth::logout();
+                $guard->forgetUser();
             }
         }
     }

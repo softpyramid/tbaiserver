@@ -40,6 +40,8 @@ test('login seeder creates verified accounts that can sign in', function () {
         ->and($member->personalTeam())->not->toBeNull()
         ->and($incharge)->not->toBeNull();
 
+    $this->app['env'] = 'testing';
+
     $this->post(route('login.store'), [
         'email' => 'reviewer@example.com',
         'password' => 'server-secret',

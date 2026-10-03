@@ -10,14 +10,15 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\ProgrammeAssignment;
 use App\Models\Province;
-use App\Models\Team;
 use App\Models\User;
 use App\Support\AuditLogger;
 use App\Support\ResourceResponse;
+use App\Support\TeamDirectory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -154,7 +155,7 @@ class ProgrammeAdminController extends Controller
         }
 
         $columns = [
-            ['key' => 'name', 'label' => __('entry.facility_name')],
+            ['key' => 'name', 'label' => __('entry.column_requester')],
             ['key' => 'email', 'label' => __('entry.column_email')],
             ['key' => 'role', 'label' => __('entry.column_role')],
             ['key' => 'organisation', 'label' => __('entry.column_organisation')],
@@ -197,6 +198,8 @@ class ProgrammeAdminController extends Controller
                         'url' => route('admin.access-requests.update', $accessRequest),
                         'method' => 'patch',
                         'label' => __('entry.approve'),
+                        'person' => $accessRequest->name,
+                        'confirm' => true,
                         'fields' => [
                             ['name' => 'status', 'value' => AccessRequestStatus::Approved->value],
                         ],
@@ -206,6 +209,8 @@ class ProgrammeAdminController extends Controller
                         'url' => route('admin.access-requests.update', $accessRequest),
                         'method' => 'patch',
                         'label' => __('entry.reject'),
+                        'person' => $accessRequest->name,
+                        'confirm' => true,
                         'fields' => [
                             ['name' => 'status', 'value' => AccessRequestStatus::Rejected->value],
                         ],
@@ -284,75 +289,11 @@ class ProgrammeAdminController extends Controller
         return back()->with('status', __('entry.request_reviewed'));
     }
 
-    public function teams(Request $request): Response|StreamedResponse
+    public function teams(Request $request, TeamDirectory $directory): Response
     {
         Gate::authorize('administer');
 
-        [$sort, $direction] = ResourceResponse::sort($request, ['name'], 'name');
-
-        $query = Team::query()
-            ->where('is_personal', false)
-            ->with('facility.city')
-            ->withCount('members');
-
-        $search = trim($request->string('q')->toString());
-
-        if ($search !== '') {
-            $query->where('name', 'like', ResourceResponse::like($search));
-        }
-
-        $query->orderBy('name', $direction);
-
-        $columns = [
-            ['key' => 'name', 'label' => __('entry.column_team')],
-            ['key' => 'city', 'label' => __('entry.city')],
-            ['key' => 'members', 'label' => __('entry.column_members')],
-        ];
-
-        $cells = fn (Team $team): array => [
-            'name' => $team->name,
-            'city' => $team->facility?->city === null
-                ? __('entry.not_available')
-                : $team->facility->city->name,
-            'members' => (string) $team->getAttribute('members_count'),
-        ];
-
-        if (ResourceResponse::wantsCsv($request)) {
-            return ResourceResponse::csv(
-                'teams.csv',
-                array_column($columns, 'label'),
-                $query->lazy(200)->map(fn (Team $team): array => array_values($cells($team))),
-            );
-        }
-
-        $page = $query->paginate(15)->withQueryString();
-
-        return ResourceResponse::page(
-            title: __('entry.nav_teams'),
-            columns: $columns,
-            rows: $page->getCollection()->map(fn (Team $team): array => [
-                'id' => (string) $team->id,
-                'href' => null,
-                'cells' => $cells($team),
-                'controls' => [],
-            ])->values()->all(),
-            filters: [[
-                'key' => 'q',
-                'label' => __('entry.search'),
-                'type' => 'search',
-                'value' => $search,
-            ]],
-            sort: $sort,
-            direction: $direction,
-            from: $page->firstItem(),
-            to: $page->lastItem(),
-            total: $page->total(),
-            previousUrl: $page->previousPageUrl(),
-            nextUrl: $page->nextPageUrl(),
-            createUrl: null,
-            createLabel: null,
-            exportUrl: ResourceResponse::exportUrl($request),
-        );
+        return Inertia::render('admin/teams', $directory->page($request));
     }
 
     private function scopeName(ProgrammeAssignment $assignment): string

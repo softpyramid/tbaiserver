@@ -8,6 +8,7 @@ import {
     CommandShell,
     type CommandScreenLink,
     type CommandShow,
+    SegmentedTabs,
 } from '@/components/command-center';
 import { DistrictHeatMap } from '@/components/district-heat-map';
 
@@ -82,7 +83,6 @@ function pathOf(url: string): string {
 export default function CommandMap({
     title,
     scope,
-    screens,
     filters,
     options,
     show,
@@ -129,7 +129,17 @@ export default function CommandMap({
         <CommandShell
             title={title}
             scope={scope}
-            screens={screens}
+            tabs={
+                <SegmentedTabs
+                    label={indicatorField}
+                    tabs={indicators.map((option) => ({
+                        key: option.value,
+                        label: option.label,
+                        current: option.value === indicator,
+                        onSelect: () => onIndicator(option.value),
+                    }))}
+                />
+            }
             filters={filters}
             options={options}
             show={show}
@@ -141,24 +151,6 @@ export default function CommandMap({
             <p className="text-sm text-muted-foreground" data-test="map-attribution">
                 {attribution}
             </p>
-
-            <label className="flex min-w-0 max-w-sm flex-col gap-1 text-sm">
-                <span>{indicatorField}</span>
-                <select
-                    key={indicator}
-                    name="indicator"
-                    defaultValue={indicator}
-                    aria-label={indicatorField}
-                    className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 text-base md:text-sm"
-                    onChange={(event) => onIndicator(event.target.value)}
-                >
-                    {indicators.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </label>
 
             <section className="min-w-0" aria-label={listHeading}>
                 <DistrictHeatMap

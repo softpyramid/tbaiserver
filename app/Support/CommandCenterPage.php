@@ -106,6 +106,23 @@ class CommandCenterPage
                 'sector' => $sector->value,
                 ...$this->placeQuery($selection),
             ]),
+            'crumbs' => [
+                [
+                    'title' => __('entry.nav_group_command'),
+                    'href' => route('command.index', $this->placeQuery($selection)),
+                ],
+                [
+                    'title' => $sector->label(),
+                    'href' => route('command.sectors.show', [
+                        'sector' => $sector->value,
+                        ...$this->placeQuery($selection),
+                    ]),
+                ],
+                [
+                    'title' => $city->name,
+                    'href' => null,
+                ],
+            ],
             'facilities' => $facilities,
             'hasReturns' => $rows !== [],
         ];
@@ -222,6 +239,7 @@ class CommandCenterPage
                 'sort' => __('entry.sort'),
                 'back' => __('entry.command_back_sector'),
                 'facilities' => __('entry.command_facilities_heading'),
+                'filters' => __('entry.filters'),
             ],
             'links' => $this->resourceLinks($user),
             'tat' => [

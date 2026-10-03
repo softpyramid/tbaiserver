@@ -41,21 +41,23 @@ export default function EntryScreen({
                 <p className="text-base text-slate-700 dark:text-slate-200">
                     {dateLabel}
                 </p>
-                <h1 className="sr-only">{title}</h1>
+                <h1 className="text-base font-semibold">{title}</h1>
             </header>
             <div
                 className="flex flex-col gap-4 py-4"
                 style={{
                     paddingLeft: 'max(1rem, env(safe-area-inset-left))',
                     paddingRight: 'max(1rem, env(safe-area-inset-right))',
-                    paddingBottom: action ? '5.5rem' : '1rem',
+                    paddingBottom: action
+                        ? 'calc(7rem + var(--entry-tab-offset, 0px))'
+                        : 'calc(1rem + var(--entry-tab-offset, 0px))',
                 }}
             >
                 {children}
             </div>
             {action ? (
                 <div
-                    className="fixed inset-x-0 z-30 border-t bg-background py-3"
+                    className="entry-save-bar fixed z-30 border-t bg-background py-3"
                     style={{
                         bottom: 'calc(var(--keyboard-inset, 0px) + var(--entry-tab-offset, 0px))',
                         paddingLeft: 'max(1rem, env(safe-area-inset-left))',

@@ -35,6 +35,22 @@ class EntryDate
         return is_string($value) ? $value : '';
     }
 
+    /**
+     * Calendar date for people reading a table, for example "4 Oct 2026".
+     */
+    public static function display(mixed $value): string
+    {
+        if ($value instanceof CarbonInterface) {
+            return self::label($value);
+        }
+
+        if (! is_string($value) || $value === '') {
+            return '';
+        }
+
+        return self::label(CarbonImmutable::parse($value, self::timezone()));
+    }
+
     public static function timezone(): string
     {
         return (string) config('app.timezone');

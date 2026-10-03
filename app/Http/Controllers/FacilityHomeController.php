@@ -39,7 +39,7 @@ class FacilityHomeController extends Controller
             ];
         }
 
-        if (Gate::allows('update', $facility) || $user->belongsToTeam($current_team)) {
+        if (Gate::allows('openProfile', $facility)) {
             $links[] = [
                 'href' => route('facilities.edit', $current_team),
                 'label' => __('entry.open_profile'),

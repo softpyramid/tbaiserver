@@ -39,7 +39,7 @@ test('facility seeder opens sindh test sites for the login accounts', function (
     expect($team)->not->toBeNull()
         ->and($team->is_personal)->toBeFalse()
         ->and($team->name)->toBe('Karachi West BMU')
-        ->and(Facility::query()->count())->toBe(15)
+        ->and(Facility::query()->count())->toBe(18)
         ->and($team->facility)->not->toBeNull()
         ->and($team->facility->city->slug)->toBe('karachi-west')
         ->and($team->facility->taluka)->not->toBeNull()
@@ -63,13 +63,15 @@ test('facility seeder opens sindh test sites for the login accounts', function (
         ->get()
         ->countBy(fn (Facility $facility): string => $facility->city->slug);
 
-    expect($counts)->toHaveCount(6)
+    expect($counts)->toHaveCount(8)
         ->and($counts->get('karachi-west'))->toBe(3)
         ->and($counts->get('karachi-east'))->toBe(3)
         ->and($counts->get('hyderabad'))->toBe(2)
         ->and($counts->get('sukkur'))->toBe(3)
         ->and($counts->get('larkana'))->toBe(2)
-        ->and($counts->get('mirpurkhas'))->toBe(2);
+        ->and($counts->get('mirpurkhas'))->toBe(2)
+        ->and($counts->get('lahore'))->toBe(2)
+        ->and($counts->get('peshawar'))->toBe(1);
 
     $sectors = Facility::query()
         ->pluck('sector')

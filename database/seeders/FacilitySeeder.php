@@ -85,7 +85,7 @@ class FacilitySeeder extends Seeder
 
         $this->seedDailyReturns($sites, $incharge);
 
-        $this->command?->info('Test facilities ready: '.count($sites).' Sindh sites across 6 districts.');
+        $this->command?->info('Test facilities ready: '.count($sites).' sites. Sindh, plus test sites in Lahore and Peshawar.');
         $this->command?->line('  In-charge: '.$incharge->email.' owns Karachi West BMU.');
         $this->command?->line('  Technician: '.$member->email.' at Karachi West BMU.');
         $this->command?->line('  Test data: 60-day daily returns with gaps. Rising positivity: Test Gulshan BMU. Treatment gap: Test Latifabad BMU.');
@@ -636,6 +636,42 @@ class FacilitySeeder extends Seeder
                 'kind' => FacilityKind::Clinic,
                 'latitude' => 25.53,
                 'longitude' => 69.01,
+                'series' => 'standard',
+                'owned' => false,
+            ],
+            [
+                'slug' => 'test-lahore-bmu',
+                'name' => 'Test Lahore BMU',
+                'city' => 'lahore',
+                'taluka' => 'Lahore City',
+                'sector' => Sector::Public,
+                'kind' => FacilityKind::Bmu,
+                'latitude' => 31.52,
+                'longitude' => 74.36,
+                'series' => 'standard',
+                'owned' => false,
+            ],
+            [
+                'slug' => 'test-lahore-clinic',
+                'name' => 'Test Lahore Clinic',
+                'city' => 'lahore',
+                'taluka' => 'Gulberg',
+                'sector' => Sector::Private,
+                'kind' => FacilityKind::Clinic,
+                'latitude' => 31.51,
+                'longitude' => 74.34,
+                'series' => 'standard',
+                'owned' => false,
+            ],
+            [
+                'slug' => 'test-peshawar-bmu',
+                'name' => 'Test Peshawar BMU',
+                'city' => 'peshawar',
+                'taluka' => 'Peshawar City',
+                'sector' => Sector::Public,
+                'kind' => FacilityKind::Bmu,
+                'latitude' => 34.01,
+                'longitude' => 71.58,
                 'series' => 'standard',
                 'owned' => false,
             ],

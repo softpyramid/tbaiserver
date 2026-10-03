@@ -22,7 +22,19 @@ declare module '@inertiajs/core' {
                 groups: {
                     key: string;
                     label: string;
-                    items: { key: string; label: string; href: string }[];
+                    items: {
+                        key: string;
+                        label: string;
+                        href: string | null;
+                        badge: number | null;
+                        expanded: boolean;
+                        children: {
+                            key: string;
+                            label: string;
+                            href: string;
+                            badge: number | null;
+                        }[];
+                    }[];
                 }[];
             };
             i18n: {

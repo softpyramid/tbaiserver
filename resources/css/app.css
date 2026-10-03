@@ -191,6 +191,44 @@
 
 .entry-screen input,
 .entry-screen select,
+.entry-screen textarea,
+.entry-screen [role='alert'] {
+    scroll-margin-bottom: calc(7rem + var(--entry-tab-offset, 0px));
+}
+
+.entry-screen input,
+.entry-screen select,
 .entry-screen textarea {
     font-size: 16px;
+}
+
+.entry-save-bar {
+    left: 0;
+    right: 0;
+}
+
+@media (min-width: 768px) {
+    html[data-nav-shell='facility'] .peer[data-slot='sidebar'] ~ main .entry-save-bar {
+        left: var(--sidebar-width, 16rem);
+    }
+
+    html[data-nav-shell='facility'] .peer[data-state='collapsed'][data-collapsible='icon'] ~ main .entry-save-bar {
+        left: calc(var(--sidebar-width-icon, 3rem) + 1rem);
+    }
+}
+
+@media (min-width: 1024px) {
+    html[data-nav-shell='sidebar'] .peer[data-slot='sidebar'] ~ main .entry-save-bar {
+        left: var(--sidebar-width, 16rem);
+    }
+
+    html[data-nav-shell='sidebar'] .peer[data-state='collapsed'][data-collapsible='icon'] ~ main .entry-save-bar {
+        left: calc(var(--sidebar-width-icon, 3rem) + 1rem);
+    }
+}
+
+@media (max-width: 767px) {
+    html[data-nav-shell='facility'] [data-sonner-toaster] {
+        bottom: calc(var(--entry-tab-offset, 0px) + 0.75rem) !important;
+    }
 }

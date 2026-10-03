@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import FacilityForm, {
     type FacilityFormValues,
 } from '@/components/facility-form';
+import TeamAreaShell from '@/components/team-area-shell';
 import { useEntryI18n } from '@/lib/i18n';
+import type { TeamAreaHeader } from '@/types/team-area';
 
 type Choice = {
     value: string;
@@ -28,6 +30,7 @@ type Summary = {
 };
 
 type Props = {
+    area: TeamAreaHeader;
     teamSlug: string;
     canEdit: boolean;
     dateLabel: string;
@@ -56,11 +59,21 @@ export default function EditFacility(props: Props) {
     return (
         <>
             <Head title={t('profile_title')} />
-            <FacilityForm
-                titleKey="profile_title"
-                savedMessage={savedMessage}
-                {...props}
-            />
+            <TeamAreaShell area={props.area}>
+                <FacilityForm
+                    titleKey="profile_title"
+                    savedMessage={savedMessage}
+                    teamSlug={props.teamSlug}
+                    canEdit={props.canEdit}
+                    dateLabel={props.dateLabel}
+                    summary={props.summary}
+                    facility={props.facility}
+                    sectors={props.sectors}
+                    kinds={props.kinds}
+                    cities={props.cities}
+                    talukas={props.talukas}
+                />
+            </TeamAreaShell>
         </>
     );
 }

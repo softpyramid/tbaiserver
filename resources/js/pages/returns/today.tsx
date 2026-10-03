@@ -82,6 +82,7 @@ type Props = {
         year: number;
     };
     history: HistoryEntry[] | null;
+    dateNotice?: string | null;
 };
 
 const fieldOrder = [
@@ -118,6 +119,17 @@ function RegisterForm(props: Props) {
     const server = serverCounts(props.return);
     const countsRef = useRef<CountState>(server);
     const savingRef = useRef(false);
+    const [draftRestored] = useState(() => {
+        const draft = readReturnDraft(props.teamSlug, props.reportedOn);
+
+        if (!draft || draft.baseUpdatedAt !== props.returnUpdatedAt) {
+            return false;
+        }
+
+        return fieldOrder.some(
+            (field) => (draft.counts[field] ?? '') !== server[field],
+        );
+    });
     const [counts, setCounts] = useState<CountState>(() => {
         const draft = readReturnDraft(props.teamSlug, props.reportedOn);
 
@@ -210,10 +222,13 @@ function RegisterForm(props: Props) {
     const tested = Number(counts.tested);
     const positive = Number(counts.positive);
     const negative = Number(counts.negative);
-    const positivity =
-        Number.isFinite(tested) && tested > 0 && Number.isFinite(positive)
-            ? positive / tested
-            : null;
+    const countsLineUp =
+        Number.isFinite(tested) &&
+        tested > 0 &&
+        Number.isFinite(positive) &&
+        Number.isFinite(negative) &&
+        positive + negative === tested;
+    const positivity = countsLineUp ? positive / tested : null;
     const testedSumError =
         counts.positive !== '' &&
         counts.negative !== '' &&
@@ -297,6 +312,62 @@ function RegisterForm(props: Props) {
                     ) : null
                 }
             >
+                {props.dateNotice ? (
+                    <p role="alert" data-test="date-notice">
+                        {props.dateNotice}
+                    </p>
+                ) : null}
+                {draftRestored ? (
+                    <p data-test="draft-restored">{t('draft_restored')}</p>
+                ) : null}
+                <section className="rounded-xl border bg-card p-4">
+                    <div className="grid gap-2">
+                        <Label className="text-base">{t('choose_date')}</Label>
+                        <div className="flex flex-wrap gap-2">
+                            <DateChip
+                                pressed={props.reportedOn === props.todayDate}
+                                testId="date-today"
+                                onClick={() => changeDate(props.todayDate)}
+                            >
+                                {t('today')}
+                            </DateChip>
+                            <DateChip
+                                pressed={
+                                    props.reportedOn === props.yesterdayDate
+                                }
+                                testId="date-yesterday"
+                                onClick={() => changeDate(props.yesterdayDate)}
+                            >
+                                {t('yesterday')}
+                            </DateChip>
+                            {props.canChooseDate ? (
+                                <DateChip
+                                    pressed={showOther}
+                                    testId="date-other"
+                                    onClick={() => setShowOther(true)}
+                                >
+                                    {t('other_date')}
+                                </DateChip>
+                            ) : null}
+                        </div>
+                        {props.canChooseDate && showOther ? (
+                            <input
+                                id="reported_on_picker"
+                                type="date"
+                                data-entry-field=""
+                                data-test="date-picker"
+                                max={props.latestDate}
+                                min={props.earliestDate ?? undefined}
+                                value={props.reportedOn}
+                                aria-label={t('choose_date')}
+                                onChange={(event) =>
+                                    changeDate(event.target.value)
+                                }
+                                className="h-12 w-full rounded-md border border-input bg-transparent px-3 text-base focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none"
+                            />
+                        ) : null}
+                    </div>
+                </section>
                 {showSaved && savedSnapshot ? (
                     <SavedReturn
                         snapshot={savedSnapshot}
@@ -361,81 +432,15 @@ function RegisterForm(props: Props) {
                     >
                         {({ errors, processing }) => (
                             <>
-                                <section className="rounded-xl border bg-card p-4">
-                                    <div className="grid gap-2">
-                                        <Label className="text-base">
-                                            {t('choose_date')}
-                                        </Label>
-                                        <div className="flex flex-wrap gap-2">
-                                            <DateChip
-                                                pressed={
-                                                    props.reportedOn ===
-                                                    props.todayDate
-                                                }
-                                                testId="date-today"
-                                                onClick={() =>
-                                                    changeDate(props.todayDate)
-                                                }
-                                            >
-                                                {t('today')}
-                                            </DateChip>
-                                            <DateChip
-                                                pressed={
-                                                    props.reportedOn ===
-                                                    props.yesterdayDate
-                                                }
-                                                testId="date-yesterday"
-                                                onClick={() =>
-                                                    changeDate(
-                                                        props.yesterdayDate,
-                                                    )
-                                                }
-                                            >
-                                                {t('yesterday')}
-                                            </DateChip>
-                                            {props.canChooseDate ? (
-                                                <DateChip
-                                                    pressed={showOther}
-                                                    testId="date-other"
-                                                    onClick={() =>
-                                                        setShowOther(true)
-                                                    }
-                                                >
-                                                    {t('other_date')}
-                                                </DateChip>
-                                            ) : null}
-                                        </div>
-                                        {props.canChooseDate && showOther ? (
-                                            <input
-                                                id="reported_on_picker"
-                                                type="date"
-                                                data-entry-field=""
-                                                data-test="date-picker"
-                                                max={props.latestDate}
-                                                min={
-                                                    props.earliestDate ??
-                                                    undefined
-                                                }
-                                                value={props.reportedOn}
-                                                aria-label={t('choose_date')}
-                                                onChange={(event) =>
-                                                    changeDate(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                className="h-12 w-full rounded-md border border-input bg-transparent px-3 text-base focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none"
-                                            />
-                                        ) : null}
-                                        <input
-                                            type="hidden"
-                                            name="reported_on"
-                                            value={props.reportedOn}
-                                        />
-                                        <FieldError
-                                            message={errors.reported_on}
-                                        />
-                                    </div>
-                                </section>
+                                <input
+                                    type="hidden"
+                                    name="reported_on"
+                                    value={props.reportedOn}
+                                />
+                                <FieldError
+                                    id="reported_on-error"
+                                    message={errors.reported_on}
+                                />
 
                                 <FacilitySummaryCard
                                     name={props.facility.name}
@@ -475,13 +480,13 @@ function RegisterForm(props: Props) {
                                         data-test="positivity"
                                         aria-live="polite"
                                     >
-                                        {positivity === null
-                                            ? t('positivity_unavailable')
-                                            : t('positivity_value', {
+                                        {countsLineUp && positivity !== null
+                                            ? t('positivity_value', {
                                                   value: (
                                                       positivity * 100
                                                   ).toFixed(1),
-                                              })}
+                                              })
+                                            : t('positivity_fix_counts')}
                                     </p>
 
                                     {countFields.map((field, index) => (

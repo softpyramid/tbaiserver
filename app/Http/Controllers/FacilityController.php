@@ -13,6 +13,7 @@ use App\Models\Team;
 use App\Support\AuditLogger;
 use App\Support\EntryDate;
 use App\Support\FacilityListing;
+use App\Support\TeamArea;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +89,7 @@ class FacilityController extends Controller
             app(AuditLogger::class)->write($actor, 'facility.created', $facility, [
                 'name' => $facility->team->name,
                 'city_id' => $facility->city_id,
+                'team_id' => $facility->team_id,
                 'sector' => $facility->sector->value,
                 'kind' => $facility->kind->value,
                 'status' => $facility->status->value,
@@ -102,15 +104,18 @@ class FacilityController extends Controller
     /**
      * Show the facility profile.
      */
-    public function edit(Team $current_team): Response
+    public function edit(Request $request, Team $current_team, TeamArea $area): Response
     {
         $facility = $current_team->facility;
         abort_unless($facility !== null, 404);
 
-        Gate::authorize('view', $facility);
+        Gate::authorize('openProfile', $facility);
         $facility->loadMissing('city');
+        $actor = $request->user();
+        abort_unless($actor !== null, 403);
 
         return Inertia::render('facilities/edit', [
+            'area' => $area->header($actor, $current_team, 'profile'),
             'teamSlug' => $current_team->slug,
             'canEdit' => Gate::allows('update', $facility),
             'dateLabel' => EntryDate::label(),
@@ -162,6 +167,7 @@ class FacilityController extends Controller
 
         if ($actor !== null) {
             app(AuditLogger::class)->write($actor, 'facility.updated', $facility, [
+                'team_id' => $facility->team_id,
                 'before' => $before,
                 'after' => [
                     'name' => $facility->team->name,

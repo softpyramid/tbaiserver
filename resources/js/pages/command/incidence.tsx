@@ -60,7 +60,6 @@ type Props = {
 export default function CommandIncidence({
     title,
     scope,
-    screens,
     filters,
     options,
     show,
@@ -79,7 +78,6 @@ export default function CommandIncidence({
         <CommandShell
             title={title}
             scope={scope}
-            screens={screens}
             filters={filters}
             options={options}
             show={show}
@@ -270,7 +268,7 @@ function EditTarget({
     valueLabel: string;
 }) {
     return (
-        <Form action={storeUrl} method="post" className="flex min-w-0 flex-wrap items-center gap-2">
+        <Form action={storeUrl} method="post" className="flex min-w-0 flex-wrap items-center gap-2" disableWhileProcessing>
             {({ errors, processing }) => (
                 <>
                     <input type="hidden" name="province_id" value={target.provinceId} />

@@ -1,6 +1,20 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { MoreHorizontal } from 'lucide-react';
+import { FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 
 type Option = {
@@ -32,6 +46,8 @@ type Control =
           url: string;
           method: 'post' | 'patch';
           label: string;
+          person?: string;
+          confirm?: boolean;
           fields: { name: string; value: string }[];
       }
     | {
@@ -41,6 +57,7 @@ type Control =
           name: string;
           value: string;
           label: string;
+          person?: string;
           options: Option[];
       };
 
@@ -83,6 +100,10 @@ function pathOf(url: string): string {
     return url.split('?')[0] ?? url;
 }
 
+function actionName(label: string, person?: string): string {
+    return person ? `${label} ${person}` : label;
+}
+
 function fieldData(fields: { name: string; value: string }[]): Record<string, string> {
     return Object.fromEntries(fields.map((field) => [field.name, field.value]));
 }
@@ -105,6 +126,9 @@ export default function ResourceIndex({
 }: Props) {
     const page = usePage();
     const path = pathOf(page.url);
+    const [pending, setPending] = useState<Extract<Control, { kind: 'button' }> | null>(null);
+    const [confirming, setConfirming] = useState(false);
+    const hasControls = rows.some((row) => row.controls.length > 0);
 
     function currentQuery(extra: Record<string, string> = {}): Record<string, string> {
         const query: Record<string, string> = {};
@@ -217,8 +241,16 @@ export default function ResourceIndex({
                 {rows.length > 0 ? (
                     <ul className="space-y-3 md:hidden">
                         {rows.map((row) => (
-                            <li key={row.id} className="rounded-lg border p-3">
-                                <RowBody row={row} columns={columns} />
+                            <li key={row.id} className="relative rounded-lg border p-3">
+                                {row.href && row.controls.length === 0 ? (
+                                    <RowLink row={row} columns={columns} />
+                                ) : null}
+                                <RowBody
+                                    row={row}
+                                    columns={columns}
+                                    linked={Boolean(row.href) && row.controls.length === 0}
+                                    onConfirm={setPending}
+                                />
                             </li>
                         ))}
                     </ul>
@@ -251,6 +283,9 @@ export default function ResourceIndex({
                                         </button>
                                     </th>
                                 ))}
+                                {hasControls ? (
+                                    <th className="px-2 py-2 font-medium">Actions</th>
+                                ) : null}
                             </tr>
                         </thead>
                         <tbody>
@@ -266,36 +301,38 @@ export default function ResourceIndex({
                                     </td>
                                 </tr>
                             ) : (
-                                rows.map((row) => (
-                                    <tr key={row.id} className="border-b align-top">
+                                rows.map((row) => {
+                                    const wholeRow =
+                                        Boolean(row.href) && row.controls.length === 0;
+
+                                    return (
+                                    <tr key={row.id} className="relative border-b align-top">
                                         {columns.map((column) => (
                                             <td key={column.key} className="px-2 py-2">
-                                                {column.key === columns[0]?.key ? (
+                                                {column.key === columns[0]?.key && wholeRow ? (
+                                                    <RowLink row={row} columns={columns} />
+                                                ) : null}
+                                                {column.key === columns[0]?.key && !wholeRow ? (
                                                     <CellLink row={row} value={row.cells[column.key] ?? ''} />
                                                 ) : (
                                                     row.cells[column.key]
                                                 )}
                                             </td>
                                         ))}
+                                        {hasControls ? (
+                                            <td className="relative z-20 px-2 py-2">
+                                                <RowMenu
+                                                    controls={row.controls}
+                                                    onConfirm={setPending}
+                                                />
+                                            </td>
+                                        ) : null}
                                     </tr>
-                                ))
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
-                    {rows.some((row) => row.controls.length > 0) ? (
-                        <div className="mt-4 flex flex-col gap-4">
-                            {rows
-                                .filter((row) => row.controls.length > 0)
-                                .map((row) => (
-                                    <div key={`${row.id}-controls`}>
-                                        <p className="text-sm font-medium">
-                                            {row.cells[columns[0]?.key ?? ''] ?? ''}
-                                        </p>
-                                        <Controls controls={row.controls} />
-                                    </div>
-                                ))}
-                        </div>
-                    ) : null}
                 </div>
 
                 <div className="flex gap-2">
@@ -311,18 +348,83 @@ export default function ResourceIndex({
                     ) : null}
                 </div>
             </div>
+            <Dialog
+                open={pending !== null}
+                onOpenChange={(open) => {
+                    if (!open && !confirming) {
+                        setPending(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {pending
+                                ? `${pending.label} ${pending.person ?? ''}`.trim()
+                                : ''}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {pending
+                                ? `Confirm ${pending.label.toLowerCase()}${pending.person ? ` for ${pending.person}` : ''}.`
+                                : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={confirming}
+                            onClick={() => setPending(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            disabled={confirming || pending === null}
+                            onClick={() => {
+                                if (pending === null || confirming) {
+                                    return;
+                                }
+
+                                setConfirming(true);
+                                router.visit(pending.url, {
+                                    method: pending.method,
+                                    data: fieldData(pending.fields),
+                                    preserveScroll: true,
+                                    onFinish: () => {
+                                        setConfirming(false);
+                                        setPending(null);
+                                    },
+                                });
+                            }}
+                        >
+                            {pending?.label ?? 'Confirm'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
 
-function RowBody({ row, columns }: { row: Row; columns: Column[] }) {
+function RowBody({
+    row,
+    columns,
+    linked,
+    onConfirm,
+}: {
+    row: Row;
+    columns: Column[];
+    linked: boolean;
+    onConfirm: (control: Extract<Control, { kind: 'button' }>) => void;
+}) {
     return (
-        <div className="flex flex-col gap-2">
+        <div className="relative flex flex-col gap-2">
             {columns.map((column) => (
-                <div key={column.key}>
+                <div key={column.key} className="relative">
                     <div className="text-sm text-muted-foreground">{column.label}</div>
                     <div>
-                        {column.key === columns[0]?.key ? (
+                        {column.key === columns[0]?.key && !linked ? (
                             <CellLink row={row} value={row.cells[column.key] ?? ''} />
                         ) : (
                             row.cells[column.key]
@@ -330,8 +432,52 @@ function RowBody({ row, columns }: { row: Row; columns: Column[] }) {
                     </div>
                 </div>
             ))}
-            <Controls controls={row.controls} />
+            <Controls controls={row.controls} onConfirm={onConfirm} />
         </div>
+    );
+}
+
+function RowLink({ row, columns }: { row: Row; columns: Column[] }) {
+    if (!row.href) {
+        return null;
+    }
+
+    const label = row.cells[columns[0]?.key ?? ''] ?? 'Open';
+
+    return (
+        <Link
+            href={row.href}
+            className="absolute inset-0 z-10"
+            aria-label={`Open ${label}`}
+            data-test="row-link"
+        >
+            <span className="sr-only">{label}</span>
+        </Link>
+    );
+}
+
+function RowMenu({
+    controls,
+    onConfirm,
+}: {
+    controls: Control[];
+    onConfirm: (control: Extract<Control, { kind: 'button' }>) => void;
+}) {
+    if (controls.length === 0) {
+        return null;
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" aria-label="Row actions">
+                    <MoreHorizontal className="size-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-2">
+                <Controls controls={controls} onConfirm={onConfirm} />
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
@@ -347,7 +493,13 @@ function CellLink({ row, value }: { row: Row; value: string }) {
     );
 }
 
-function Controls({ controls }: { controls: Control[] }) {
+function Controls({
+    controls,
+    onConfirm,
+}: {
+    controls: Control[];
+    onConfirm: (control: Extract<Control, { kind: 'button' }>) => void;
+}) {
     if (controls.length === 0) {
         return null;
     }
@@ -369,7 +521,7 @@ function Controls({ controls }: { controls: Control[] }) {
                                 <select
                                     className="border-input h-9 w-full rounded-md border bg-transparent px-3 text-base md:text-sm"
                                     defaultValue={control.value}
-                                    aria-label={control.label}
+                                    aria-label={actionName(control.label, control.person)}
                                     onChange={(event) => {
                                         router.visit(control.url, {
                                             method: control.method,
@@ -392,7 +544,13 @@ function Controls({ controls }: { controls: Control[] }) {
                                 key={control.url + control.label}
                                 type="button"
                                 variant="outline"
+                                aria-label={actionName(control.label, control.person)}
                                 onClick={() => {
+                                    if (control.confirm) {
+                                        onConfirm(control);
+                                        return;
+                                    }
+
                                     router.visit(control.url, {
                                         method: control.method,
                                         data: fieldData(control.fields),

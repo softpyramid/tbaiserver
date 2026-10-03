@@ -92,7 +92,7 @@ export default function TeamEdit({
         <>
             <Head title={pageTitle} />
 
-            <h1 className="sr-only">{pageTitle}</h1>
+            <h1 className="text-xl font-semibold">{pageTitle}</h1>
 
             <div className="flex flex-col space-y-10">
                 <div className="space-y-6">
@@ -107,6 +107,7 @@ export default function TeamEdit({
                             <Form
                                 {...update.form(team.slug)}
                                 className="space-y-6"
+                                disableWhileProcessing
                             >
                                 {({ errors, processing }) => (
                                     <>
@@ -241,6 +242,7 @@ export default function TeamEdit({
                                                         variant="ghost"
                                                         size="sm"
                                                         data-test="member-remove-button"
+                                                        aria-label={`Remove ${member.name}`}
                                                         onClick={() =>
                                                             confirmRemoveMember(
                                                                 member,
@@ -248,6 +250,9 @@ export default function TeamEdit({
                                                         }
                                                     >
                                                         <X className="h-4 w-4" />
+                                                        <span className="sr-only">
+                                                            Remove {member.name}
+                                                        </span>
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>

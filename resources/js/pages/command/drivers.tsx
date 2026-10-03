@@ -64,7 +64,6 @@ type Props = {
 export default function CommandDrivers({
     title,
     scope,
-    screens,
     filters,
     options,
     show,
@@ -80,7 +79,6 @@ export default function CommandDrivers({
         <CommandShell
             title={title}
             scope={scope}
-            screens={screens}
             filters={filters}
             options={options}
             show={show}

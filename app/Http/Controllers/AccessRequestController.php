@@ -17,26 +17,19 @@ class AccessRequestController extends Controller
     public const string RECEIVED_STATUS = 'We have your request. We will review it and be in touch.';
 
     /**
-     * Session flag for a completed submit. It is not flash data, so a refresh
-     * or a later visit in this session still shows the success panel.
-     */
-    public const string RECEIVED_SESSION_KEY = 'access_request_received';
-
-    /**
-     * Show the request-access form, or the success panel after a submit.
+     * Show the request-access form, or the success panel on the redirect
+     * that follows a successful submit. A later visit does not see the panel.
      *
-     * Stored requests are never passed to the page. Any status flash is
-     * cleared here so it cannot appear beside the form on a later load.
+     * Stored requests are never passed to the page.
      */
     public function create(Request $request): Response
     {
-        $request->session()->forget('status');
-
-        $received = $request->session()->get(self::RECEIVED_SESSION_KEY) === true;
+        $status = $request->session()->get('access_request_received');
+        $received = is_string($status) && $status !== '';
 
         return Inertia::render('access-request', [
             'received' => $received,
-            'status' => $received ? self::RECEIVED_STATUS : null,
+            'status' => $received ? $status : null,
             'defaults' => $received ? null : $this->previousInput($request),
         ]);
     }
@@ -73,11 +66,8 @@ class AccessRequestController extends Controller
      */
     private function received(): RedirectResponse
     {
-        $session = request()->session();
-        $session->forget('status');
-        $session->put(self::RECEIVED_SESSION_KEY, true);
-
-        return to_route('access-requests.create');
+        return to_route('access-requests.create')
+            ->with('access_request_received', self::RECEIVED_STATUS);
     }
 
     /**

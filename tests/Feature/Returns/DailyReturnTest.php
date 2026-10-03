@@ -205,7 +205,8 @@ test('technicians can open today and yesterday only', function () {
             'current_team' => $facility->team,
             'reported_on' => now()->subDays(2)->toDateString(),
         ]))
-        ->assertForbidden();
+        ->assertRedirect(route('returns.today', $facility->team))
+        ->assertSessionHas('date_notice', 'Technicians can enter today or yesterday only');
 });
 
 test('senior technicians can backfill any past date', function () {

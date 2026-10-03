@@ -44,7 +44,7 @@ type Props = {
 const rightNavItems: NavItem[] = [
     {
         title: 'TB-AI',
-        href: 'https://www.tb-ai.org/',
+        href: '/about',
         icon: Globe,
     },
 ];

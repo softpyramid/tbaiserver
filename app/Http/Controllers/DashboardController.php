@@ -2,37 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TeamInvitation;
+use App\Support\RoleHome;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    /**
+     * The empty dashboard placeholder is gone. Send each role to its home.
+     */
+    public function __invoke(Request $request): RedirectResponse
     {
-        $email = strtolower($request->user()->email);
+        $user = $request->user();
+        abort_unless($user !== null, 403);
 
-        $pendingInvitations = TeamInvitation::query()
-            ->with(['inviter', 'team'])
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->whereNull('accepted_at')
-            ->where(fn ($query) => $query
-                ->whereNull('expires_at')
-                ->orWhere('expires_at', '>=', now()))
-            ->latest()
-            ->get()
-            ->map(fn (TeamInvitation $invitation) => [
-                'code' => $invitation->code,
-                'inviterName' => $invitation->inviter->name,
-                'team' => [
-                    'name' => $invitation->team->name,
-                    'slug' => $invitation->team->slug,
-                ],
-            ]);
-
-        return Inertia::render('dashboard', [
-            'pendingInvitations' => $pendingInvitations,
-        ]);
+        return redirect()->to(app(RoleHome::class)->url($user));
     }
 }

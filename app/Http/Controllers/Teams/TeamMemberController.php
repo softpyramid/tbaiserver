@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\UpdateTeamMemberRequest;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\AuditLogger;
+use App\Support\TeamRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -16,20 +18,30 @@ class TeamMemberController extends Controller
     /**
      * Update the specified team member's role.
      */
-    public function update(UpdateTeamMemberRequest $request, Team $team, User $user): RedirectResponse
+    public function update(UpdateTeamMemberRequest $request, Team $team, User $user, AuditLogger $audit): RedirectResponse
     {
         Gate::authorize('updateMember', $team);
 
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        abort_if($actor->is($user) && $actor->teamRole($team) === TeamRole::Owner, 403);
+        abort_if($team->isLastOwner($user), 403);
+
+        $membership = $team->memberships()->where('user_id', $user->id)->firstOrFail();
+        $from = $membership->role;
         $newRole = TeamRole::from($request->validated('role'));
 
-        $team->memberships()
-            ->where('user_id', $user->id)
-            ->firstOrFail()
-            ->update(['role' => $newRole]);
+        $membership->update(['role' => $newRole]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Member role updated.')]);
+        $audit->write($actor, 'team.member.role_updated', $user, [
+            'team_id' => $team->id,
+            'from' => $from->value,
+            'to' => $newRole->value,
+        ]);
 
-        return to_route('teams.edit', ['team' => $team->slug]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('entry.role_saved')]);
+
+        return TeamRedirect::to($team, 'members');
     }
 
     /**
@@ -51,6 +63,6 @@ class TeamMemberController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Member removed.')]);
 
-        return to_route('teams.edit', ['team' => $team->slug]);
+        return TeamRedirect::to($team, 'members');
     }
 }

@@ -7,13 +7,13 @@ use App\Http\Controllers\DailyReturnController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\FacilityHomeController;
-use App\Http\Controllers\FacilityMemberController;
 use App\Http\Controllers\FacilityReturnHistoryController;
 use App\Http\Controllers\ProgrammeAdminController;
 use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
 use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\ScreeningSessionAdminController;
+use App\Http\Controllers\TeamAreaController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\TodayShortcutController;
 use App\Http\Controllers\UserAdminController;
@@ -32,7 +32,7 @@ Route::get('robots.txt', function (): Response {
 })->name('robots');
 
 Route::get('sitemap.xml', function (): Response {
-    $locations = ['/', '/privacy', '/terms', '/request-access'];
+    $locations = ['/', '/privacy', '/terms', '/about', '/request-access'];
 
     $urls = array_map(
         fn (string $path): string => '  <url><loc>'.e(url($path)).'</loc></url>',
@@ -67,6 +67,7 @@ Route::get('/', function () {
 })->name('home');
 Route::inertia('/privacy', 'privacy')->name('privacy');
 Route::inertia('/terms', 'terms')->name('terms');
+Route::inertia('/about', 'about')->name('about');
 
 Route::get('request-access', [AccessRequestController::class, 'create'])->name('access-requests.create');
 Route::post('access-requests', [AccessRequestController::class, 'store'])
@@ -129,7 +130,12 @@ Route::prefix('{current_team}')
         Route::get('returns/history', FacilityReturnHistoryController::class)->name('returns.history');
 
         Route::get('my-facility', FacilityHomeController::class)->name('facilities.home');
-        Route::get('members', FacilityMemberController::class)->name('facilities.members');
+        Route::get('members', [TeamAreaController::class, 'members'])->name('facilities.members');
+        Route::post('members/{user}/active', [TeamAreaController::class, 'active'])->name('facilities.members.active');
+        Route::get('invites', [TeamAreaController::class, 'invites'])->name('facilities.invites');
+        Route::post('invitations/{invitation}/resend', [TeamAreaController::class, 'resend'])->name('facilities.invitations.resend');
+        Route::get('roles', [TeamAreaController::class, 'roles'])->name('facilities.roles');
+        Route::get('activity', [TeamAreaController::class, 'activity'])->name('facilities.activity');
 
         Route::get('profile', [FacilityController::class, 'edit'])->name('facilities.edit');
         Route::put('profile', [FacilityController::class, 'update'])->name('facilities.update');

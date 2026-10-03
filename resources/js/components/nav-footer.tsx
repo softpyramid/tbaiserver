@@ -23,16 +23,24 @@ export function NavFooter({
         >
             <SidebarGroupContent>
                 <SidebarMenu>
-                    {items.map((item) => (
+                    {items.map((item) => {
+                        const url = toUrl(item.href);
+                        const external = url.startsWith('http');
+
+                        return (
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                                 asChild
                                 className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
                             >
                                 <a
-                                    href={toUrl(item.href)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href={url}
+                                    {...(external
+                                        ? {
+                                              target: '_blank',
+                                              rel: 'noopener noreferrer',
+                                          }
+                                        : {})}
                                 >
                                     {item.icon && (
                                         <item.icon className="h-5 w-5" />
@@ -41,7 +49,8 @@ export function NavFooter({
                                 </a>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                    ))}
+                        );
+                    })}
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>

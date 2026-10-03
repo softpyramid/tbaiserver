@@ -51,7 +51,6 @@ type Props = {
 export default function CommandIndex({
     title,
     scope,
-    screens,
     filters,
     options,
     show,
@@ -69,7 +68,6 @@ export default function CommandIndex({
         <CommandShell
             title={title}
             scope={scope}
-            screens={screens}
             filters={filters}
             options={options}
             show={show}

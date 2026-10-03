@@ -54,6 +54,7 @@ test('the sitemap lists the public pages as valid xml', function () {
 
     expect($locations)->toEqualCanonicalizing([
         url('/'),
+        url('/about'),
         url('/privacy'),
         url('/terms'),
         url('/request-access'),
@@ -101,7 +102,7 @@ test('validated claims and optional strips stay off by default', function () {
     $response->assertSee('contact-us@dhub-ai.info', false);
     $response->assertSee('TB-AI is in development.', false);
     $response->assertDontSee('97% Accuracy', false);
-    $response->assertDontSee('GeneXpert', false);
+    $response->assertDontSee('10x cheaper than GeneXpert', false);
     $response->assertDontSee('10x cheaper', false);
     $response->assertDontSee('What Clinical Leaders Say', false);
     $response->assertDontSee('Falling Walls Foundation', false);

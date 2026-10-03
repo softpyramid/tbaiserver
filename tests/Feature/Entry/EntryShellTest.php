@@ -47,6 +47,13 @@ test('a command center role keeps the sidebar shell', function () {
 
     $this->actingAs($officer)
         ->get(route('dashboard', $officer->currentTeam))
+        ->assertRedirect(route('command.index'));
+
+    $this->actingAs($officer)
+        ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->where('nav.shell', 'sidebar'));
+        ->assertInertia(fn ($page) => $page
+            ->where('nav.shell', 'sidebar')
+            ->where('scope', $city->name),
+        );
 });

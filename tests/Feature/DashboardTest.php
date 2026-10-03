@@ -8,24 +8,20 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are redirected to the login page', function () {
     $user = User::factory()->create();
-    $team = $user->currentTeam;
 
-    $response = $this->get(route('dashboard'));
+    $response = $this->get(route('dashboard', ['current_team' => $user->currentTeam]));
     $response->assertRedirect(route('login'));
 });
 
-test('authenticated users can visit the dashboard', function () {
+test('the dashboard sends each person to their role home', function () {
     $user = User::factory()->create();
-    $team = $user->currentTeam;
 
-    $response = $this
-        ->actingAs($user)
-        ->get(route('dashboard'));
-
-    $response->assertOk();
+    $this->actingAs($user)
+        ->get(route('dashboard', ['current_team' => $user->currentTeam]))
+        ->assertRedirect(route('profile.edit'));
 });
 
-test('dashboard includes pending invitations for the authenticated user', function () {
+test('pending invitations travel with the signed-in page', function () {
     $owner = User::factory()->create(['name' => 'Taylor Otwell']);
     $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
     $team = Team::factory()->create(['name' => 'Laravel Team']);
@@ -38,23 +34,20 @@ test('dashboard includes pending invitations for the authenticated user', functi
         'invited_by' => $owner->id,
     ]);
 
-    $response = $this
-        ->actingAs($invitedUser)
-        ->get(route('dashboard'));
-
-    $response->assertOk();
-    $response->assertInertia(fn (Assert $page) => $page
-        ->component('dashboard')
-        ->has('pendingInvitations', 1)
-        ->where('pendingInvitations.0.code', $invitation->code)
-        ->where('pendingInvitations.0.inviterName', 'Taylor Otwell')
-        ->where('pendingInvitations.0.team.name', 'Laravel Team')
-        ->where('pendingInvitations.0.team.slug', $team->slug)
-        ->missing('pendingInvitations.0.teamName'),
-    );
+    $this->actingAs($invitedUser)
+        ->get(route('profile.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->has('pendingInvitations', 1)
+            ->where('pendingInvitations.0.code', $invitation->code)
+            ->where('pendingInvitations.0.inviterName', 'Taylor Otwell')
+            ->where('pendingInvitations.0.team.name', 'Laravel Team')
+            ->where('pendingInvitations.0.team.slug', $team->slug)
+            ->missing('pendingInvitations.0.teamName'));
 });
 
-test('dashboard does not include accepted invitations', function () {
+test('accepted invitations are left out of the shared list', function () {
     $owner = User::factory()->create();
     $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
     $team = Team::factory()->create();
@@ -67,18 +60,14 @@ test('dashboard does not include accepted invitations', function () {
         'invited_by' => $owner->id,
     ]);
 
-    $response = $this
-        ->actingAs($invitedUser)
-        ->get(route('dashboard'));
-
-    $response->assertOk();
-    $response->assertInertia(fn (Assert $page) => $page
-        ->component('dashboard')
-        ->has('pendingInvitations', 0),
-    );
+    $this->actingAs($invitedUser)
+        ->get(route('profile.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('pendingInvitations', 0));
 });
 
-test('dashboard excludes expired invitations without deleting them', function () {
+test('expired invitations stay in the database and stay off the shared list', function () {
     $owner = User::factory()->create();
     $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
     $team = Team::factory()->create();
@@ -91,22 +80,18 @@ test('dashboard excludes expired invitations without deleting them', function ()
         'invited_by' => $owner->id,
     ]);
 
-    $response = $this
-        ->actingAs($invitedUser)
-        ->get(route('dashboard'));
-
-    $response->assertOk();
-    $response->assertInertia(fn (Assert $page) => $page
-        ->component('dashboard')
-        ->has('pendingInvitations', 0),
-    );
+    $this->actingAs($invitedUser)
+        ->get(route('profile.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('pendingInvitations', 0));
 
     $this->assertDatabaseHas('team_invitations', [
         'id' => $invitation->id,
     ]);
 });
 
-test('dashboard does not include or delete other users invitations', function () {
+test('other people invitations are not shared', function () {
     $owner = User::factory()->create();
     $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
     $team = Team::factory()->create();
@@ -119,15 +104,11 @@ test('dashboard does not include or delete other users invitations', function ()
         'invited_by' => $owner->id,
     ]);
 
-    $response = $this
-        ->actingAs($invitedUser)
-        ->get(route('dashboard'));
-
-    $response->assertOk();
-    $response->assertInertia(fn (Assert $page) => $page
-        ->component('dashboard')
-        ->has('pendingInvitations', 0),
-    );
+    $this->actingAs($invitedUser)
+        ->get(route('profile.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('pendingInvitations', 0));
 
     $this->assertDatabaseHas('team_invitations', [
         'id' => $invitation->id,

@@ -54,6 +54,19 @@ class Team extends Model
     }
 
     /**
+     * True when this user is the only owner. Their role cannot be changed
+     * and they cannot be deactivated.
+     */
+    public function isLastOwner(User $user): bool
+    {
+        if ($user->teamRole($this) !== TeamRole::Owner) {
+            return false;
+        }
+
+        return $this->memberships()->where('role', TeamRole::Owner->value)->count() <= 1;
+    }
+
+    /**
      * Get the team owner.
      */
     public function owner(): ?Model

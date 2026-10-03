@@ -169,7 +169,8 @@ trait HasTeams
 
         return new TeamPermissions(
             canUpdateTeam: $role?->hasPermission(TeamPermission::UpdateTeam) ?? false,
-            canDeleteTeam: $role?->hasPermission(TeamPermission::DeleteTeam) ?? false,
+            canDeleteTeam: (! $team->is_personal && $this->isTbaiAdmin())
+                || ($role?->hasPermission(TeamPermission::DeleteTeam) ?? false),
             canAddMember: $role?->hasPermission(TeamPermission::AddMember) ?? false,
             canUpdateMember: $role?->hasPermission(TeamPermission::UpdateMember) ?? false,
             canRemoveMember: $role?->hasPermission(TeamPermission::RemoveMember) ?? false,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Facility;
 use App\Models\ScreeningSession;
+use App\Support\EntryDate;
 use App\Support\ResourceResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -77,7 +78,7 @@ class ScreeningSessionAdminController extends Controller
 
         $cells = fn (ScreeningSession $session): array => [
             'facility' => $session->facility->team->name,
-            'date' => $session->occurred_on->toDateString(),
+            'date' => EntryDate::display($session->occurred_on),
             'score' => (string) $session->score,
             'suspect' => $session->is_suspect ? __('entry.yes') : __('entry.no'),
         ];

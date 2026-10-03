@@ -1,7 +1,17 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { FormEvent, type ReactNode, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { Fragment, FormEvent, type ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export type CommandOption = {
     value: string;
@@ -38,6 +48,20 @@ export type CommandLabels = {
     sort: string;
     back: string;
     facilities: string;
+    filters: string;
+};
+
+export type CommandCrumb = {
+    title: string;
+    href: string | null;
+};
+
+export type PageTab = {
+    key: string;
+    label: string;
+    current: boolean;
+    href?: string;
+    onSelect?: () => void;
 };
 
 export type CommandScreenLink = {
@@ -108,7 +132,8 @@ export function CommandShell({
     title,
     eyebrow,
     scope,
-    screens,
+    crumbs = [],
+    tabs,
     filters,
     options,
     show,
@@ -120,7 +145,8 @@ export function CommandShell({
     title: string;
     eyebrow?: string;
     scope: string;
-    screens: CommandScreenLink[];
+    crumbs?: CommandCrumb[];
+    tabs?: ReactNode;
     filters: CommandFilters;
     options: FilterOptions;
     show: CommandShow;
@@ -135,12 +161,13 @@ export function CommandShell({
 
             <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6 overflow-x-hidden px-4 py-6">
                 <div className="flex min-w-0 flex-col gap-2">
+                    <CommandCrumbs crumbs={crumbs} />
                     {eyebrow ? <p className="text-sm text-muted-foreground">{eyebrow}</p> : null}
                     <h1 className="text-xl font-semibold">{title}</h1>
                     {scope ? <p className="text-sm text-muted-foreground">{scope}</p> : null}
                 </div>
 
-                <ScreenNav screens={screens} />
+                {tabs}
                 <FilterBar
                     filters={filters}
                     options={options}
@@ -166,20 +193,88 @@ export function CommandShell({
     );
 }
 
-function ScreenNav({ screens }: { screens: CommandScreenLink[] }) {
+export function SegmentedTabs({
+    label,
+    tabs,
+}: {
+    label: string;
+    tabs: PageTab[];
+}) {
+    if (tabs.length === 0) {
+        return null;
+    }
+
     return (
-        <nav className="flex flex-wrap gap-2" data-test="command-screens">
-            {screens.map((screen) => (
-                <Button
-                    key={screen.key}
-                    variant={screen.current ? 'default' : 'outline'}
-                    size="sm"
-                    asChild
-                >
-                    <Link href={screen.href}>{screen.label}</Link>
-                </Button>
-            ))}
-        </nav>
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0" data-test="page-tabs">
+            <div role="tablist" aria-label={label} className="flex w-max min-w-full gap-1 border-b border-border">
+                {tabs.map((tab) => {
+                    const className = cn(
+                        'shrink-0 border-b-2 px-3 py-2 text-sm whitespace-nowrap focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                        tab.current
+                            ? 'border-primary font-medium text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground',
+                    );
+
+                    if (tab.href) {
+                        return (
+                            <Link
+                                key={tab.key}
+                                href={tab.href}
+                                role="tab"
+                                aria-selected={tab.current}
+                                className={className}
+                            >
+                                {tab.label}
+                            </Link>
+                        );
+                    }
+
+                    return (
+                        <button
+                            key={tab.key}
+                            type="button"
+                            role="tab"
+                            aria-selected={tab.current}
+                            className={className}
+                            onClick={tab.onSelect}
+                        >
+                            {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function CommandCrumbs({ crumbs }: { crumbs: CommandCrumb[] }) {
+    if (crumbs.length === 0) {
+        return null;
+    }
+
+    return (
+        <Breadcrumb data-test="command-crumbs">
+            <BreadcrumbList>
+                {crumbs.map((crumb, index) => {
+                    const isLast = index === crumbs.length - 1;
+
+                    return (
+                        <Fragment key={`${crumb.title}-${index}`}>
+                            <BreadcrumbItem>
+                                {isLast || crumb.href === null ? (
+                                    <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink asChild>
+                                        <Link href={crumb.href}>{crumb.title}</Link>
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
+                            {isLast ? null : <BreadcrumbSeparator />}
+                        </Fragment>
+                    );
+                })}
+            </BreadcrumbList>
+        </Breadcrumb>
     );
 }
 
@@ -214,13 +309,25 @@ function FilterBar({
         router.get(path, query, { preserveState: true, preserveScroll: true });
     }
 
+    const activeCount = activeFilterCount(filters, show);
+
     return (
-        <form
-            key={formKey}
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-            onSubmit={onFilter}
-            data-test="command-filters"
-        >
+        <details className="group rounded-lg border [&:not([open])>:not(summary)]:hidden" data-test="command-filters">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium marker:content-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 transition-transform duration-200 group-open:rotate-90 motion-reduce:transition-none"
+                />
+                <span>{labels.filters}</span>
+                <span className="tabular-nums text-muted-foreground" data-test="filter-count">
+                    {activeCount}
+                </span>
+            </summary>
+            <form
+                key={formKey}
+                className="grid grid-cols-1 gap-3 border-t p-3 sm:grid-cols-2"
+                onSubmit={onFilter}
+            >
             <DateField name="from" label={labels.from} value={filters.from} />
             <DateField name="to" label={labels.to} value={filters.to} />
             <PlaceField
@@ -257,8 +364,35 @@ function FilterBar({
                     {labels.clear}
                 </Button>
             </div>
-        </form>
+            </form>
+        </details>
     );
+}
+
+function activeFilterCount(filters: CommandFilters, show: CommandShow): number {
+    let count = 0;
+
+    if (filters.from !== '') {
+        count += 1;
+    }
+
+    if (filters.to !== '') {
+        count += 1;
+    }
+
+    if (show.province && filters.province !== '') {
+        count += 1;
+    }
+
+    if (show.district && filters.district !== '') {
+        count += 1;
+    }
+
+    if (show.sector && filters.sector !== '') {
+        count += 1;
+    }
+
+    return count;
 }
 
 function DateField({ name, label, value }: { name: string; label: string; value: string }) {

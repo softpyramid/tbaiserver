@@ -24,7 +24,7 @@ class DailyReturnDetail
         return Inertia::render('resources/show', [
             'title' => __('entry.detail_title'),
             'summary' => [
-                ['label' => __('entry.column_date'), 'value' => EntryDate::day($return->reported_on)],
+                ['label' => __('entry.column_date'), 'value' => EntryDate::display($return->reported_on)],
                 ['label' => __('entry.column_facility'), 'value' => $return->facility->team->name],
                 ['label' => __('entry.city'), 'value' => $return->facility->city->name],
                 ['label' => __('entry.province'), 'value' => $return->facility->city->province->name],

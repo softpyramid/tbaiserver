@@ -92,7 +92,8 @@ class TeamPolicy
     }
 
     /**
-     * Facility in-charge may open the team roster. Technicians may not.
+     * Facility in-charge, senior technician, and TB-AI admin may open the team area.
+     * Technicians and programme viewers may not.
      */
     public function viewRoster(User $user, Team $team): bool
     {
@@ -104,7 +105,26 @@ class TeamPolicy
             return true;
         }
 
-        return $user->teamRole($team) === TeamRole::Owner;
+        $role = $user->teamRole($team);
+
+        return $role === TeamRole::Owner || $role === TeamRole::Admin;
+    }
+
+    /**
+     * Deactivate or reactivate a facility account from the team roster.
+     */
+    public function deactivateMember(User $user, Team $team): bool
+    {
+        if (! $this->viewRoster($user, $team)) {
+            return false;
+        }
+
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        return $user->hasTeamPermission($team, TeamPermission::RemoveMember)
+            || $user->hasTeamPermission($team, TeamPermission::CreateInvitation);
     }
 
     /**
@@ -128,6 +148,14 @@ class TeamPolicy
      */
     public function delete(User $user, Team $team): bool
     {
-        return ! $team->is_personal && $user->hasTeamPermission($team, TeamPermission::DeleteTeam);
+        if ($team->is_personal) {
+            return false;
+        }
+
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        return $user->teamRole($team) === TeamRole::Owner;
     }
 }

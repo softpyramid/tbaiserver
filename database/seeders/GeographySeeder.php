@@ -40,15 +40,42 @@ class GeographySeeder extends Seeder
             ],
         );
 
+        $punjab = Province::query()->firstOrCreate(
+            ['slug' => 'punjab'],
+            [
+                'country_id' => $pakistan->id,
+                'name' => 'Punjab',
+            ],
+        );
+
+        $khyberPakhtunkhwa = Province::query()->firstOrCreate(
+            ['slug' => 'khyber-pakhtunkhwa'],
+            [
+                'country_id' => $pakistan->id,
+                'name' => 'Khyber Pakhtunkhwa',
+            ],
+        );
+
+        $provinceIds = [
+            'sindh' => $sindh->id,
+            'punjab' => $punjab->id,
+            'khyber-pakhtunkhwa' => $khyberPakhtunkhwa->id,
+        ];
+
         $cities = [];
 
         foreach ($this->cities() as $city) {
             $slug = Str::slug($city['name']);
+            $provinceId = $provinceIds[$city['province']] ?? null;
+
+            if ($provinceId === null) {
+                throw new RuntimeException("Missing province [{$city['province']}] for city seeding.");
+            }
 
             $cities[$slug] = City::query()->firstOrCreate(
                 ['slug' => $slug],
                 [
-                    'province_id' => $sindh->id,
+                    'province_id' => $provinceId,
                     'name' => $city['name'],
                     'code' => $slug,
                     'latitude' => $city['latitude'],
@@ -75,26 +102,28 @@ class GeographySeeder extends Seeder
             }
         }
 
-        $this->command?->info('Geography ready: Pakistan, Sindh, pitch cities, and Sindh test districts.');
+        $this->command?->info('Geography ready: Pakistan, Sindh, Punjab, Khyber Pakhtunkhwa, and test districts.');
     }
 
     /**
-     * @return list<array{name: string, latitude: float, longitude: float}>
+     * @return list<array{name: string, province: string, latitude: float, longitude: float}>
      */
     private function cities(): array
     {
         return [
-            ['name' => 'Thatta', 'latitude' => 24.95, 'longitude' => 67.92],
-            ['name' => 'Tharparkar', 'latitude' => 24.7, 'longitude' => 69.8],
-            ['name' => 'Larkana', 'latitude' => 27.56, 'longitude' => 68.21],
-            ['name' => 'Badin', 'latitude' => 24.66, 'longitude' => 68.84],
-            ['name' => 'Qamber Shahdadkot', 'latitude' => 27.59, 'longitude' => 67.99],
-            ['name' => 'Jamshoro', 'latitude' => 25.5, 'longitude' => 68.28],
-            ['name' => 'Karachi West', 'latitude' => 25.0, 'longitude' => 66.9],
-            ['name' => 'Karachi East', 'latitude' => 24.86, 'longitude' => 67.07],
-            ['name' => 'Hyderabad', 'latitude' => 25.4, 'longitude' => 68.36],
-            ['name' => 'Sukkur', 'latitude' => 27.7, 'longitude' => 68.86],
-            ['name' => 'Mirpurkhas', 'latitude' => 25.53, 'longitude' => 69.01],
+            ['name' => 'Thatta', 'province' => 'sindh', 'latitude' => 24.95, 'longitude' => 67.92],
+            ['name' => 'Tharparkar', 'province' => 'sindh', 'latitude' => 24.7, 'longitude' => 69.8],
+            ['name' => 'Larkana', 'province' => 'sindh', 'latitude' => 27.56, 'longitude' => 68.21],
+            ['name' => 'Badin', 'province' => 'sindh', 'latitude' => 24.66, 'longitude' => 68.84],
+            ['name' => 'Qamber Shahdadkot', 'province' => 'sindh', 'latitude' => 27.59, 'longitude' => 67.99],
+            ['name' => 'Jamshoro', 'province' => 'sindh', 'latitude' => 25.5, 'longitude' => 68.28],
+            ['name' => 'Karachi West', 'province' => 'sindh', 'latitude' => 25.0, 'longitude' => 66.9],
+            ['name' => 'Karachi East', 'province' => 'sindh', 'latitude' => 24.86, 'longitude' => 67.07],
+            ['name' => 'Hyderabad', 'province' => 'sindh', 'latitude' => 25.4, 'longitude' => 68.36],
+            ['name' => 'Sukkur', 'province' => 'sindh', 'latitude' => 27.7, 'longitude' => 68.86],
+            ['name' => 'Mirpurkhas', 'province' => 'sindh', 'latitude' => 25.53, 'longitude' => 69.01],
+            ['name' => 'Lahore', 'province' => 'punjab', 'latitude' => 31.52, 'longitude' => 74.36],
+            ['name' => 'Peshawar', 'province' => 'khyber-pakhtunkhwa', 'latitude' => 34.01, 'longitude' => 71.58],
         ];
     }
 
@@ -112,6 +141,8 @@ class GeographySeeder extends Seeder
             'sukkur' => ['Sukkur City', 'Rohri', 'New Sukkur'],
             'larkana' => ['Ratodero', 'Dokri'],
             'mirpurkhas' => ['Digri', 'Hussain Bux Mari'],
+            'lahore' => ['Lahore City', 'Gulberg'],
+            'peshawar' => ['Peshawar City'],
         ];
     }
 }

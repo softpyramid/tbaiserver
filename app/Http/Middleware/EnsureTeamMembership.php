@@ -20,6 +20,10 @@ class EnsureTeamMembership
     {
         [$user, $team] = [$request->user(), $this->team($request)];
 
+        if ($user instanceof User && $team instanceof Team && $user->isTbaiAdmin() && ! $team->is_personal) {
+            return $next($request);
+        }
+
         abort_if(! $user || ! $team || ! $user->belongsToTeam($team), 403);
 
         $this->ensureTeamMemberHasRequiredRole($user, $team, $minimumRole);

@@ -21,6 +21,32 @@ enum TeamRole: string
     }
 
     /**
+     * Short label used on the facility team roster.
+     */
+    public function rosterLabel(): string
+    {
+        return match ($this) {
+            self::Owner => 'In-charge',
+            self::Admin => 'Senior technician',
+            self::Member => 'Technician',
+        };
+    }
+
+    /**
+     * Roles that can be chosen when inviting or changing a member.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public static function rosterOptions(): array
+    {
+        return collect(self::cases())
+            ->filter(fn (self $role) => $role !== self::Owner)
+            ->map(fn (self $role) => ['value' => $role->value, 'label' => $role->rosterLabel()])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Get all the permissions for this role.
      *
      * @return array<TeamPermission>

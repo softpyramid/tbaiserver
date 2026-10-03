@@ -58,9 +58,10 @@ export default function InviteMemberModal({
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Invite staff</DialogTitle>
+                                <DialogTitle>Invite member</DialogTitle>
                                 <DialogDescription>
-                                    Send an invitation to join this facility.
+                                    Send an email invitation. This does not
+                                    create a public signup.
                                 </DialogDescription>
                             </DialogHeader>
 

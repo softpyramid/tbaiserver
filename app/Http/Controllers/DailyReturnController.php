@@ -23,7 +23,7 @@ class DailyReturnController extends Controller
     /**
      * Show today's register, or another open date.
      */
-    public function edit(Request $request, Team $current_team, ReturnDatePolicy $dates): Response
+    public function edit(Request $request, Team $current_team, ReturnDatePolicy $dates): Response|RedirectResponse
     {
         $user = $request->user();
         abort_unless($user !== null, 403);
@@ -33,7 +33,14 @@ class DailyReturnController extends Controller
         abort_unless($user->belongsToTeam($current_team) || $user->isTbaiAdmin(), 403);
 
         $reportedOn = $this->reportedOn($request);
-        abort_unless($dates->canView($user, $current_team, $reportedOn), 403);
+
+        if (! $dates->canView($user, $current_team, $reportedOn)) {
+            $message = $user->teamRole($current_team) === TeamRole::Member
+                ? __('entry.technician_date_window')
+                : __('entry.date_closed');
+
+            return to_route('returns.today', $current_team)->with('date_notice', $message);
+        }
 
         $dailyReturn = DailyReturn::query()
             ->where('facility_id', $facility->id)
@@ -96,6 +103,7 @@ class DailyReturnController extends Controller
             'history' => $canSeeHistory
                 ? $this->history($dailyReturn)
                 : null,
+            'dateNotice' => $request->session()->get('date_notice'),
         ]);
     }
 

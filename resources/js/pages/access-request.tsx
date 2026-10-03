@@ -1,6 +1,7 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { Check } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { scrollToField } from '@/lib/entry-fields';
 import InputError from '@/components/input-error';
 import { MarketingShell } from '@/components/marketing-shell';
 import { Input } from '@/components/ui/input';
@@ -97,11 +98,16 @@ export default function AccessRequest({
     status?: string | null;
     defaults?: AccessRequestDefaults | null;
 }) {
+    const [clientErrors, setClientErrors] = useState<
+        Partial<Record<FieldName | 'consent', string>>
+    >({});
+    const saving = useRef(false);
+
     return (
         <MarketingShell>
             <Head title="Request access" />
             <main className="mx-auto max-w-xl px-5 py-16 sm:px-8">
-                <p className="text-xs font-medium tracking-[0.22em] text-brand uppercase">
+                <p className="text-sm font-semibold tracking-[0.18em] text-navy uppercase dark:text-white">
                     Access
                 </p>
                 <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -118,7 +124,36 @@ export default function AccessRequest({
                     <Form
                         {...store.form()}
                         resetOnSuccess
+                        noValidate
+                        disableWhileProcessing
+                        id="access-request-form"
                         className="relative mt-8 flex flex-col gap-5"
+                        onBefore={() => {
+                            if (saving.current) {
+                                return false;
+                            }
+
+                            const form = document.getElementById(
+                                'access-request-form',
+                            );
+                            const next =
+                                form instanceof HTMLFormElement
+                                    ? validateAccess(new FormData(form))
+                                    : { name: 'Enter your name.' };
+
+                            setClientErrors(next);
+                            const first = Object.keys(next)[0];
+
+                            if (first) {
+                                scrollToField(first);
+                                return false;
+                            }
+
+                            saving.current = true;
+                        }}
+                        onFinish={() => {
+                            saving.current = false;
+                        }}
                     >
                         {({ processing, errors }) => (
                             <>
@@ -160,10 +195,30 @@ export default function AccessRequest({
                                                 undefined
                                             }
                                             maxLength={255}
-                                            required
+                                            aria-required="true"
+                                            aria-invalid={Boolean(
+                                                clientErrors[field.name] ||
+                                                    errors[field.name],
+                                            )}
+                                            aria-describedby={
+                                                clientErrors[field.name] ||
+                                                errors[field.name]
+                                                    ? `${field.name}-error`
+                                                    : undefined
+                                            }
+                                            onChange={() =>
+                                                setClientErrors((current) => ({
+                                                    ...current,
+                                                    [field.name]: undefined,
+                                                }))
+                                            }
                                         />
                                         <InputError
-                                            message={errors[field.name]}
+                                            id={`${field.name}-error`}
+                                            message={
+                                                clientErrors[field.name] ||
+                                                errors[field.name]
+                                            }
                                         />
                                         {field.name === 'email' && (
                                             <>
@@ -173,7 +228,17 @@ export default function AccessRequest({
                                                         name="consent"
                                                         type="checkbox"
                                                         value="1"
-                                                        required
+                                                        aria-required="true"
+                                                        aria-invalid={Boolean(
+                                                            clientErrors.consent ||
+                                                                errors.consent,
+                                                        )}
+                                                        aria-describedby={
+                                                            clientErrors.consent ||
+                                                            errors.consent
+                                                                ? 'consent-error'
+                                                                : undefined
+                                                        }
                                                         defaultChecked={
                                                             defaults?.consent ===
                                                             '1'
@@ -199,7 +264,11 @@ export default function AccessRequest({
                                                     </p>
                                                 </div>
                                                 <InputError
-                                                    message={errors.consent}
+                                                    id="consent-error"
+                                                    message={
+                                                        clientErrors.consent ||
+                                                        errors.consent
+                                                    }
                                                 />
                                             </>
                                         )}
@@ -221,4 +290,41 @@ export default function AccessRequest({
             </main>
         </MarketingShell>
     );
+}
+
+function validateAccess(
+    data: FormData,
+): Partial<Record<FieldName | 'consent', string>> {
+    const errors: Partial<Record<FieldName | 'consent', string>> = {};
+    const value = (name: string) => String(data.get(name) ?? '').trim();
+
+    if (value('name') === '') {
+        errors.name = 'The name field is required.';
+    }
+
+    if (value('role') === '') {
+        errors.role = 'The role field is required.';
+    }
+
+    if (value('organisation') === '') {
+        errors.organisation = 'The organisation field is required.';
+    }
+
+    if (value('district') === '') {
+        errors.district = 'The district field is required.';
+    }
+
+    const email = value('email');
+
+    if (email === '') {
+        errors.email = 'The email field is required.';
+    } else if (!email.includes('@') || !email.includes('.')) {
+        errors.email = 'The email field must be a valid email address.';
+    }
+
+    if (data.get('consent') !== '1') {
+        errors.consent = 'The consent field must be accepted.';
+    }
+
+    return errors;
 }

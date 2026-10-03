@@ -2,20 +2,21 @@
 
 namespace App\Http\Responses;
 
-use App\Http\Responses\Concerns\RedirectsToCurrentTeam;
+use App\Support\RoleHome;
 use Illuminate\Http\JsonResponse;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
-use Laravel\Fortify\Fortify;
 use Symfony\Component\HttpFoundation\Response;
 
 class VerifyEmailResponse implements VerifyEmailResponseContract
 {
-    use RedirectsToCurrentTeam;
-
     public function toResponse($request): Response
     {
+        $user = $request->user();
+        $home = $user === null ? url('/') : app(RoleHome::class)->url($user);
+        $separator = str_contains($home, '?') ? '&' : '?';
+
         return $request->wantsJson()
             ? new JsonResponse('', 204)
-            : redirect()->intended($this->redirectPathForCurrentTeam($request, Fortify::redirects('email-verification')).'?verified=1');
+            : redirect()->intended($home.$separator.'verified=1');
     }
 }

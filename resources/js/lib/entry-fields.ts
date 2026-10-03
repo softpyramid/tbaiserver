@@ -23,14 +23,12 @@ export function focusNextEntryField(current: HTMLElement): void {
 
 export function scrollToField(id: string): void {
     const node = document.getElementById(id);
+    const error = document.getElementById(`${id}-error`);
+    const target = error ?? node;
 
-    if (!node) {
-        return;
-    }
-
-    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     if (node instanceof HTMLElement) {
-        node.focus();
+        node.focus({ preventScroll: true });
     }
 }

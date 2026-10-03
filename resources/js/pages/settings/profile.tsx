@@ -1,5 +1,5 @@
-import { Form, Head, usePage } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
+import { LogOut } from 'lucide-react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
@@ -7,6 +7,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
 import { send } from '@/routes/verification';
@@ -28,7 +29,20 @@ export default function Profile({
         <>
             <Head title="Profile settings" />
 
-            <h1 className="sr-only">Profile settings</h1>
+            <div className="mb-6 flex items-center justify-between gap-3">
+                <h1 className="text-xl font-semibold">Account</h1>
+                <Button variant="outline" asChild>
+                    <Link
+                        href={logout()}
+                        as="button"
+                        data-test="account-logout"
+                        onClick={() => router.flushAll()}
+                    >
+                        <LogOut className="mr-2 size-4" />
+                        Log out
+                    </Link>
+                </Button>
+            </div>
 
             <div className="space-y-6">
                 <Heading
@@ -43,6 +57,8 @@ export default function Profile({
                         preserveScroll: true,
                     }}
                     className="space-y-6"
+                    disableWhileProcessing
+                    noValidate
                 >
                     {({ processing, errors }) => (
                         <>

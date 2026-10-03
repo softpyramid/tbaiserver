@@ -23,11 +23,11 @@ test('geography seeder creates pakistan, sindh, pitch cities, and sindh test dis
         ->and(Country::query()->count())->toBe(1)
         ->and($sindh)->not->toBeNull()
         ->and($sindh->country_id)->toBe($pakistan->id)
-        ->and(Province::query()->count())->toBe(1)
-        ->and(City::query()->count())->toBe(11)
+        ->and(Province::query()->count())->toBe(3)
+        ->and(City::query()->count())->toBe(13)
         ->and(City::query()->where('slug', 'karachi-west')->value('latitude'))->toEqual('25.00000')
         ->and(City::query()->where('slug', 'thatta')->value('longitude'))->toEqual('67.92000')
-        ->and(Taluka::query()->count())->toBe(15);
+        ->and(Taluka::query()->count())->toBe(18);
 
     foreach ([
         'karachi-west' => 3,

@@ -69,11 +69,36 @@ export function facilityTabs(props: NavProps): FacilityTab[] {
     return tabs;
 }
 
-export function isTabActive(href: string, currentUrl: string): boolean {
-    const path = currentUrl.split('?')[0] ?? currentUrl;
-    const target = href.split('?')[0] ?? href;
+export function isTabActive(tab: FacilityTab, currentUrl: string): boolean {
+    const path = strip(currentUrl);
+    const target = strip(tab.href);
 
-    return path === target;
+    switch (tab.id) {
+        case 'account':
+            return path === target || path.startsWith('/settings');
+        case 'register':
+            return path === target || path.endsWith('/returns/today');
+        case 'screening':
+            return path === target || path.includes('/screening');
+        case 'facility':
+            return (
+                path === target ||
+                path.endsWith('/my-facility') ||
+                path.endsWith('/profile') ||
+                path.endsWith('/members')
+            );
+        default: {
+            const unreachable: never = tab.id;
+
+            return unreachable;
+        }
+    }
+}
+
+function strip(url: string): string {
+    const path = url.split('?')[0] ?? url;
+
+    return path.length > 1 ? path.replace(/\/$/, '') : path;
 }
 
 export function useNavProps(): NavProps {

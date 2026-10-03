@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import {
     type CommandFilters,
     type CommandLabels,
@@ -9,7 +10,10 @@ import {
     type DistrictColumn,
     DistrictTable,
     type DistrictRow,
+    type PageTab,
+    SegmentedTabs,
 } from '@/components/command-center';
+import { useEntryI18n } from '@/lib/i18n';
 
 type Props = {
     title: string;
@@ -51,11 +55,15 @@ export default function CommandSector({
     hasReturns,
     tat,
 }: Props) {
+    const page = usePage();
+    const { t } = useEntryI18n();
+    const registeredTabs = sectorTabs(screens, page.props.nav.groups);
+
     return (
         <CommandShell
             title={title}
             scope={scope}
-            screens={screens}
+            tabs={<SegmentedTabs label={t('nav_registered')} tabs={registeredTabs} />}
             filters={filters}
             options={options}
             show={show}
@@ -79,4 +87,43 @@ export default function CommandSector({
             </div>
         </CommandShell>
     );
+}
+
+type SectorKey = 'public' | 'private' | 'ppm';
+
+function isSectorKey(key: string): key is SectorKey {
+    switch (key) {
+        case 'public':
+        case 'private':
+        case 'ppm':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function sectorTabs(
+    screens: CommandScreenLink[],
+    groups: { items: { key: string; children: { key: string; label: string }[] }[] }[],
+): PageTab[] {
+    const registered = groups
+        .flatMap((group) => group.items)
+        .find((item) => item.key === 'registered');
+
+    return screens.flatMap((screen) => {
+        if (!isSectorKey(screen.key)) {
+            return [];
+        }
+
+        const child = registered?.children.find((item) => item.key === screen.key);
+
+        return [
+            {
+                key: screen.key,
+                label: child?.label ?? screen.label,
+                href: screen.href,
+                current: screen.current,
+            },
+        ];
+    });
 }

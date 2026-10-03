@@ -17,7 +17,7 @@ class FacilityPolicy
     }
 
     /**
-     * Facility staff may open a read-only profile. Saving stays on update.
+     * Facility staff may open the facility home. Saving stays on update.
      */
     public function view(User $user, Facility $facility): bool
     {
@@ -26,6 +26,20 @@ class FacilityPolicy
         }
 
         return $user->belongsToTeam($facility->team);
+    }
+
+    /**
+     * The facility profile tab is for the in-charge, senior technician, and TB-AI admin.
+     */
+    public function openProfile(User $user, Facility $facility): bool
+    {
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        $role = $user->teamRole($facility->team);
+
+        return $role === TeamRole::Owner || $role === TeamRole::Admin;
     }
 
     /**

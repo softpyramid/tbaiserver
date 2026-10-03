@@ -62,6 +62,6 @@ test('users and roles names the person column Name and teams names the team colu
         ->assertInertia(fn (Assert $page) => $page
             ->where('title', 'Teams')
             ->where('columns.0.label', 'Team')
-            ->where('columns.0.key', 'name'),
+            ->where('columns.0.key', 'team'),
         );
 });

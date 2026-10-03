@@ -1,5 +1,5 @@
 import { Form, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import EntryScreen from '@/components/entry-screen';
 import FacilitySummaryCard from '@/components/facility-summary-card';
 import FieldError from '@/components/field-error';
@@ -14,6 +14,7 @@ import {
     writeJson,
 } from '@/lib/return-draft';
 import { cn } from '@/lib/utils';
+import { scrollToField } from '@/lib/entry-fields';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { store, update } from '@/routes/facilities';
 
@@ -115,6 +116,8 @@ export default function FacilityForm({
     });
     const [showSaved, setShowSaved] = useState(Boolean(savedMessage));
     const [saving, setSaving] = useState(false);
+    const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+    const savingRef = useRef(false);
     const dirty =
         canEdit &&
         !showSaved &&
@@ -225,7 +228,40 @@ export default function FacilityForm({
                     {...(teamSlug ? update.form(teamSlug) : store.form())}
                     id="facility-form"
                     className="flex flex-col gap-4"
+                    noValidate
+                    disableWhileProcessing
                     onBefore={() => {
+                        if (savingRef.current) {
+                            return false;
+                        }
+
+                        const next: Record<string, string> = {};
+
+                        if (values.name.trim() === '') {
+                            next.name = 'The name field is required.';
+                        }
+
+                        if (values.sector === '') {
+                            next.sector = 'The sector field is required.';
+                        }
+
+                        if (values.kind === '') {
+                            next.kind = 'The kind field is required.';
+                        }
+
+                        if (values.cityId === '') {
+                            next.city_id = 'The city id field is required.';
+                        }
+
+                        setClientErrors(next);
+                        const first = Object.keys(next)[0];
+
+                        if (first) {
+                            scrollToField(first);
+                            return false;
+                        }
+
+                        savingRef.current = true;
                         setSaving(true);
                         leave.allowNextLeave();
                     }}
@@ -236,11 +272,16 @@ export default function FacilityForm({
                         leave.resetLeave();
                     }}
                     onFinish={() => {
+                        savingRef.current = false;
                         setSaving(false);
                         leave.resetLeave();
                     }}
                 >
-                    {({ errors }) => (
+                    {({ errors }) => {
+                        const message = (key: string) =>
+                            clientErrors[key] || errors[key];
+
+                        return (
                         <>
                             {!teamSlug ? (
                                 <p className="text-base text-foreground">
@@ -255,7 +296,11 @@ export default function FacilityForm({
                                     id="name"
                                     name="name"
                                     value={values.name}
-                                    required
+                                    aria-required="true"
+                                    aria-invalid={Boolean(message('name'))}
+                                    aria-describedby={
+                                        message('name') ? 'name-error' : undefined
+                                    }
                                     maxLength={255}
                                     className="h-12 text-base md:text-base"
                                     onChange={(event) =>
@@ -265,7 +310,7 @@ export default function FacilityForm({
                                         }))
                                     }
                                 />
-                                <FieldError message={errors.name} />
+                                <FieldError id="name-error" message={message('name')} />
                             </div>
 
                             <div className="grid gap-2 rounded-xl border bg-card p-4">
@@ -277,7 +322,13 @@ export default function FacilityForm({
                                     name="sector"
                                     className={selectClassName}
                                     value={values.sector}
-                                    required
+                                    aria-required="true"
+                                    aria-invalid={Boolean(message('sector'))}
+                                    aria-describedby={
+                                        message('sector')
+                                            ? 'sector-error'
+                                            : undefined
+                                    }
                                     onChange={(event) =>
                                         setValues((current) => ({
                                             ...current,
@@ -297,7 +348,10 @@ export default function FacilityForm({
                                         </option>
                                     ))}
                                 </select>
-                                <FieldError message={errors.sector} />
+                                <FieldError
+                                    id="sector-error"
+                                    message={message('sector')}
+                                />
                             </div>
 
                             <div className="grid gap-2 rounded-xl border bg-card p-4">
@@ -309,7 +363,11 @@ export default function FacilityForm({
                                     name="kind"
                                     className={selectClassName}
                                     value={values.kind}
-                                    required
+                                    aria-required="true"
+                                    aria-invalid={Boolean(message('kind'))}
+                                    aria-describedby={
+                                        message('kind') ? 'kind-error' : undefined
+                                    }
                                     onChange={(event) =>
                                         setValues((current) => ({
                                             ...current,
@@ -329,7 +387,7 @@ export default function FacilityForm({
                                         </option>
                                     ))}
                                 </select>
-                                <FieldError message={errors.kind} />
+                                <FieldError id="kind-error" message={message('kind')} />
                             </div>
 
                             <div className="grid gap-2 rounded-xl border bg-card p-4">
@@ -341,7 +399,13 @@ export default function FacilityForm({
                                     name="city_id"
                                     className={selectClassName}
                                     value={values.cityId}
-                                    required
+                                    aria-required="true"
+                                    aria-invalid={Boolean(message('city_id'))}
+                                    aria-describedby={
+                                        message('city_id')
+                                            ? 'city_id-error'
+                                            : undefined
+                                    }
                                     onChange={(event) =>
                                         setValues((current) => ({
                                             ...current,
@@ -359,7 +423,10 @@ export default function FacilityForm({
                                         </option>
                                     ))}
                                 </select>
-                                <FieldError message={errors.city_id} />
+                                <FieldError
+                                    id="city_id-error"
+                                    message={message('city_id')}
+                                />
                             </div>
 
                             <div className="grid gap-2 rounded-xl border bg-card p-4">
@@ -437,7 +504,8 @@ export default function FacilityForm({
                             </div>
                             <FieldError message={errors.active} />
                         </>
-                    )}
+                        );
+                    }}
                 </Form>
             )}
         </EntryScreen>

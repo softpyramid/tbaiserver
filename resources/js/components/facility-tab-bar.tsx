@@ -22,7 +22,7 @@ export function FacilityTabBar() {
                 }}
             >
                 {tabs.map((tab) => {
-                    const active = isTabActive(tab.href, page.url);
+                    const active = isTabActive(tab, page.url);
                     const Icon = tab.icon;
 
                     return (

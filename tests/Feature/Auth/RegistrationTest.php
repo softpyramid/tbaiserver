@@ -65,7 +65,7 @@ test('an access request is stored for review and does not create an account', fu
     $response = $this->post(route('access-requests.store'), accessRequestPayload());
 
     $response->assertRedirect(route('access-requests.create'));
-    $response->assertSessionHas(AccessRequestController::RECEIVED_SESSION_KEY, true);
+    $response->assertSessionHas('access_request_received', AccessRequestController::RECEIVED_STATUS);
     $response->assertSessionMissing('status');
     $this->assertGuest();
 
@@ -118,14 +118,13 @@ test('an access request is stored for review and does not create an account', fu
     $this->get(route('access-requests.create'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('received', true)
-            ->where('status', AccessRequestController::RECEIVED_STATUS)
+            ->where('received', false)
+            ->where('status', null)
             ->where('defaults', null))
-        ->assertDontSee('name="email"', false)
-        ->assertDontSee('name="consent"', false);
+        ->assertDontSee(AccessRequestController::RECEIVED_STATUS, false);
 
     expect(session('status'))->toBeNull();
-    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->toBeTrue();
+    expect(session('access_request_received'))->toBeNull();
 });
 
 test('an access request requires a name, role, organisation, district, email, and consent', function () {
@@ -136,7 +135,7 @@ test('an access request requires a name, role, organisation, district, email, an
     $response->assertSessionHasErrors(['name', 'role', 'organisation', 'district', 'email', 'consent']);
     $this->assertGuest();
     expect(AccessRequest::query()->count())->toBe(0);
-    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
+    expect(session('access_request_received'))->toBeNull();
 
     $page = followSessionRedirect($response);
 
@@ -162,7 +161,7 @@ test('an access request rejects an invalid email and fields that are too long', 
     $response->assertRedirect(route('access-requests.create'));
     $response->assertSessionHasErrors($field);
     expect(AccessRequest::query()->count())->toBe(0);
-    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
+    expect(session('access_request_received'))->toBeNull();
 })->with([
     'invalid email' => [['email' => 'not-an-email'], 'email'],
     'long email' => [['email' => str_repeat('a', 244).'@example.com'], 'email'],
@@ -181,7 +180,7 @@ test('an invalid access request shows the form with the entered values', functio
 
     $response->assertRedirect(route('access-requests.create'));
     $response->assertSessionHasErrors('email');
-    expect(session(AccessRequestController::RECEIVED_SESSION_KEY))->not->toBeTrue();
+    expect(session('access_request_received'))->toBeNull();
 
     $page = followSessionRedirect($response);
 
@@ -213,7 +212,7 @@ test('a filled honeypot is discarded without storing a request or sending mail',
     ]));
 
     $response->assertRedirect(route('access-requests.create'));
-    $response->assertSessionHas(AccessRequestController::RECEIVED_SESSION_KEY, true);
+    $response->assertSessionHas('access_request_received', AccessRequestController::RECEIVED_STATUS);
     $response->assertSessionMissing('status');
     expect(AccessRequest::query()->count())->toBe(0);
 

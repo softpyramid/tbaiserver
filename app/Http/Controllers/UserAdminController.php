@@ -6,6 +6,7 @@ use App\Enums\TeamRole;
 use App\Models\Membership;
 use App\Models\User;
 use App\Support\AuditLogger;
+use App\Support\DataScope;
 use App\Support\ResourceResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,7 +78,9 @@ class UserAdminController extends Controller
             TeamRole::cases(),
         );
 
-        $rows = $page->getCollection()->map(function (User $user) use ($cells, $roleOptions): array {
+        $actor = $request->user();
+
+        $rows = $page->getCollection()->map(function (User $user) use ($cells, $roleOptions, $actor): array {
             $controls = [];
 
             foreach ($user->teamMemberships as $membership) {
@@ -93,22 +96,28 @@ class UserAdminController extends Controller
                     'method' => 'patch',
                     'name' => 'role',
                     'value' => $membership->role->value,
-                    'label' => $team->name,
+                    'label' => __('entry.change_role'),
+                    'person' => $user->name,
                     'options' => $roleOptions,
                 ];
             }
 
             $isActive = $user->deactivated_at === null;
+            $isSelf = $actor !== null && $actor->is($user);
 
-            $controls[] = [
-                'kind' => 'button',
-                'url' => route('admin.users.update', $user),
-                'method' => 'patch',
-                'label' => $isActive ? __('entry.deactivate') : __('entry.reactivate'),
-                'fields' => [
-                    ['name' => 'active', 'value' => $isActive ? '0' : '1'],
-                ],
-            ];
+            if (! ($isSelf && $isActive)) {
+                $controls[] = [
+                    'kind' => 'button',
+                    'url' => route('admin.users.update', $user),
+                    'method' => 'patch',
+                    'label' => $isActive ? __('entry.deactivate') : __('entry.reactivate'),
+                    'person' => $user->name,
+                    'confirm' => $isActive,
+                    'fields' => [
+                        ['name' => 'active', 'value' => $isActive ? '0' : '1'],
+                    ],
+                ];
+            }
 
             return [
                 'id' => (string) $user->id,
@@ -222,18 +231,17 @@ class UserAdminController extends Controller
 
     private function roleSummary(User $user): string
     {
-        $roles = $user->teamMemberships
+        $roles = collect($user->teamMemberships)
             ->filter(fn (Membership $membership): bool => ! $membership->team->is_personal
                 && $membership->team->facility !== null)
-            ->map(fn (Membership $membership): string => $membership->role->label())
-            ->unique()
-            ->values();
+            ->map(fn (Membership $membership): string => $membership->role->label());
 
-        if ($roles->isEmpty()) {
-            return __('entry.not_available');
-        }
+        $programme = collect($user->programmeAssignments)
+            ->map(fn ($assignment): string => $assignment->role->label());
 
-        return $roles->implode(', ');
+        $labels = $roles->merge($programme)->unique()->values();
+
+        return $labels->isEmpty() ? '' : $labels->implode(', ');
     }
 
     private function teamSummary(User $user): string
@@ -244,16 +252,18 @@ class UserAdminController extends Controller
             ->map(fn (Membership $membership): string => $membership->team->name)
             ->values();
 
-        if ($names->isEmpty()) {
-            return __('entry.not_available');
+        if ($names->isNotEmpty()) {
+            return $names->implode(', ');
         }
 
-        return $names->implode(', ');
+        $scope = app(DataScope::class)->label($user);
+
+        return $scope;
     }
 
     private function assignmentSummary(User $user): string
     {
-        $labels = $user->programmeAssignments
+        $labels = collect($user->programmeAssignments)
             ->map(fn ($assignment): string => $assignment->role->label())
             ->unique()
             ->values();

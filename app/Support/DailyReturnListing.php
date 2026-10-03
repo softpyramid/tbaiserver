@@ -219,7 +219,7 @@ class DailyReturnListing
             ->first();
 
         return [
-            'date' => EntryDate::day($return->reported_on),
+            'date' => EntryDate::display($return->reported_on),
             'facility' => $return->facility->team->name,
             'city' => $return->facility->city->name,
             'suspects' => (string) $return->suspects,

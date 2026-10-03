@@ -18,8 +18,14 @@ class SecurityHeaders
     public function handle(Request $request, Closure $next): Response
     {
         $nonce = Vite::useCspNonce();
+        $authenticated = $request->user() !== null;
 
         $response = $next($request);
+
+        if ($authenticated) {
+            $response->headers->set('Cache-Control', 'no-store, private');
+            $response->headers->set('Pragma', 'no-cache');
+        }
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');

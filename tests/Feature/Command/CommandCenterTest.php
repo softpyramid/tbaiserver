@@ -294,6 +294,10 @@ test('a sector page is a sortable district table and a row opens facility charts
         ->assertInertia(fn (Assert $page) => $page
             ->component('command/district')
             ->where('title', 'Karachi West')
+            ->where('crumbs.0.title', 'Command center')
+            ->where('crumbs.1.title', 'Public')
+            ->where('crumbs.2.title', 'Karachi West')
+            ->where('crumbs.2.href', null)
             ->has('facilities', 1)
             ->where('facilities.0.name', 'West Public')
             ->where('facilities.0.cascade.0.value', 10)

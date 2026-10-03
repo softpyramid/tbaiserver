@@ -43,7 +43,7 @@ class FacilityReturnHistoryController extends Controller
             $editor = $latest?->editor;
 
             return [
-                'date' => EntryDate::day($return->reported_on),
+                'date' => EntryDate::display($return->reported_on),
                 'suspects' => (string) $return->suspects,
                 'tested' => (string) $return->tested,
                 'positive' => (string) $return->positive,

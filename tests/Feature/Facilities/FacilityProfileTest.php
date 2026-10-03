@@ -206,18 +206,14 @@ test('a technician cannot edit or create a facility profile', function () {
         ->get(route('returns.today', $facility->team))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('profileUrl', route('facilities.edit', $facility->team))
+            ->where('profileUrl', null)
             ->where('screeningUrl', route('screening.create', $facility->team))
             ->where('facilitiesUrl', null),
         );
 
     $this->actingAs($member)
         ->get(route('facilities.edit', $facility->team))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('canEdit', false)
-            ->where('nav.shell', 'facility'),
-        );
+        ->assertForbidden();
 
     $this->actingAs($member)
         ->put(route('facilities.update', $facility->team), facilityFormPayload($facility->city))

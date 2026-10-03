@@ -6,9 +6,10 @@ import type { AppVariant } from '@/types';
 type Props = {
     children: ReactNode;
     variant?: AppVariant;
+    drawerBelow?: 768 | 1024;
 };
 
-export function AppShell({ children, variant = 'sidebar' }: Props) {
+export function AppShell({ children, variant = 'sidebar', drawerBelow = 768 }: Props) {
     const isOpen = usePage().props.sidebarOpen;
 
     if (variant === 'header') {
@@ -17,5 +18,9 @@ export function AppShell({ children, variant = 'sidebar' }: Props) {
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    return (
+        <SidebarProvider defaultOpen={isOpen} drawerBelow={drawerBelow}>
+            {children}
+        </SidebarProvider>
+    );
 }

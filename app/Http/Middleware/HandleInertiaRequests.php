@@ -3,10 +3,13 @@
 namespace App\Http\Middleware;
 
 use App\Models\Team;
+use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Support\NavigationShell;
+use App\Support\RoleHome;
 use App\Support\SidebarNavigation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -43,14 +46,16 @@ class HandleInertiaRequests extends Middleware
         $facilityTeam = $this->facilityTeam($request, $user);
         $isTbaiAdmin = $user?->isTbaiAdmin() ?? false;
         $canOpenProfile = $user !== null
-            && $facilityTeam !== null
-            && ($isTbaiAdmin || $user->belongsToTeam($facilityTeam));
+            && $facilityTeam?->facility !== null
+            && Gate::forUser($user)->allows('openProfile', $facilityTeam->facility);
 
         $showValidatedClaims = (bool) config('tbai.show_validated_claims');
 
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'homeUrl' => $user instanceof User ? app(RoleHome::class)->url($user) : route('home'),
+            'pendingInvitations' => fn () => $this->pendingInvitations($user),
             'auth' => [
                 'user' => $user,
             ],
@@ -99,6 +104,37 @@ class HandleInertiaRequests extends Middleware
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
+    }
+
+    /**
+     * @return list<array{code: string, inviterName: string, team: array{name: string, slug: string}}>
+     */
+    private function pendingInvitations(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        $email = strtolower($user->email);
+
+        return TeamInvitation::query()
+            ->with(['inviter', 'team'])
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->whereNull('accepted_at')
+            ->where(fn ($query) => $query
+                ->whereNull('expires_at')
+                ->orWhere('expires_at', '>=', now()))
+            ->latest()
+            ->get()
+            ->map(fn (TeamInvitation $invitation): array => [
+                'code' => $invitation->code,
+                'inviterName' => $invitation->inviter->name,
+                'team' => [
+                    'name' => $invitation->team->name,
+                    'slug' => $invitation->team->slug,
+                ],
+            ])
+            ->all();
     }
 
     /**

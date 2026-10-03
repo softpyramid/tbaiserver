@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { FormEvent, useState } from 'react';
 import {
     type CommandFilters,
     type CommandLabels,
@@ -8,6 +8,7 @@ import {
     CommandShell,
     type CommandScreenLink,
     type CommandShow,
+    SegmentedTabs,
 } from '@/components/command-center';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -71,10 +72,11 @@ type Props = {
     };
 };
 
+type AlertPanel = 'rules' | 'alerts';
+
 export default function CommandAlerts({
     title,
     scope,
-    screens,
     filters,
     options,
     show,
@@ -88,11 +90,31 @@ export default function CommandAlerts({
     comparatorOptions,
     alertLabels,
 }: Props) {
+    const [panel, setPanel] = useState<AlertPanel>('rules');
+
     return (
         <CommandShell
             title={title}
             scope={scope}
-            screens={screens}
+            tabs={
+                <SegmentedTabs
+                    label={title}
+                    tabs={[
+                        {
+                            key: 'rules',
+                            label: alertLabels.rules,
+                            current: panel === 'rules',
+                            onSelect: () => setPanel('rules'),
+                        },
+                        {
+                            key: 'alerts',
+                            label: alertLabels.alerts,
+                            current: panel === 'alerts',
+                            onSelect: () => setPanel('alerts'),
+                        },
+                    ]}
+                />
+            }
             filters={filters}
             options={options}
             show={show}
@@ -100,47 +122,89 @@ export default function CommandAlerts({
             links={links}
         >
             <Badge data-test="thresholds-badge">{badge}</Badge>
+            <AlertPanelBody
+                panel={panel}
+                canEdit={canEdit}
+                rules={rules}
+                alerts={alerts}
+                metricOptions={metricOptions}
+                comparatorOptions={comparatorOptions}
+                alertLabels={alertLabels}
+                empty={labels.empty}
+            />
+        </CommandShell>
+    );
+}
 
-            <section className="flex min-w-0 flex-col gap-3">
-                <h2 className="text-base font-medium">{alertLabels.rules}</h2>
-                <ul className="flex flex-col gap-3" data-test="alert-rules">
-                    {rules.map((rule) => (
-                        <li key={rule.id} className="min-w-0 rounded-lg border p-3" data-test={`alert-rule-${rule.id}`}>
-                            {canEdit && rule.updateUrl ? (
-                                <RuleForm
-                                    rule={rule}
-                                    metricOptions={metricOptions}
-                                    comparatorOptions={comparatorOptions}
-                                    alertLabels={alertLabels}
-                                />
-                            ) : (
-                                <RuleText rule={rule} alertLabels={alertLabels} />
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            </section>
-
-            <section className="flex min-w-0 flex-col gap-3">
-                <h2 className="text-base font-medium">{alertLabels.alerts}</h2>
-                {alerts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{labels.empty}</p>
-                ) : (
-                    <ul className="flex flex-col gap-2" data-test="alert-list">
-                        {alerts.map((alert) => (
-                            <li key={alert.id} className="min-w-0 rounded-lg border p-3">
-                                <div className="text-sm text-muted-foreground">{alert.severity}</div>
-                                <a href={alert.href} className="font-medium break-words underline-offset-2 hover:underline">
-                                    {alert.place.name}
-                                </a>
-                                <p className="text-sm break-words">{alert.label}</p>
+function AlertPanelBody({
+    panel,
+    canEdit,
+    rules,
+    alerts,
+    metricOptions,
+    comparatorOptions,
+    alertLabels,
+    empty,
+}: {
+    panel: AlertPanel;
+    canEdit: boolean;
+    rules: Rule[];
+    alerts: AlertItem[];
+    metricOptions: CommandOption[];
+    comparatorOptions: CommandOption[];
+    alertLabels: Props['alertLabels'];
+    empty: string;
+}) {
+    switch (panel) {
+        case 'rules':
+            return (
+                <section className="flex min-w-0 flex-col gap-3">
+                    <h2 className="text-base font-medium">{alertLabels.rules}</h2>
+                    <ul className="flex flex-col gap-3" data-test="alert-rules">
+                        {rules.map((rule) => (
+                            <li key={rule.id} className="min-w-0 rounded-lg border p-3" data-test={`alert-rule-${rule.id}`}>
+                                {canEdit && rule.updateUrl ? (
+                                    <RuleForm
+                                        rule={rule}
+                                        metricOptions={metricOptions}
+                                        comparatorOptions={comparatorOptions}
+                                        alertLabels={alertLabels}
+                                    />
+                                ) : (
+                                    <RuleText rule={rule} alertLabels={alertLabels} />
+                                )}
                             </li>
                         ))}
                     </ul>
-                )}
-            </section>
-        </CommandShell>
-    );
+                </section>
+            );
+        case 'alerts':
+            return (
+                <section className="flex min-w-0 flex-col gap-3">
+                    <h2 className="text-base font-medium">{alertLabels.alerts}</h2>
+                    {alerts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">{empty}</p>
+                    ) : (
+                        <ul className="flex flex-col gap-2" data-test="alert-list">
+                            {alerts.map((alert) => (
+                                <li key={alert.id} className="min-w-0 rounded-lg border p-3">
+                                    <div className="text-sm text-muted-foreground">{alert.severity}</div>
+                                    <a href={alert.href} className="font-medium break-words underline-offset-2 hover:underline">
+                                        {alert.place.name}
+                                    </a>
+                                    <p className="text-sm break-words">{alert.label}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            );
+        default: {
+            const unreachable: never = panel;
+
+            return unreachable;
+        }
+    }
 }
 
 function RuleText({

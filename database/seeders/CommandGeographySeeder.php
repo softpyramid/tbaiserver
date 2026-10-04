@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\City;
 use App\Models\Province;
 use App\Support\DistrictMatch;
-use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Database\Seeders\Support\CommandPrototypeData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -18,11 +17,9 @@ use RuntimeException;
  */
 class CommandGeographySeeder extends Seeder
 {
-    use SkipsOutsideLocalDevStaging;
-
     public function run(): void
     {
-        if ($this->skipsOutsideLocalDevStaging()) {
+        if (! app()->environment('local', 'dev', 'staging')) {
             return;
         }
 
@@ -60,7 +57,5 @@ class CommandGeographySeeder extends Seeder
             );
             $created++;
         }
-
-        $this->command?->info("Sindh districts ready. Added {$created}, kept the others.");
     }
 }

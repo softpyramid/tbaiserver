@@ -11,7 +11,6 @@ use App\Models\Province;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\DistrictMatch;
-use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Database\Seeders\Support\CommandPrototypeData as Proto;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +26,6 @@ use RuntimeException;
  */
 class CommandFacilitySeeder extends Seeder
 {
-    use SkipsOutsideLocalDevStaging;
-
     public const CODE_PREFIX = 'cc-';
 
     /** The reference day: months before it are complete, its own month stops here. */
@@ -50,7 +47,7 @@ class CommandFacilitySeeder extends Seeder
 
     public function run(): void
     {
-        if ($this->skipsOutsideLocalDevStaging()) {
+        if (! app()->environment('local', 'dev', 'staging')) {
             return;
         }
 
@@ -68,8 +65,6 @@ class CommandFacilitySeeder extends Seeder
         $captured = $this->capturedTotals();
         $targets = Proto::targets();
         $hospitalDistricts = $this->publicHospitalDistricts($targets['public']);
-        $facilityCount = 0;
-        $returnRows = 0;
 
         foreach (['public', 'private', 'ppm'] as $sector) {
             foreach ($targets[$sector] as $i => $target) {
@@ -99,13 +94,11 @@ class CommandFacilitySeeder extends Seeder
                     $ordinal = (int) $bmu['ordinal'];
                     $kind = $this->kind($sector, $ordinal, $count, in_array($i, $hospitalDistricts, true));
                     $facility = $this->facility($city, $sector, $kind, $ordinal, $i);
-                    $facilityCount++;
-                    $returnRows += $this->seedSeries($facility, $bmu, $sector, $key, $ordinal);
+                    $this->seedSeries($facility, $bmu, $sector, $key, $ordinal);
                 }
             }
         }
 
-        $this->command?->info("Command center facilities ready: {$facilityCount} sites, {$returnRows} return rows offered.");
     }
 
     /**
@@ -136,27 +129,23 @@ class CommandFacilitySeeder extends Seeder
      */
     private function capturedTotals(): array
     {
-        /** @var array<int, array<string, array{count: int, sus: int, tested: int, pos: int, st: int}>> $totals */
         $totals = [];
-
-        Facility::query()
+        $facilities = Facility::query()
             ->where(fn ($query) => $query->whereNull('code')->orWhere('code', 'not like', self::CODE_PREFIX.'%'))
-            ->get(['id', 'city_id', 'sector'])
-            ->each(function (Facility $facility) use (&$totals): void {
-                if (! isset($totals[$facility->city_id][$facility->sector->value])) {
-                    $totals[$facility->city_id][$facility->sector->value] = ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0];
-                }
+            ->get(['id', 'city_id', 'sector']);
 
-                $cell = &$totals[$facility->city_id][$facility->sector->value];
-                $cell['count']++;
-                $sums = DB::table('daily_returns')->where('facility_id', $facility->id)
-                    ->selectRaw('COALESCE(SUM(suspects),0) as s, COALESCE(SUM(tested),0) as t, COALESCE(SUM(positive),0) as p, COALESCE(SUM(started_treatment),0) as a')
-                    ->first();
-                $cell['sus'] += (int) ($sums->s ?? 0);
-                $cell['tested'] += (int) ($sums->t ?? 0);
-                $cell['pos'] += (int) ($sums->p ?? 0);
-                $cell['st'] += (int) ($sums->a ?? 0);
-            });
+        foreach ($facilities as $facility) {
+            $cell = $totals[$facility->city_id][$facility->sector->value] ?? ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0];
+            $sums = DB::table('daily_returns')->where('facility_id', $facility->id)
+                ->selectRaw('COALESCE(SUM(suspects),0) as s, COALESCE(SUM(tested),0) as t, COALESCE(SUM(positive),0) as p, COALESCE(SUM(started_treatment),0) as a')
+                ->first();
+            $cell['count']++;
+            $cell['sus'] += (int) ($sums->s ?? 0);
+            $cell['tested'] += (int) ($sums->t ?? 0);
+            $cell['pos'] += (int) ($sums->p ?? 0);
+            $cell['st'] += (int) ($sums->a ?? 0);
+            $totals[$facility->city_id][$facility->sector->value] = $cell;
+        }
 
         return $totals;
     }
@@ -190,11 +179,11 @@ class CommandFacilitySeeder extends Seeder
     }
 
     /**
-     * Writes one facility's returns and monthly tables. Returns the number of return rows offered.
+     * Writes one facility's returns and monthly tables.
      *
      * @param  array<string, mixed>  $bmu
      */
-    private function seedSeries(Facility $facility, array $bmu, string $sector, string $districtKey, int $ordinal): int
+    private function seedSeries(Facility $facility, array $bmu, string $sector, string $districtKey, int $ordinal): void
     {
         $weightsTested = $bmu['month_tested_weights'];
         $weightsPositive = $bmu['month_positive_weights'];
@@ -213,7 +202,7 @@ class CommandFacilitySeeder extends Seeder
             $positive[$m] = min($positive[$m], $value);
         }
 
-        $started = Proto::alloc((int) $bmu['st'], $positive);
+        $started = Proto::alloc((int) $bmu['st'], array_values($positive));
 
         foreach ($started as $m => $value) {
             $started[$m] = min($value, $positive[$m]);
@@ -262,10 +251,16 @@ class CommandFacilitySeeder extends Seeder
             $contactRows = [];
             $hivRows = [];
 
+            $cohortTotal = array_sum($started);
+            $successTotal = Proto::round($cohortTotal * (float) $bmu['su'] / 100);
+            $lostTotal = min(Proto::round($cohortTotal * (float) $bmu['ltfu'] / 100), max(0, $cohortTotal - $successTotal));
+            $successByMonth = Proto::alloc($successTotal, $started);
+            $lostByMonth = Proto::alloc($lostTotal, $started);
+
             foreach ($started as $m => $cohort) {
                 $month = sprintf('%04d-%02d', self::ANCHOR_YEAR, $m + 1);
-                $successful = Proto::round($cohort * (float) $bmu['su'] / 100);
-                $lost = min(Proto::round($cohort * (float) $bmu['ltfu'] / 100), max(0, $cohort - $successful));
+                $successful = min($successByMonth[$m], $cohort);
+                $lost = min($lostByMonth[$m], $cohort - $successful);
                 $rest = max(0, $cohort - $successful - $lost);
                 $died = Proto::round($rest * .4);
                 $stamp = ['facility_id' => $facility->id, 'month' => $month, 'created_at' => $now, 'updated_at' => $now];
@@ -297,8 +292,6 @@ class CommandFacilitySeeder extends Seeder
             DB::table('contact_tracing')->upsert($contactRows, ['facility_id', 'month'], ['contacts_listed', 'contacts_evaluated', 'updated_at']);
             DB::table('hiv_testing')->upsert($hivRows, ['facility_id', 'month'], ['tb_patients', 'hiv_status_recorded', 'updated_at']);
         });
-
-        return count($rows);
     }
 
     /**

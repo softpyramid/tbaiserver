@@ -144,6 +144,8 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting(): void
     {
+        RateLimiter::for('command-api', fn (Request $request): Limit => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('access-requests', function (Request $request): Limit {
             return Limit::perMinute(5)->by($request->ip() ?? 'unknown');
         });

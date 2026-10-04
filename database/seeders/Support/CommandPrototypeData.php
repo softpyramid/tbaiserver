@@ -15,7 +15,7 @@ final class CommandPrototypeData
     /**
      * name, longitude, latitude, weight. The prototype's SITES.
      *
-     * @var list<array{0: string, 1: float, 2: float|int, 3: float|int}>
+     * @var list<array{0: string, 1: float|int, 2: float|int, 3: float|int}>
      */
     public const SITES = [
         ['Jacobabad', 68.44, 28.28, 1], ['Kashmore', 69.58, 28.43, 1], ['Shikarpur', 68.64, 27.96, .8],
@@ -157,12 +157,36 @@ final class CommandPrototypeData
 
             $split['st'] = self::alloc((int) $total['st'], $split['pos']);
 
+            // Shift the three sector rates by one amount so that, weighted by
+            // tests (turnaround) or by treatment starts (outcomes), the district
+            // rate equals the All dataset's rate. Sectors keep their differences.
+            $rates = [
+                'public' => ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0],
+                'private' => ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0],
+                'ppm' => ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0],
+            ];
+            foreach (['tat' => 'tested', 'su' => 'st', 'ltfu' => 'st'] as $rate => $weight) {
+                $weights = array_map(fn (int $position): int => max(1, (int) $split[$weight][$position]), [0, 1, 2]);
+                $mix = 0.0;
+                foreach (['public', 'private', 'ppm'] as $position => $sector) {
+                    $mix += $weights[$position] * (float) $sectors[$sector][$i][$rate];
+                }
+                $delta = (float) $total[$rate] - $mix / array_sum($weights);
+                foreach (['public', 'private', 'ppm'] as $position => $sector) {
+                    $rates[$sector][$rate] = (float) $sectors[$sector][$i][$rate] + $delta;
+                }
+            }
+
             foreach (array_keys($cache) as $position => $sector) {
                 $row = $sectors[$sector][$i];
 
                 foreach (['sus', 'tested', 'pos', 'st', 'mdr', 'ai'] as $metric) {
                     $row[$metric] = $split[$metric][$position];
                 }
+
+                $row['tat'] = max(.5, $rates[$sector]['tat']);
+                $row['su'] = min(98.0, $rates[$sector]['su']);
+                $row['ltfu'] = max(.5, $rates[$sector]['ltfu']);
 
                 $cache[$sector][] = $row;
             }
@@ -205,14 +229,48 @@ final class CommandPrototypeData
         $ai = self::alloc((int) $d['ai'], $tested);
         $out = [];
 
-        for ($j = 0; $j < $count; $j++) {
-            $monthTested = [];
-            $monthPositive = [];
+        // Each month's jitter is scaled to average 1 across the district's BMUs,
+        // so the district curve keeps the prototype's month weights while each
+        // BMU still gets its own lively line.
+        $jitterTested = [];
+        $jitterPositive = [];
 
-            foreach (self::MONTH_WEIGHTS as $m => $weight) {
-                $monthTested[] = $weight * (.85 + .3 * self::rnd($seed + $j * 13 + $m, 8));
-                $monthPositive[] = $weight * (.85 + .3 * self::rnd($seed + $j * 17 + $m, 9));
+        foreach (self::MONTH_WEIGHTS as $m => $weight) {
+            $jt = [];
+            $jp = [];
+
+            for ($j = 0; $j < $count; $j++) {
+                $jt[$j] = .85 + .3 * self::rnd($seed + $j * 13 + $m, 8);
+                $jp[$j] = .85 + .3 * self::rnd($seed + $j * 17 + $m, 9);
             }
+
+            $meanTested = array_sum($jt) / max(1, $count);
+            $meanPositive = array_sum($jp) / max(1, $count);
+
+            for ($j = 0; $j < $count; $j++) {
+                $jitterTested[$j][$m] = $weight * $jt[$j] / $meanTested;
+                $jitterPositive[$j][$m] = $weight * $jp[$j] / $meanPositive;
+            }
+        }
+
+        // Per BMU rate multipliers, scaled so the district rate holds when
+        // weighted by tests (turnaround) or treatment starts (outcomes).
+        $multipliers = ['su' => [], 'ltfu' => [], 'tat' => []];
+        for ($j = 0; $j < $count; $j++) {
+            $multipliers['su'][$j] = .92 + .16 * self::rnd($seed + $j, 5);
+            $multipliers['ltfu'][$j] = .7 + .6 * self::rnd($seed + $j, 6);
+            $multipliers['tat'][$j] = .75 + .5 * self::rnd($seed + $j, 7);
+        }
+        $norm = [];
+        foreach (['su' => $started, 'ltfu' => $started, 'tat' => $tested] as $rate => $weights) {
+            $sum = array_sum($weights);
+            $norm[$rate] = $sum > 0 ? array_sum(array_map(fn (int $w, float $m): float => $w * $m, $weights, $multipliers[$rate])) / $sum : 1.0;
+            $norm[$rate] = $norm[$rate] > 0 ? $norm[$rate] : 1.0;
+        }
+
+        for ($j = 0; $j < $count; $j++) {
+            $monthTested = $jitterTested[$j];
+            $monthPositive = $jitterPositive[$j];
 
             $out[] = [
                 'ordinal' => $j + 1,
@@ -222,9 +280,9 @@ final class CommandPrototypeData
                 'st' => $started[$j],
                 'mdr' => $mdr[$j],
                 'ai' => $ai[$j],
-                'su' => min(99.0, (float) $d['su'] * (.92 + .16 * self::rnd($seed + $j, 5))),
-                'ltfu' => (float) $d['ltfu'] * (.7 + .6 * self::rnd($seed + $j, 6)),
-                'tat' => (float) $d['tat'] * (.75 + .5 * self::rnd($seed + $j, 7)),
+                'su' => min(99.0, (float) $d['su'] * $multipliers['su'][$j] / $norm['su']),
+                'ltfu' => (float) $d['ltfu'] * $multipliers['ltfu'][$j] / $norm['ltfu'],
+                'tat' => (float) $d['tat'] * $multipliers['tat'][$j] / $norm['tat'],
                 'month_tested_weights' => $monthTested,
                 'month_positive_weights' => $monthPositive,
             ];

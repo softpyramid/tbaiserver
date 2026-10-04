@@ -4,6 +4,7 @@ use App\Http\Middleware\BlockSecurityChangesWhileImpersonating;
 use App\Http\Middleware\EncryptPrivateHistory;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\ForceJsonForApi;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
@@ -48,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // the early answers other middleware return (for example Inertia's 409).
         $middleware->web(prepend: [
             SecurityHeaders::class,
+            ForceJsonForApi::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -94,6 +94,22 @@ return [
         'ai_tests' => $areaFlag('TBAI_SHOW_AI_TESTS'),
     ],
 
+    /*
+    | Command center copy owned by the programme, served by the API so it can
+    | change without a release. The six lines per category are placeholders
+    | until the programme confirms the wording.
+    */
+    'command' => [
+        'driver_responses' => [
+            'diagnostic_bottlenecks' => ['increase testing capacity', 'reduce specimen transport delays'],
+            'unusual_positivity' => ['targeted screening', 'intensify contact investigation'],
+            'missing_patients' => ['investigate treatment initiation gap', 'link every diagnosis to a treatment start'],
+            'follow_up_risk' => ['trace interrupted patients', 'strengthen adherence support'],
+            'testing_gaps' => ['improve referral completion', 'expand diagnostic access'],
+            'resource_allocation' => ['prioritise high-burden BMUs', 'allocate GeneXpert and staff'],
+        ],
+    ],
+
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',
 
     'partner_line' => 'Technical partner: Soft Pyramid',

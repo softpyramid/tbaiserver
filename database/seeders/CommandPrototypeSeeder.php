@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Illuminate\Database\Seeder;
 
 /**
@@ -19,11 +18,9 @@ use Illuminate\Database\Seeder;
  */
 class CommandPrototypeSeeder extends Seeder
 {
-    use SkipsOutsideLocalDevStaging;
-
     public function run(): void
     {
-        if ($this->skipsOutsideLocalDevStaging()) {
+        if (! app()->environment('local', 'dev', 'staging')) {
             return;
         }
 

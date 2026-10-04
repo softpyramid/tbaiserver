@@ -6,7 +6,6 @@ use App\Models\City;
 use App\Models\IncidenceTarget;
 use App\Models\Province;
 use App\Support\DistrictMatch;
-use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Database\Seeders\Support\CommandPrototypeData as Proto;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +16,6 @@ use Illuminate\Support\Facades\DB;
  */
 class CommandIndicatorSeeder extends Seeder
 {
-    use SkipsOutsideLocalDevStaging;
-
     /** Sindh incidence by month, JAN to OCT 2026. */
     private const INCIDENCE = [95, 90, 88, 82, 79, 71, 52, 50, 49, 45];
 
@@ -27,7 +24,7 @@ class CommandIndicatorSeeder extends Seeder
 
     public function run(): void
     {
-        if ($this->skipsOutsideLocalDevStaging()) {
+        if (! app()->environment('local', 'dev', 'staging')) {
             return;
         }
 
@@ -38,8 +35,6 @@ class CommandIndicatorSeeder extends Seeder
         $this->districtIndicators($cities->all());
         $this->incidence($sindh);
         $this->fixtures($cities->all());
-
-        $this->command?->info('Command center indicators, incidence, and AI testing examples ready.');
     }
 
     /**

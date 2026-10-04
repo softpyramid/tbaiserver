@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessRequestController;
+use App\Http\Controllers\Api\CommandApiController;
 use App\Http\Controllers\AuditLogAdminController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DailyReturnAdminController;
@@ -117,6 +118,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('command/facilities', [FacilityController::class, 'scoped'])->name('command.facilities');
     Route::get('command/returns', [CommandCenterController::class, 'returns'])->name('command.returns');
     Route::get('command/returns/{dailyReturn}', [CommandCenterController::class, 'showReturn'])->name('command.returns.show');
+
+    Route::prefix('api/command')
+        ->middleware(['can:viewCommandCenter', 'throttle:command-api'])
+        ->name('api.command.')
+        ->group(function () {
+            Route::get('frame', [CommandApiController::class, 'frame'])->name('frame');
+            Route::get('cumulative', [CommandApiController::class, 'cumulative'])->name('cumulative');
+            Route::get('intelligence', [CommandApiController::class, 'intelligence'])->name('intelligence');
+            Route::get('sectors/{sector}', [CommandApiController::class, 'sector'])
+                ->whereIn('sector', ['public', 'private', 'ppm'])
+                ->name('sector');
+            Route::get('sectors/{sector}/districts/{city}/bmus', [CommandApiController::class, 'bmus'])
+                ->whereIn('sector', ['public', 'private', 'ppm'])
+                ->whereNumber('city')
+                ->name('bmus');
+            Route::get('map', [CommandApiController::class, 'map'])->name('map');
+            Route::get('drivers', [CommandApiController::class, 'drivers'])->middleware('feature:drivers')->name('drivers');
+            Route::get('ai-tests', [CommandApiController::class, 'aiTests'])->middleware('feature:ai_tests')->name('ai-tests');
+            Route::get('incidence', [CommandApiController::class, 'incidence'])->middleware('feature:incidence')->name('incidence');
+        });
 
     Route::get('admin', fn () => redirect()->route('command.index'))->name('admin.home');
     Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');

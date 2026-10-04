@@ -136,14 +136,18 @@ class CommandFacilitySeeder extends Seeder
      */
     private function capturedTotals(): array
     {
+        /** @var array<int, array<string, array{count: int, sus: int, tested: int, pos: int, st: int}>> $totals */
         $totals = [];
 
         Facility::query()
             ->where(fn ($query) => $query->whereNull('code')->orWhere('code', 'not like', self::CODE_PREFIX.'%'))
             ->get(['id', 'city_id', 'sector'])
             ->each(function (Facility $facility) use (&$totals): void {
+                if (! isset($totals[$facility->city_id][$facility->sector->value])) {
+                    $totals[$facility->city_id][$facility->sector->value] = ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0];
+                }
+
                 $cell = &$totals[$facility->city_id][$facility->sector->value];
-                $cell ??= ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0];
                 $cell['count']++;
                 $sums = DB::table('daily_returns')->where('facility_id', $facility->id)
                     ->selectRaw('COALESCE(SUM(suspects),0) as s, COALESCE(SUM(tested),0) as t, COALESCE(SUM(positive),0) as p, COALESCE(SUM(started_treatment),0) as a')

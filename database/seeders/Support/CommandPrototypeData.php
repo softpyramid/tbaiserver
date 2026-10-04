@@ -15,7 +15,7 @@ final class CommandPrototypeData
     /**
      * name, longitude, latitude, weight. The prototype's SITES.
      *
-     * @var list<array{0: string, 1: float, 2: float, 3: float}>
+     * @var list<array{0: string, 1: float, 2: float|int, 3: float|int}>
      */
     public const SITES = [
         ['Jacobabad', 68.44, 28.28, 1], ['Kashmore', 69.58, 28.43, 1], ['Shikarpur', 68.64, 27.96, .8],
@@ -53,7 +53,7 @@ final class CommandPrototypeData
     /**
      * Largest remainder split of an integer by weights.
      *
-     * @param  list<float|int>  $weights
+     * @param  array<int, float|int>  $weights
      * @return list<int>
      */
     public static function alloc(int $total, array $weights): array
@@ -151,7 +151,7 @@ final class CommandPrototypeData
             foreach (['sus', 'tested', 'pos', 'mdr', 'ai'] as $metric) {
                 $split[$metric] = self::alloc(
                     (int) $total[$metric],
-                    [$sectors['public'][$i][$metric], $sectors['private'][$i][$metric], $sectors['ppm'][$i][$metric]],
+                    [(float) $sectors['public'][$i][$metric], (float) $sectors['private'][$i][$metric], (float) $sectors['ppm'][$i][$metric]],
                 );
             }
 

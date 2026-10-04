@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { CommandContext, type MapIntent, type SortState } from './context';
 import { PlaceholderPage } from './pages/placeholder';
+import { MapPage } from './pages/map';
 import { SectorPage } from './pages/sector';
 import { CumulativePage } from './pages/cumulative';
 import { TipProvider } from './tooltip';
@@ -73,6 +74,7 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
         sector: 'all',
         selected: null,
         indicator: null,
+        heat: true,
     });
 
     const screens = useMemo<Screen[]>(
@@ -103,16 +105,20 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
         window.history.replaceState(null, '', `#${screen.number}`);
     };
 
+    const patchMapIntent = (next: Partial<MapIntent>) =>
+        setMapIntent((current) => ({ ...current, ...next }));
+
     const openMap = (
         sector: MapSector,
         cityId: number | null,
         indicator?: string,
     ) => {
-        setMapIntent({
+        setMapIntent((current) => ({
+            ...current,
             sector,
             selected: cityId,
-            indicator: indicator ?? null,
-        });
+            indicator: indicator ?? current.indicator,
+        }));
 
         const map = screens.find((s) => s.key === 'map');
 
@@ -171,7 +177,13 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
             >
                 <div className="cc-bgimg" aria-hidden="true" />
                 <CommandContext.Provider
-                    value={{ openMap, mapIntent, sort, setSort }}
+                    value={{
+                        openMap,
+                        mapIntent,
+                        setMapIntent: patchMapIntent,
+                        sort,
+                        setSort,
+                    }}
                 >
                     <TipProvider stageRef={stage}>
                         <header className="cc-head">
@@ -266,6 +278,8 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                                     key={current.key}
                                     sector={current.key as Sector}
                                 />
+                            ) : current?.key === 'map' ? (
+                                <MapPage key={current.key} />
                             ) : switchedOff ? (
                                 <PlaceholderPage
                                     key={`off-${wanted}`}

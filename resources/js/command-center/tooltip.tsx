@@ -11,10 +11,22 @@ import {
     type RefObject,
 } from 'react';
 
-type TipState = { content: ReactNode; x: number; y: number } | null;
+type TipVariant = 'chart' | 'map';
+
+type TipState = {
+    content: ReactNode;
+    x: number;
+    y: number;
+    variant: TipVariant;
+} | null;
 
 type TipApi = {
-    show: (content: ReactNode, clientX: number, clientY: number) => void;
+    show: (
+        content: ReactNode,
+        clientX: number,
+        clientY: number,
+        variant?: TipVariant,
+    ) => void;
     hide: () => void;
     stage: RefObject<HTMLDivElement | null>;
 };
@@ -35,7 +47,7 @@ export function TipProvider({
     const api = useMemo<TipApi>(
         () => ({
             stage: stageRef,
-            show: (content, clientX, clientY) => {
+            show: (content, clientX, clientY, variant = 'chart') => {
                 const stage = stageRef.current;
 
                 if (!stage) {
@@ -48,8 +60,11 @@ export function TipProvider({
 
                 setTip({
                     content,
-                    x: (clientX - r.left) / scale + 14,
+                    x:
+                        (clientX - r.left) / scale +
+                        (variant === 'map' ? 16 : 14),
                     y: (clientY - r.top) / scale + 12,
+                    variant,
                 });
             },
             hide: () => setTip(null),
@@ -85,7 +100,7 @@ export function TipProvider({
             <div
                 ref={box}
                 id="cc-gtip"
-                className="cc-gtip"
+                className={`cc-gtip${tip?.variant === 'map' ? ' cc-gtip-map' : ''}`}
                 role="tooltip"
                 style={{ display: tip ? 'block' : 'none' }}
             >
@@ -99,15 +114,20 @@ export function TipProvider({
 export function useTip() {
     const api = useContext(TipContext);
 
-    return (content: ReactNode) => ({
+    return (content: ReactNode, variant?: TipVariant) => ({
         onMouseEnter: (e: MouseEvent) =>
-            api?.show(content, e.clientX, e.clientY),
+            api?.show(content, e.clientX, e.clientY, variant),
         onMouseMove: (e: MouseEvent) =>
-            api?.show(content, e.clientX, e.clientY),
+            api?.show(content, e.clientX, e.clientY, variant),
         onMouseLeave: () => api?.hide(),
         onFocus: (e: FocusEvent<Element>) => {
             const r = e.currentTarget.getBoundingClientRect();
-            api?.show(content, r.left + r.width / 2, r.top + r.height / 2);
+            api?.show(
+                content,
+                r.left + r.width / 2,
+                r.top + r.height / 2,
+                variant,
+            );
         },
         onBlur: () => api?.hide(),
     });

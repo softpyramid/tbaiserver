@@ -7,6 +7,7 @@ export type MapIntent = {
     sector: MapSector;
     selected: number | null;
     indicator: string | null;
+    heat: boolean;
 };
 
 export type CommandContextValue = {
@@ -17,6 +18,8 @@ export type CommandContextValue = {
         indicator?: string,
     ) => void;
     mapIntent: MapIntent;
+    /** The map page keeps its own choices here so they survive a page change, like the prototype's globals. */
+    setMapIntent: (next: Partial<MapIntent>) => void;
     sort: SortState;
     setSort: (next: SortState) => void;
 };

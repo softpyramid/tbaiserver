@@ -400,6 +400,13 @@
 }
 
 /* tooltip */
+.cc-gtip.cc-gtip-map {
+    background: rgba(12, 0, 90, 0.94);
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 20px;
+}
+
 .cc-gtip {
     position: absolute;
     display: none;
@@ -624,6 +631,66 @@
     stroke: #12007a;
     stroke-width: 2.5px;
     pointer-events: none;
+}
+
+/* map */
+.cc-cell {
+    cursor: pointer;
+}
+
+.cc-cell:focus-visible {
+    outline: none;
+    stroke: #d6006e;
+    stroke-width: 3px;
+}
+
+.cc-pulse {
+    animation: cc-pulse 1.8s linear infinite;
+}
+
+@keyframes cc-pulse {
+    from {
+        r: 4px;
+        opacity: 1;
+    }
+
+    to {
+        r: 16px;
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cc-pulse {
+        animation: none;
+        opacity: 0.5;
+    }
+}
+
+.cc-map-note {
+    position: absolute;
+    font-size: 11px;
+    color: #10205a;
+    opacity: 0.8;
+}
+
+.cc-link {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.cc-link:focus-visible {
+    outline: 2px solid #d6006e;
+    outline-offset: 2px;
+}
+
+.cc-side h2 {
+    margin: 0;
 }
 
 /* AI assisted testing cards */
@@ -856,6 +923,7 @@
     .cc-txt,
     .cc-dtw,
     .cc-side,
+    .cc-map-note,
     .cc-ac,
     .cc-tbl {
         position: static !important;
@@ -864,6 +932,11 @@
         left: auto !important;
         top: auto !important;
         margin: 0 !important;
+    }
+
+    .cc-map {
+        width: 100% !important;
+        height: auto !important;
     }
 
     .cc-pn {

@@ -101,7 +101,7 @@ test('admin sees the prototype headline, four alerts and the same shape every ro
         ->assertJsonPath('data.cascade.3.value', 180366)
         ->assertJsonPath('data.cascade.4.value', 28004)
         ->assertJsonPath('data.cascade.5.value', 66826)
-        ->assertJsonPath('data.performance.rings.0.value', 14.56)
+        ->assertJsonPath('data.performance.rings.0.value', 14.5602)
         ->assertJsonPath('data.performance.tiles.1.value', 143);
 
     expect($response->json('data.months'))->toHaveCount(10)
@@ -328,11 +328,21 @@ test('every district All row equals the prototype All table and the headline rat
         expect($d)->not->toBeNull()
             ->and([$d['suspects'], $d['tested'], $d['positive'], $d['mdr_rr'], $d['ai_tests'], $d['bmus']])
             ->toBe([$row['sus'], $row['tested'], $row['pos'], $row['mdr'], $row['ai'], $row['bmu']], (string) $row['name'])
-            ->and($d['treatment_gap'])->toBe($row['pos'] - $row['st']);
+            ->and($d['treatment_gap'])->toBe($row['pos'] - $row['st'])
+            ->and([round($d['positivity'], 1), round($d['tat_days'], 1)])->toBe([round($row['pos'] / $row['tested'] * 100, 1), round($row['tat'], 1)], (string) $row['name']);
     }
 
+    // The Intelligence charts print what the All table prints, from unrounded values.
+    $top = $this->actingAs($users['admin'])->getJson('/api/command/intelligence')->assertOk();
+    $slowest = $top->json('data.top8.1.items');
+    expect($slowest[0]['name'])->toBe('Umerkot')
+        ->and(round($slowest[0]['value'], 1))->toBe(4.1)
+        ->and($slowest[0]['value'])->not->toBe(4.1)
+        ->and(array_column($top->json('data.top8.0.items'), 'name'))->toContain('Karachi Central', 'Karachi West')
+        ->and($top->json('data.alert_center.lines.0.map.indicator'))->toBe('treatment_gap');
+
     $cumulative = $this->actingAs($users['admin'])->getJson('/api/command/cumulative')->assertOk();
-    expect(array_map('floatval', array_column($cumulative->json('data.performance.rings'), 'value')))->toBe([14.56, 87.65, 7.95])
-        ->and((float) $cumulative->json('data.performance.tiles.0.value'))->toBe(3.08)
+    expect(array_map(fn ($v): float => round((float) $v, 2), array_column($cumulative->json('data.performance.rings'), 'value')))->toBe([14.56, 87.65, 7.95])
+        ->and(round((float) $cumulative->json('data.performance.tiles.0.value'), 2))->toBe(3.08)
         ->and($cumulative->json('data.performance.tiles.1.value'))->toBe(143);
 });

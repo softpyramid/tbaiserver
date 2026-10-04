@@ -162,7 +162,7 @@ final class CommandData
             'started_pct' => self::rate($started, $positive),
             'success_pct' => $cohort > 0 ? self::rate((int) $outcome['successful'], $cohort) : null,
             'ltfu_pct' => $cohort > 0 ? self::rate((int) $outcome['lost_to_follow_up'], $cohort) : null,
-            'tat_days' => (float) $sum['tat_weight'] > 0 ? round((float) $sum['tat_weighted'] / (float) $sum['tat_weight'], 2) : null,
+            'tat_days' => (float) $sum['tat_weight'] > 0 ? round((float) $sum['tat_weighted'] / (float) $sum['tat_weight'], 4) : null,
             'mdr_rr' => $mdr !== null && (int) $mdr['record_count'] > 0 ? (int) $mdr['cases'] : null,
             'ai_tests' => $aiOn && $ai !== null && (int) $ai['record_count'] > 0 ? (int) $ai['tests'] : null,
             'bmus' => (int) $sum['active'],
@@ -228,7 +228,7 @@ final class CommandData
         if (count($tats) >= 2) {
             sort($tats);
             $mid = intdiv(count($tats), 2);
-            $total['tat_days'] = round(count($tats) % 2 === 1 ? (float) $tats[$mid] : ((float) $tats[$mid - 1] + (float) $tats[$mid]) / 2, 2);
+            $total['tat_days'] = round(count($tats) % 2 === 1 ? (float) $tats[$mid] : ((float) $tats[$mid - 1] + (float) $tats[$mid]) / 2, 4);
         }
 
         return $total;
@@ -248,7 +248,7 @@ final class CommandData
 
     public static function rate(int $part, int $whole): ?float
     {
-        return $whole > 0 ? round($part / $whole * 100, 2) : null;
+        return $whole > 0 ? round($part / $whole * 100, 4) : null;
     }
 
     /**

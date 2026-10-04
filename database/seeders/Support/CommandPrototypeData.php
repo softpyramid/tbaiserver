@@ -235,10 +235,20 @@ final class CommandPrototypeData
             // One shift per district so the tests weighted turnaround is the All row's.
             $tat = array_map(fn (array $cell): float => (float) $cell['tat'], $cells);
 
+            // A prototype value sitting within a hair of a display rounding edge
+            // (2.1504 prints as 2.2) is aimed a little past the edge, so the
+            // two decimal series the seeder stores cannot tip it the other way.
+            $aim = (float) $row['tat'];
+            $edge = (floor($aim * 10) + .5) / 10;
+
+            if (abs($aim - $edge) < .0015) {
+                $aim = $edge + ($aim >= $edge ? .004 : -.004);
+            }
+
             for ($pass = 0; $pass < 4; $pass++) {
                 $mass = (float) array_sum($tested);
-                $mean = $mass > 0 ? array_sum(array_map(fn (float $t, int $n): float => $t * $n, $tat, $tested)) / $mass : (float) $row['tat'];
-                $tat = array_map(fn (float $t): float => max(.5, $t + (float) $row['tat'] - $mean), $tat);
+                $mean = $mass > 0 ? array_sum(array_map(fn (float $t, int $n): float => $t * $n, $tat, $tested)) / $mass : $aim;
+                $tat = array_map(fn (float $t): float => max(.5, $t + $aim - $mean), $tat);
             }
 
             foreach ($order as $position => $sector) {

@@ -338,7 +338,7 @@ class CommandFacilitySeeder extends Seeder
         $total = array_sum($tested);
         $early = array_sum(array_slice($tested, 0, 8));
         $baseline = $early > 0
-            ? max(.6, ($base * $total - $shape[0] * $tested[8] - $shape[1] * $tested[9]) / $early)
+            ? max(.2, ($base * $total - $shape[0] * $tested[8] - $shape[1] * $tested[9]) / $early)
             : $base;
         $series = array_fill(0, 8, round($baseline, 2));
         $series[] = $shape[0];

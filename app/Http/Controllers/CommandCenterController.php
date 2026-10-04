@@ -39,6 +39,19 @@ class CommandCenterController extends Controller
         ]);
     }
 
+    /**
+     * The full-screen command center (prototype layout). Every figure on it
+     * comes from the /api/command endpoints; this only boots the page.
+     */
+    public function center(): Response
+    {
+        Gate::authorize('viewCommandCenter');
+
+        return Inertia::render('command/center', [
+            'backUrl' => route('command.index'),
+        ]);
+    }
+
     public function map(Request $request, CommandCenterPage $page): Response
     {
         Gate::authorize('viewCommandCenter');

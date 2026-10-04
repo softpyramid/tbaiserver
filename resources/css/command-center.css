@@ -1,0 +1,963 @@
+/*
+ * Command center (prototype layout).
+ *
+ * The desktop view is a fixed 1456 x 819 stage, every block absolutely
+ * positioned and the whole stage scaled to the window, exactly like the
+ * prototype. Phone widths (under 768 px) drop the stage and stack the blocks;
+ * nothing in the phone block applies above that width.
+ */
+.cc-root {
+    --bg: #d5e9f7;
+    --ink: #111;
+    --w: #10205a;
+    --font: 'Poppins', 'Century Gothic', 'Segoe UI', Arial, sans-serif;
+
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: var(--font);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: normal;
+    text-align: left;
+    -webkit-text-size-adjust: 100%;
+}
+
+.cc-root *,
+.cc-root *::before,
+.cc-root *::after {
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.cc-root button {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.cc-root :focus-visible {
+    outline: 3px solid #d6006e;
+    outline-offset: 2px;
+}
+
+.cc-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.cc-stage {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1456px;
+    height: 819px;
+    background: var(--bg);
+    transform-origin: 0 0;
+    overflow: hidden;
+}
+
+.cc-bgimg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1456px;
+    height: 819px;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center top;
+    z-index: 0;
+}
+
+.cc-stage[data-bg='lab'] .cc-bgimg {
+    background-image: url('/command/bg-lab.jpg');
+}
+
+.cc-stage[data-bg='ajrak'] .cc-bgimg {
+    background-image: url('/command/bg-ajrak.jpg');
+    background-position: center center;
+}
+
+@supports (background-image: image-set(url('/a.webp') type('image/webp'))) {
+    .cc-stage[data-bg='lab'] .cc-bgimg {
+        background-image: image-set(
+            url('/command/bg-lab.webp') type('image/webp'),
+            url('/command/bg-lab.jpg') type('image/jpeg')
+        );
+    }
+
+    .cc-stage[data-bg='ajrak'] .cc-bgimg {
+        background-image: image-set(
+            url('/command/bg-ajrak.webp') type('image/webp'),
+            url('/command/bg-ajrak.jpg') type('image/jpeg')
+        );
+    }
+}
+
+.cc-abs {
+    position: absolute;
+}
+
+.cc-title {
+    position: absolute;
+    left: 0;
+    width: 1514px;
+    top: 10px;
+    text-align: center;
+    color: var(--w);
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 54px;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.cc-title span {
+    background: rgba(255, 255, 255, 0.82);
+    padding: 2px 30px;
+    border-radius: 32px;
+    box-shadow: 0 2px 10px rgba(16, 32, 90, 0.25);
+}
+
+.cc-lg {
+    position: absolute;
+    z-index: 3;
+    display: block;
+    max-width: none;
+    width: auto;
+}
+
+.cc-lg1 {
+    left: 10px;
+    top: 4px;
+    height: 62px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 2px 4px;
+    box-shadow: 0 0 10px rgba(16, 32, 90, 0.3);
+}
+
+.cc-lg2 {
+    right: 14px;
+    top: 3px;
+    height: 62px;
+    border-radius: 12px;
+    box-shadow: 0 0 14px rgba(120, 200, 255, 0.6);
+}
+
+/* navigation pills */
+.cc-nav {
+    position: absolute;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 40px;
+    cursor: pointer;
+    font: 400 21px/26px var(--font);
+    white-space: nowrap;
+    color: var(--ink);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: linear-gradient(160deg, #a5e9f2 0%, #c4bff8 45%, #a97ff0 100%);
+    box-shadow: 0 5px 9px rgba(0, 0, 0, 0.4);
+    transition:
+        filter 0.15s,
+        transform 0.15s;
+}
+
+.cc-nav:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.cc-nav:active {
+    transform: translateY(1px);
+}
+
+.cc-nav.on {
+    background: linear-gradient(160deg, #7fe6fa 0%, #ffd3a8 40%, #d9ff00 100%);
+}
+
+.cc-nav.on.g2 {
+    background: linear-gradient(160deg, #ffee7a 0%, #c7ff4d 55%, #7dff00 100%);
+}
+
+.cc-nav small {
+    font-size: 20px;
+    line-height: 27px;
+}
+
+.cc-nav-sm {
+    font-size: 20px;
+}
+
+/* chips */
+.cc-chip {
+    display: inline-block;
+    padding: 5px 13px;
+    border-radius: 20px;
+    cursor: pointer;
+    font: 400 13px/normal var(--font);
+    color: #111;
+    background: linear-gradient(160deg, #a5e9f2, #c4bff8 45%, #a97ff0);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+    transition: filter 0.15s;
+}
+
+.cc-chip:hover {
+    filter: brightness(1.1);
+}
+
+.cc-chip.on {
+    background: linear-gradient(160deg, #7fe6fa, #ffd3a8 40%, #d9ff00);
+}
+
+.cc-chip.run {
+    background: #ff3131;
+    color: #fff;
+}
+
+.cc-chip.d {
+    background: linear-gradient(160deg, #dfe9ff, #c4bff8);
+}
+
+/* generic text + link */
+.cc-txt {
+    position: absolute;
+    color: var(--w);
+    font-size: 23px;
+    line-height: 35px;
+    white-space: nowrap;
+}
+
+.cc-lnk {
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 5px;
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+}
+
+.cc-lnk:hover {
+    color: #d6006e;
+}
+
+/* page 1 table */
+.cc-tbl {
+    position: absolute;
+    left: 374px;
+    top: 109px;
+    width: 978px;
+    height: 648px;
+    border-collapse: collapse;
+    background: #b3b3f1;
+    table-layout: fixed;
+}
+
+.cc-stage[data-bg='lab'] .cc-tbl {
+    background: rgba(179, 179, 241, 0.72);
+}
+
+.cc-tbl td,
+.cc-tbl th {
+    border: 1px solid #d3d3f7;
+    padding: 0 6px;
+    font-size: 16px;
+    color: #111;
+    height: 54px;
+    text-align: left;
+    font-weight: 400;
+}
+
+.cc-tbl th:first-child,
+.cc-tbl td:first-child {
+    width: 300px;
+}
+
+.cc-tbl th:nth-child(2),
+.cc-tbl td:nth-child(2) {
+    width: 470px;
+}
+
+.cc-tbl td:nth-child(3),
+.cc-tbl th:nth-child(3) {
+    text-align: right;
+}
+
+.cc-tbl .v {
+    font-weight: 600;
+}
+
+/* panels, tiles, rings */
+.cc-pn {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.74);
+    border: 1px solid rgba(16, 32, 90, 0.25);
+    border-radius: 16px;
+    padding: 10px 14px;
+    color: #10205a;
+    box-shadow: 0 4px 12px rgba(16, 32, 90, 0.15);
+}
+
+.cc-pn h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 22px;
+}
+
+.cc-pn .sub,
+.cc-sub {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.cc-kp {
+    display: grid;
+    gap: 8px;
+}
+
+.cc-kp > div {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(16, 32, 90, 0.18);
+    border-radius: 10px;
+    padding: 5px 9px;
+    font-size: 11px;
+    line-height: 15px;
+}
+
+.cc-kp b {
+    display: block;
+    font-size: 17px;
+    line-height: 22px;
+}
+
+.cc-ring {
+    text-align: center;
+    width: 150px;
+}
+
+.cc-ring-label {
+    font-size: 12px;
+}
+
+.cc-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    margin: 2px 0;
+}
+
+.cc-legend i {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    vertical-align: -2px;
+}
+
+.cc-root svg text {
+    font-family: var(--font);
+}
+
+.cc-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.cc-svg-inline {
+    display: inline;
+    vertical-align: baseline;
+}
+
+.cc-hit {
+    cursor: pointer;
+}
+
+.cc-hit:focus-visible {
+    outline: none;
+}
+
+.cc-hit:focus-visible > rect:nth-of-type(2) {
+    stroke: #d6006e;
+    stroke-width: 2px;
+}
+
+/* tooltip */
+.cc-gtip {
+    position: absolute;
+    display: none;
+    z-index: 12;
+    pointer-events: none;
+    background: rgba(16, 32, 90, 0.95);
+    border: 1px solid #7fe6fa;
+    border-radius: 10px;
+    padding: 7px 11px;
+    font-size: 13px;
+    color: #fff;
+    line-height: 19px;
+    white-space: nowrap;
+}
+
+/* sector tables */
+.cc-dtw {
+    position: absolute;
+    left: 340px;
+    top: 130px;
+    width: 1100px;
+    height: 655px;
+    overflow: auto;
+    background: #b3b3f1;
+    border: 1px solid #d3d3f7;
+}
+
+.cc-dt {
+    width: 100%;
+    font-size: 13px;
+    color: #111;
+    border-collapse: collapse;
+}
+
+.cc-dt th {
+    position: sticky;
+    top: 0;
+    background: #8b8be6;
+    cursor: pointer;
+    padding: 7px 8px;
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 13px;
+    border: 0;
+}
+
+.cc-dt th button {
+    all: unset;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    display: block;
+    width: 100%;
+    text-align: inherit;
+}
+
+.cc-dt th button:focus-visible {
+    outline: 3px solid #d6006e;
+    outline-offset: 2px;
+}
+
+.cc-dt th:first-child,
+.cc-dt td:first-child {
+    text-align: left;
+}
+
+.cc-dt td {
+    padding: 5px 8px;
+    text-align: right;
+    border: 1px solid #d3d3f7;
+    border-width: 0 0 1px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.cc-dt tr:hover td {
+    background: #cfcffb;
+    cursor: pointer;
+}
+
+.cc-dt .tot td {
+    font-weight: 700;
+    background: #9c9cec;
+}
+
+.cc-dt tbody tr:focus-visible {
+    outline: 3px solid #d6006e;
+    outline-offset: -3px;
+}
+
+/* BMU modal */
+.cc-modal {
+    position: absolute;
+    left: 335px;
+    top: 88px;
+    width: 1105px;
+    height: 718px;
+    z-index: 8;
+    background: rgba(232, 243, 255, 0.97);
+    border: 1px solid rgba(16, 32, 90, 0.35);
+    border-radius: 18px;
+    padding: 14px 18px;
+    color: #10205a;
+    box-shadow: 0 10px 30px rgba(16, 32, 90, 0.4);
+}
+
+.cc-modal .x {
+    position: absolute;
+    right: 16px;
+    top: 12px;
+    font-size: 22px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    background: #10205a;
+    color: #fff;
+    border: 0;
+    padding: 0;
+}
+
+.cc-cr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* map side panel */
+.cc-side {
+    position: absolute;
+    left: 975px;
+    top: 92px;
+    width: 450px;
+    color: #10205a;
+    font-size: 13px;
+}
+
+.cc-sh {
+    margin: 9px 0 5px;
+    opacity: 0.7;
+    font-size: 12px;
+}
+
+.cc-lgd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 9px 0;
+}
+
+.cc-lgd i {
+    flex: 1;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #4a3fe0, #7fe6fa, #d9ff00);
+}
+
+.cc-card {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(16, 32, 90, 0.25);
+    border-radius: 14px;
+    padding: 10px 12px;
+}
+
+.cc-gr {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 10px;
+    margin: 6px 0;
+}
+
+.cc-gr span {
+    font-size: 11px;
+    opacity: 0.95;
+}
+
+.cc-gr b {
+    display: block;
+    font-size: 15px;
+}
+
+.cc-tr {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 3px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    background: none;
+    border: 0;
+    color: inherit;
+    text-align: left;
+}
+
+.cc-tr:hover,
+.cc-tr.on {
+    background: rgba(16, 32, 90, 0.14);
+}
+
+.cc-tip {
+    position: absolute;
+    display: none;
+    z-index: 5;
+    pointer-events: none;
+    background: rgba(12, 0, 90, 0.94);
+    border: 1px solid #7fe6fa;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fff;
+    line-height: 20px;
+}
+
+.cc-lb {
+    font-size: 9.5px;
+    fill: #fff;
+    paint-order: stroke;
+    stroke: #12007a;
+    stroke-width: 2.5px;
+    pointer-events: none;
+}
+
+/* AI assisted testing cards */
+.cc-ac {
+    position: absolute;
+    width: 530px;
+    height: 290px;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(16, 32, 90, 0.25);
+    border-radius: 18px;
+    padding: 18px 24px;
+    color: #10205a;
+    font-size: 19px;
+    line-height: 30px;
+}
+
+.cc-ac h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.cc-big2 {
+    font-size: 64px;
+    font-weight: 600;
+    line-height: 74px;
+    color: #10205a;
+}
+
+.cc-bt {
+    height: 14px;
+    border-radius: 7px;
+    background: rgba(16, 32, 90, 0.15);
+    margin: 10px 0;
+}
+
+.cc-bt i {
+    display: block;
+    height: 100%;
+    border-radius: 7px;
+    width: 0;
+}
+
+/* status text and footer bits */
+.cc-state {
+    color: #10205a;
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.cc-back {
+    position: absolute;
+    left: 340px;
+    bottom: 6px;
+    font-size: 11px;
+    color: #10205a;
+    opacity: 0.75;
+    text-decoration: underline;
+}
+
+.cc-back:hover {
+    opacity: 1;
+}
+
+.cc-pager {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    text-align: center;
+    opacity: 0.12;
+    transition: opacity 0.2s;
+}
+
+.cc-pager:hover,
+.cc-pager:focus-within {
+    opacity: 0.9;
+}
+
+.cc-pager button {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #10205a;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.cc-pager button.on {
+    opacity: 1;
+}
+
+.cc-page {
+    display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cc-nav,
+    .cc-chip,
+    .cc-pager {
+        transition: none;
+    }
+
+    .cc-nav:hover,
+    .cc-nav:active {
+        transform: none;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phone (under 768 px): stacked blocks, nothing above is changed.     */
+/* ------------------------------------------------------------------ */
+@media (max-width: 767px) {
+    .cc-root {
+        position: relative;
+        inset: auto;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: visible;
+    }
+
+    .cc-stage {
+        position: relative;
+        left: auto;
+        top: auto;
+        width: 100%;
+        height: auto;
+        min-height: 100dvh;
+        transform: none !important;
+        overflow: visible;
+        padding: 0 0 56px;
+        background: transparent;
+    }
+
+    .cc-bgimg {
+        position: fixed;
+        inset: 0;
+        width: auto;
+        height: auto;
+    }
+
+    .cc-head {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px 4px;
+    }
+
+    .cc-title {
+        position: static;
+        width: auto;
+        flex: 1;
+        font-size: 15px;
+        line-height: 20px;
+        white-space: normal;
+    }
+
+    .cc-title span {
+        display: block;
+        padding: 6px 12px;
+        border-radius: 20px;
+    }
+
+    .cc-lg {
+        position: static;
+        height: 40px;
+        width: auto;
+        flex: none;
+    }
+
+    .cc-lg1,
+    .cc-lg2 {
+        height: 40px;
+        border-radius: 8px;
+    }
+
+    .cc-navs {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 6px 10px 10px;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+    }
+
+    .cc-nav {
+        position: static !important;
+        width: auto !important;
+        height: 44px !important;
+        flex: none;
+        padding: 0 16px;
+        font-size: 15px !important;
+        line-height: 18px !important;
+        scroll-snap-align: start;
+    }
+
+    .cc-nav small {
+        font-size: 15px;
+        line-height: 18px;
+    }
+
+    .cc-nav br {
+        display: none;
+    }
+
+    .cc-nav small::after,
+    .cc-nav-sm::after {
+        content: '';
+    }
+
+    .cc-main {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 6px 10px 0;
+    }
+
+    .cc-abs,
+    .cc-pn,
+    .cc-txt,
+    .cc-dtw,
+    .cc-side,
+    .cc-ac,
+    .cc-tbl {
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        left: auto !important;
+        top: auto !important;
+        margin: 0 !important;
+    }
+
+    .cc-pn {
+        padding: 10px 12px;
+    }
+
+    .cc-txt {
+        white-space: normal;
+        font-size: 17px;
+        line-height: 26px;
+    }
+
+    .cc-tbl {
+        display: block;
+        overflow-x: auto;
+        table-layout: auto;
+        width: 100% !important;
+    }
+
+    .cc-tbl td,
+    .cc-tbl th {
+        font-size: 14px;
+        height: auto;
+        padding: 8px 8px;
+    }
+
+    .cc-tbl td:first-child,
+    .cc-tbl td:nth-child(2) {
+        width: auto;
+    }
+
+    .cc-dtw {
+        max-height: 70dvh;
+        overflow: auto;
+        width: 100% !important;
+    }
+
+    .cc-dt td:first-child,
+    .cc-dt th:first-child {
+        position: sticky;
+        left: 0;
+        background: #b3b3f1;
+        z-index: 1;
+    }
+
+    .cc-dt th:first-child {
+        background: #8b8be6;
+        z-index: 2;
+    }
+
+    .cc-dt .tot td:first-child {
+        background: #9c9cec;
+    }
+
+    .cc-kp[style] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .cc-ring {
+        width: 33%;
+    }
+
+    .cc-modal {
+        position: fixed;
+        inset: 0;
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        overflow: auto;
+        z-index: 20;
+    }
+
+    .cc-back {
+        position: static;
+        display: block;
+        text-align: center;
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .cc-pager {
+        display: none;
+    }
+
+    .cc-chip {
+        padding: 10px 14px;
+    }
+
+    .cc-root button,
+    .cc-root a {
+        min-height: 44px;
+    }
+
+    .cc-legend {
+        flex-wrap: wrap;
+    }
+}

@@ -18,6 +18,7 @@ void createInertiaApp({
             case name === 'terms':
             case name === 'about':
             case name === 'access-request':
+            case name === 'command/center':
             case name.startsWith('errors/'):
                 return null;
             case name.startsWith('auth/'):

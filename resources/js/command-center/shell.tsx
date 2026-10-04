@@ -1,0 +1,249 @@
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { PlaceholderPage } from './pages/placeholder';
+import { CumulativePage } from './pages/cumulative';
+import { TipProvider } from './tooltip';
+import type { Envelope, Frame, Screen } from './types';
+import { at, LoadState } from './ui';
+import { useApi } from './use-api';
+
+/** Pill geometry on the stage: [left, top, width, height], from the prototype. */
+const NAV_BOX: Record<number, [number, number, number, number]> = {
+    1: [38, 69, 267, 64],
+    2: [36, 153, 266, 64],
+    3: [36, 237, 266, 64],
+    4: [33, 321, 265, 64],
+    5: [33, 405, 265, 64],
+    6: [36, 489, 266, 64],
+    7: [36, 573, 266, 64],
+    8: [38, 657, 266, 64],
+    9: [36, 741, 266, 64],
+};
+
+const STAGE_W = 1456;
+const STAGE_H = 819;
+
+function numberFromHash(): number {
+    return Number.parseInt(window.location.hash.slice(1), 10) || 1;
+}
+
+function useStageFit() {
+    const [fit, setFit] = useState<{
+        scale: number;
+        left: number;
+        top: number;
+    } | null>(null);
+
+    useEffect(() => {
+        const phone = window.matchMedia('(max-width: 767px)');
+        const apply = () => {
+            if (phone.matches) {
+                setFit(null);
+
+                return;
+            }
+
+            setFit({
+                scale: Math.min(
+                    window.innerWidth / STAGE_W,
+                    window.innerHeight / STAGE_H,
+                ),
+                left: window.innerWidth / 2,
+                top: window.innerHeight / 2,
+            });
+        };
+
+        apply();
+        window.addEventListener('resize', apply);
+
+        return () => window.removeEventListener('resize', apply);
+    }, []);
+
+    return fit;
+}
+
+export function CommandShell({ backUrl }: { backUrl: string }) {
+    const stage = useRef<HTMLDivElement>(null);
+    const fit = useStageFit();
+    const frame = useApi<Envelope<Frame>>('/api/command/frame');
+    const [wanted, setWanted] = useState<number>(() => numberFromHash());
+
+    const screens = useMemo<Screen[]>(
+        () => frame.data?.data.screens ?? [],
+        [frame.data],
+    );
+    const current = screens.find((s) => s.number === wanted) ?? screens[0];
+
+    useEffect(() => {
+        if (!window.location.hash) {
+            window.history.replaceState(null, '', '#1');
+        }
+
+        const onHash = () => setWanted(numberFromHash());
+
+        window.addEventListener('hashchange', onHash);
+
+        return () => window.removeEventListener('hashchange', onHash);
+    }, []);
+
+    const go = (screen: Screen) => {
+        setWanted(screen.number);
+        window.history.replaceState(null, '', `#${screen.number}`);
+    };
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+
+            if (
+                e.altKey ||
+                e.ctrlKey ||
+                e.metaKey ||
+                (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName))
+            ) {
+                return;
+            }
+
+            const at_ = screens.findIndex((s) => s.number === current?.number);
+            const next =
+                e.key === 'ArrowRight' || e.key === 'PageDown'
+                    ? screens[Math.min(screens.length - 1, at_ + 1)]
+                    : e.key === 'ArrowLeft' || e.key === 'PageUp'
+                      ? screens[Math.max(0, at_ - 1)]
+                      : null;
+
+            if (next && next !== current) {
+                go(next);
+            }
+        };
+
+        window.addEventListener('keydown', onKey);
+
+        return () => window.removeEventListener('keydown', onKey);
+    });
+
+    const data = frame.data?.data;
+    const style = fit
+        ? {
+              left: fit.left,
+              top: fit.top,
+              transform: `scale(${fit.scale}) translate(-50%,-50%)`,
+          }
+        : undefined;
+
+    return (
+        <div className="cc-root">
+            <div
+                ref={stage}
+                className="cc-stage"
+                data-bg={current?.background ?? 'lab'}
+                style={style}
+            >
+                <div className="cc-bgimg" aria-hidden="true" />
+                <TipProvider stageRef={stage}>
+                    <header className="cc-head">
+                        <img
+                            className="cc-lg cc-lg1"
+                            alt="Government of Sindh"
+                            src="/command/logo-sindh-govt.png"
+                            width={142}
+                            height={152}
+                        />
+                        <h1 className="cc-title">
+                            <span>
+                                {data?.title ??
+                                    'TB-AI Sindh Govt. Super Intelligence Command Center'}
+                            </span>
+                        </h1>
+                        <img
+                            className="cc-lg cc-lg2"
+                            alt="TB-AI"
+                            src="/command/logo-tbai.png"
+                            width={209}
+                            height={222}
+                        />
+                    </header>
+
+                    <nav className="cc-navs" aria-label="Command center pages">
+                        {screens.map((s) => {
+                            const box = NAV_BOX[s.number] ?? NAV_BOX[1];
+                            const on = s.number === current?.number;
+                            const small = s.label_lines.length > 1;
+
+                            return (
+                                <button
+                                    key={s.number}
+                                    type="button"
+                                    className={`cc-nav${s.accent === 'alt' ? ' g2' : ''}${on ? ' on' : ''}${s.number === 6 || s.number === 7 ? ' cc-nav-sm' : ''}`}
+                                    style={{
+                                        ...at(box[0], box[1], box[2], box[3]),
+                                    }}
+                                    aria-current={on ? 'page' : undefined}
+                                    onClick={() => go(s)}
+                                >
+                                    {small ? (
+                                        <small>
+                                            {s.label_lines.map((line, i) => (
+                                                <Fragment key={line}>
+                                                    {i > 0 ? (
+                                                        <>
+                                                            {' '}
+                                                            <br />
+                                                        </>
+                                                    ) : null}
+                                                    {line}
+                                                </Fragment>
+                                            ))}
+                                        </small>
+                                    ) : (
+                                        s.label
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </nav>
+
+                    <main
+                        className="cc-main"
+                        id="cc-main"
+                        aria-label={current?.label}
+                    >
+                        {frame.loading || frame.error ? (
+                            <LoadState
+                                loading={frame.loading}
+                                error={frame.error}
+                                onRetry={frame.reload}
+                            />
+                        ) : current?.key === 'cumulative' ? (
+                            <CumulativePage key={current.key} />
+                        ) : current ? (
+                            <PlaceholderPage
+                                key={current.key}
+                                title={current.label}
+                            />
+                        ) : null}
+                    </main>
+
+                    <a className="cc-back" href={backUrl}>
+                        Back to the app
+                    </a>
+
+                    <div className="cc-pager">
+                        {screens.map((s) => (
+                            <button
+                                key={s.number}
+                                type="button"
+                                className={
+                                    s.number === current?.number
+                                        ? 'on'
+                                        : undefined
+                                }
+                                aria-label={s.label}
+                                onClick={() => go(s)}
+                            />
+                        ))}
+                    </div>
+                </TipProvider>
+            </div>
+        </div>
+    );
+}

@@ -7,7 +7,8 @@ use Illuminate\Database\Seeder;
 /**
  * Staging data for the command center: the 29 Sindh districts, facilities
  * and returns that reproduce the programme headline, monthly outcome and
- * driver tables, province incidence, and the AI testing fixtures.
+ * driver tables, province incidence, the AI testing fixtures, and the
+ * prototype's Public, Private and PPM district tables.
  *
  * Runs only in local, dev, and staging. In any other environment (production
  * included) it writes nothing. Deterministic and safe to run again: each
@@ -29,6 +30,7 @@ class CommandPrototypeSeeder extends Seeder
             CommandGeographySeeder::class,
             CommandFacilitySeeder::class,
             CommandIndicatorSeeder::class,
+            CommandSectorIndicatorSeeder::class,
         ]);
     }
 }

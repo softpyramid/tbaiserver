@@ -97,6 +97,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');
 
     Route::get('command', [CommandCenterController::class, 'index'])->name('command.index');
+    Route::get('command/center', [CommandCenterController::class, 'center'])->name('command.center');
     Route::get('command/map', [CommandCenterController::class, 'map'])->name('command.map');
     Route::get('command/alerts', [CommandCenterController::class, 'alerts'])->name('command.alerts');
     Route::patch('command/alerts/rules/{alertRule}', [CommandCenterController::class, 'updateAlertRule'])->name('command.alerts.update');

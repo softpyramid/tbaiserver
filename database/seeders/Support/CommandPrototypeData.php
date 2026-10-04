@@ -7,8 +7,8 @@ namespace Database\Seeders\Support;
  *
  * Every figure derives from fixed arithmetic (a sine hash, no random calls),
  * so two runs give the same numbers. The "All" dataset is the programme
- * headline. The three sector datasets are scaled so that, district by district,
- * Public + Private + PPM adds up to All exactly.
+ * headline. The three sector datasets are scaled together so that, across
+ * the 87 district-sector cells, Public + Private + PPM adds up to All exactly.
  */
 final class CommandPrototypeData
 {
@@ -128,8 +128,14 @@ final class CommandPrototypeData
 
     /**
      * The per district, per sector targets that add up to the All dataset.
-     * Counts are split by the prototype's own sector shares. Rates come from
-     * the sector dataset. The result is cached for the process.
+     *
+     * Each sector keeps the prototype's own sector table. The counts of all
+     * 87 cells (29 districts times three sectors) are then scaled together,
+     * metric by metric, so that they sum to the All headline exactly (the
+     * prototype's sector tables add up to about 0.5 percent more than its All
+     * dataset). Rates are the sector table's own, moved by one constant per rate
+     * so the weighted programme rate equals the All headline (the prototype's
+     * All and sector tables disagree on rates). The result is cached.
      *
      * @return array<string, list<array<string, float|int|string>>>
      */
@@ -142,57 +148,107 @@ final class CommandPrototypeData
         }
 
         $all = self::dataset('all');
-        $sectors = ['public' => self::dataset('public'), 'private' => self::dataset('private'), 'ppm' => self::dataset('ppm')];
+        $order = ['public', 'private', 'ppm'];
+        $sectors = [];
+
+        foreach ($order as $sector) {
+            $sectors[$sector] = self::dataset($sector);
+        }
+
         $cache = ['public' => [], 'private' => [], 'ppm' => []];
+        $cells = count($all);
 
-        foreach ($all as $i => $total) {
-            $split = [];
+        foreach (['sus', 'tested', 'pos', 'st', 'mdr', 'ai'] as $metric) {
+            $weights = [];
 
-            foreach (['sus', 'tested', 'pos', 'mdr', 'ai'] as $metric) {
-                $split[$metric] = self::alloc(
-                    (int) $total[$metric],
-                    [(float) $sectors['public'][$i][$metric], (float) $sectors['private'][$i][$metric], (float) $sectors['ppm'][$i][$metric]],
-                );
-            }
-
-            $split['st'] = self::alloc((int) $total['st'], $split['pos']);
-
-            // Shift the three sector rates by one amount so that, weighted by
-            // tests (turnaround) or by treatment starts (outcomes), the district
-            // rate equals the All dataset's rate. Sectors keep their differences.
-            $rates = [
-                'public' => ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0],
-                'private' => ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0],
-                'ppm' => ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0],
-            ];
-            foreach (['tat' => 'tested', 'su' => 'st', 'ltfu' => 'st'] as $rate => $weight) {
-                $weights = array_map(fn (int $position): int => max(1, (int) $split[$weight][$position]), [0, 1, 2]);
-                $mix = 0.0;
-                foreach (['public', 'private', 'ppm'] as $position => $sector) {
-                    $mix += $weights[$position] * (float) $sectors[$sector][$i][$rate];
-                }
-                $delta = (float) $total[$rate] - $mix / array_sum($weights);
-                foreach (['public', 'private', 'ppm'] as $position => $sector) {
-                    $rates[$sector][$rate] = (float) $sectors[$sector][$i][$rate] + $delta;
+            foreach ($order as $sector) {
+                foreach ($sectors[$sector] as $row) {
+                    $weights[] = (float) $row[$metric];
                 }
             }
 
-            foreach (array_keys($cache) as $position => $sector) {
-                $row = $sectors[$sector][$i];
+            $total = (int) array_sum(array_map(fn (array $row): int => (int) $row[$metric], $all));
+            $scaled = self::alloc($total, $weights);
 
-                foreach (['sus', 'tested', 'pos', 'st', 'mdr', 'ai'] as $metric) {
-                    $row[$metric] = $split[$metric][$position];
+            foreach ($order as $position => $sector) {
+                foreach ($sectors[$sector] as $i => $row) {
+                    $sectors[$sector][$i][$metric] = $scaled[$position * $cells + $i];
                 }
+            }
+        }
 
-                $row['tat'] = max(.5, $rates[$sector]['tat']);
-                $row['su'] = min(98.0, $rates[$sector]['su']);
-                $row['ltfu'] = max(.5, $rates[$sector]['ltfu']);
+        // One shift per rate, the same for every cell, so that the programme
+        // rate (weighted by tests for turnaround, by treatment starts for
+        // outcomes) equals the prototype's All headline. The sectors keep
+        // their differences from each other.
+        $rates = static function (array $shift) use ($order, $sectors): array {
+            $acc = ['tat' => [0.0, 0.0], 'su' => [0.0, 0.0], 'ltfu' => [0.0, 0.0]];
 
+            foreach ($order as $sector) {
+                foreach ($sectors[$sector] as $row) {
+                    [$tat, $su, $ltfu] = self::shifted($row, $shift);
+                    $acc['tat'][0] += $tat * (int) $row['tested'];
+                    $acc['tat'][1] += (int) $row['tested'];
+                    $acc['su'][0] += $su * (int) $row['st'];
+                    $acc['su'][1] += (int) $row['st'];
+                    $acc['ltfu'][0] += $ltfu * (int) $row['st'];
+                    $acc['ltfu'][1] += (int) $row['st'];
+                }
+            }
+
+            return array_map(fn (array $a): float => $a[1] > 0 ? $a[0] / $a[1] : 0.0, $acc);
+        };
+
+        // The prototype shows 3.1 days as its turnaround headline (a median of
+        // district values), so that is the target; the other two are the means
+        // of the All dataset.
+        $target = [
+            'tat' => 3.077,
+            'su' => array_sum(array_map(fn (array $row): float => (float) $row['su'], $all)) / $cells,
+            'ltfu' => array_sum(array_map(fn (array $row): float => (float) $row['ltfu'], $all)) / $cells,
+        ];
+        $shift = ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0];
+
+        // The clamps in shifted() make the mean move less than the shift, so
+        // walk towards the target.
+        for ($i = 0; $i < 12; $i++) {
+            $now = $rates($shift);
+
+            foreach ($shift as $rate => $value) {
+                $shift[$rate] = $value + $target[$rate] - $now[$rate];
+            }
+        }
+
+        foreach ($order as $sector) {
+            foreach ($sectors[$sector] as $row) {
+                [$row['tat'], $row['su'], $row['ltfu']] = self::shifted($row, $shift);
+
+                // Scaling each metric on its own can, in a very small cell, put
+                // a later step of the pathway above an earlier one.
+                $row['tested'] = min((int) $row['tested'], (int) $row['sus']);
+                $row['pos'] = min((int) $row['pos'], (int) $row['tested']);
+                $row['st'] = min((int) $row['st'], (int) $row['pos']);
                 $cache[$sector][] = $row;
             }
         }
 
         return $cache;
+    }
+
+    /**
+     * One cell's turnaround, success and loss rates after the programme shift.
+     * Success and loss can never add up to more than 97 percent.
+     *
+     * @param  array<string, float|int|string>  $row
+     * @param  array<string, float>  $shift
+     * @return array{0: float, 1: float, 2: float}
+     */
+    private static function shifted(array $row, array $shift): array
+    {
+        $ltfu = max(.5, (float) $row['ltfu'] + $shift['ltfu']);
+        $su = min(97.0 - $ltfu, (float) $row['su'] + $shift['su']);
+
+        return [max(.5, (float) $row['tat'] + $shift['tat']), $su, $ltfu];
     }
 
     /**

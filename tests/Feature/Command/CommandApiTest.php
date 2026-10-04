@@ -115,9 +115,9 @@ test('admin sees the prototype headline, four alerts and the same shape every ro
         ->and($alerts->json('data.alert_center.lines.2.subject.name'))->toBe('Karachi Central')
         ->and($alerts->json('data.alert_center.lines.3.values'))->toBe(['from_days' => 3.2, 'to_days' => 1.4])
         ->and($alerts->json('data.top8'))->toHaveCount(3)
-        ->and($alerts->json('data.top8.0.items.0.name'))->toBe('Karachi Central')
+        ->and($alerts->json('data.top8.0.items.0.name'))->toBe('Naushahro Feroze')
         ->and($alerts->json('data.top8.0.items'))->toHaveCount(8)
-        ->and($alerts->json('data.top8.2.items.0.value'))->toBe(385);
+        ->and($alerts->json('data.top8.2.items.0.value'))->toBe(301);
 });
 
 test('sector pages add up to the programme total and sort', function () {
@@ -177,7 +177,7 @@ test('city officers, provincial viewers and country viewers only get their scope
 
     $cumulative = $this->actingAs($users['karachi_west'])->getJson("/api/command/cumulative?district={$sukkur->id}")->assertOk();
     expect($cumulative->json('meta.scope_name'))->toBe('Karachi West')
-        ->and($cumulative->json('data.cascade.0.value'))->toBe(24446);
+        ->and($cumulative->json('data.cascade.0.value'))->toBe(20522);
 
     $rows = $this->actingAs($users['karachi_west'])->getJson('/api/command/sectors/public')->assertOk();
     expect($rows->json('data.rows'))->toHaveCount(1)
@@ -240,7 +240,7 @@ test('map, drivers and incidence honour the contract', function () {
     expect($drivers->json('data.variables'))->toHaveCount(11)
         ->and(collect($drivers->json('data.variables'))->every(fn (array $v): bool => $v['available']))->toBeTrue()
         ->and($drivers->json('data.categories'))->toHaveCount(6)
-        ->and($drivers->json('data.categories.0.priority.0.name'))->toBe('Umerkot')
+        ->and($drivers->json('data.categories.0.priority.0.name'))->toBe('Dadu')
         ->and($drivers->json('data.categories.4.lowest_is_worst'))->toBeTrue()
         ->and($drivers->json('data.categories.0.responses'))->toHaveCount(2);
 

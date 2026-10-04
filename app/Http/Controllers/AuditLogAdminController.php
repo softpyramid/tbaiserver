@@ -42,6 +42,7 @@ class AuditLogAdminController extends Controller
             ['key' => 'who', 'label' => __('entry.column_who')],
             ['key' => 'action', 'label' => __('entry.column_action')],
             ['key' => 'subject', 'label' => __('entry.column_subject')],
+            ['key' => 'details', 'label' => __('entry.column_details')],
         ];
 
         $cells = fn (AuditLog $log): array => [
@@ -51,6 +52,7 @@ class AuditLogAdminController extends Controller
             'subject' => $log->subject_type === null
                 ? __('entry.not_available')
                 : class_basename($log->subject_type).' #'.$log->subject_id,
+            'details' => $this->details($log),
         ];
 
         if (ResourceResponse::wantsCsv($request)) {
@@ -96,5 +98,25 @@ class AuditLogAdminController extends Controller
                 ],
             ],
         );
+    }
+
+    /**
+     * Short, non-sensitive context kept on the row: the address a sign-in style
+     * action came from and who was being viewed as. No patient data is stored.
+     */
+    private function details(AuditLog $log): string
+    {
+        $properties = $log->properties ?? [];
+        $parts = [];
+
+        if (is_string($properties['ip'] ?? null)) {
+            $parts[] = 'IP '.$properties['ip'];
+        }
+
+        if (is_int($properties['impersonated_by'] ?? null)) {
+            $parts[] = __('entry.audit_viewing_as', ['id' => $properties['impersonated_by']]);
+        }
+
+        return $parts === [] ? '' : implode(', ', $parts);
     }
 }

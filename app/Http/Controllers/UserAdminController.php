@@ -103,6 +103,18 @@ class UserAdminController extends Controller
                 ];
             }
 
+            if ($actor !== null && Gate::forUser($actor)->allows('impersonate', $user)) {
+                $controls[] = [
+                    'kind' => 'button',
+                    'url' => route('impersonation.start', $user),
+                    'method' => 'post',
+                    'label' => __('entry.impersonate'),
+                    'person' => $user->name,
+                    'confirm' => true,
+                    'fields' => [],
+                ];
+            }
+
             $isActive = $user->deactivated_at === null;
             $isSelf = $actor !== null && $actor->is($user);
 

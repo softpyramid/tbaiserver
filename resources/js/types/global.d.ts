@@ -17,6 +17,13 @@ declare module '@inertiajs/core' {
             myFacilityUrl: string | null;
             screeningUrl: string | null;
             facilitiesUrl: string | null;
+            impersonation: {
+                name: string;
+                stopUrl: string;
+                banner: string;
+                returnLabel: string;
+                stopLabel: string;
+            } | null;
             nav: {
                 shell: 'facility' | 'sidebar';
                 activeTab: string | null;

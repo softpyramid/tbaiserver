@@ -5,7 +5,9 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import PendingInvitationsModal from '@/components/pending-invitations-modal';
+import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { PhoneTabBar } from '@/components/phone-tab-bar';
+import { PhoneTopBar } from '@/components/phone-top-bar';
 import { ReturnSync } from '@/components/return-sync';
 import { useSessionGuard } from '@/hooks/use-session-guard';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,8 @@ export default function AppSidebarLayout({
                     phoneTabs && 'max-md:pb-[var(--entry-tab-offset)]',
                 )}
             >
+                <ImpersonationBanner />
+                {phoneTabs ? <PhoneTopBar /> : null}
                 <div className={phoneTabs ? 'max-md:hidden' : undefined}>
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 </div>

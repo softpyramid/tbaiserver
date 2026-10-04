@@ -421,4 +421,12 @@ return [
     'column_subject' => 'Subject',
     'filtered_by' => 'Showing :value only.',
     'map_zero_hidden' => 'Districts with no returns in this period are hidden.',
+    'impersonate' => 'Log in as this user',
+    'impersonate_confirm' => 'You will see TB-AI as this person does. Everything you do is recorded. You cannot change their password, email or two-factor settings.',
+    'impersonation_banner' => 'Viewing as :name.',
+    'impersonation_return' => 'Return to my account',
+    'impersonation_stop' => 'Stop',
+    'impersonation_blocked' => 'You are viewing as another person. Their password, email and two-factor settings cannot be changed while you do. Stop viewing as them first.',
+    'column_details' => 'Details',
+    'audit_viewing_as' => 'done while viewing as another person (started by user #:id)',
 ];

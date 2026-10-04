@@ -399,7 +399,7 @@ test('facility profile has its own subtitle and staff keeps its own', function (
         ->and($staffText)->toContain('People who can open');
 });
 
-test('delete account asks for the typed email and routine actions are kept apart', function () {
+test('destructive staff actions are flagged and routine actions are kept apart', function () {
     $cast = partOneCast();
 
     $this->actingAs($cast['owner'])

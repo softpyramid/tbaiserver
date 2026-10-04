@@ -173,13 +173,15 @@ export function SectorPage({ sector }: { sector: Sector }) {
                                 ))}
                             </tr>
                         ))}
-                        <tr className="tot">
-                            {columns.map((c) => (
-                                <td key={c.key}>
-                                    {formatCell(total[c.key], c.format)}
-                                </td>
-                            ))}
-                        </tr>
+                        {sorted.length > 1 ? (
+                            <tr className="tot">
+                                {columns.map((c) => (
+                                    <td key={c.key}>
+                                        {formatCell(total[c.key], c.format)}
+                                    </td>
+                                ))}
+                            </tr>
+                        ) : null}
                     </tbody>
                 </table>
             </div>

@@ -79,7 +79,12 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
         () => frame.data?.data.screens ?? [],
         [frame.data],
     );
-    const current = screens.find((s) => s.number === wanted) ?? screens[0];
+    const listed = screens.find((s) => s.number === wanted);
+    // A real page number that this user's flags switch off is not the same as
+    // a stray hash: only the stray one falls back to the first page.
+    const switchedOff =
+        !listed && wanted >= 1 && wanted <= 9 && screens.length > 0;
+    const current = listed ?? (switchedOff ? undefined : screens[0]);
 
     useEffect(() => {
         if (!window.location.hash) {
@@ -161,7 +166,7 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
             <div
                 ref={stage}
                 className="cc-stage"
-                data-bg={current?.background ?? 'lab'}
+                data-bg={current?.background ?? (switchedOff ? 'ajrak' : 'lab')}
                 style={style}
             >
                 <div className="cc-bgimg" aria-hidden="true" />
@@ -260,6 +265,13 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                                 <SectorPage
                                     key={current.key}
                                     sector={current.key as Sector}
+                                />
+                            ) : switchedOff ? (
+                                <PlaceholderPage
+                                    key={`off-${wanted}`}
+                                    title="Page not available"
+                                    sub="This page is not switched on."
+                                    text="An administrator can turn it on."
                                 />
                             ) : current ? (
                                 <PlaceholderPage

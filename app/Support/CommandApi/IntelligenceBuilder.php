@@ -51,7 +51,8 @@ final class IntelligenceBuilder
                 'city_id' => $d['city_id'],
                 'name' => $d['name'],
                 'short_name' => $d['short_name'],
-                'value' => CommandData::number($d[$field], $decimals),
+                // Full precision, so a bar scales as the prototype's does; `decimals` is for display.
+                'value' => CommandData::number($d[$field], $decimals === 0 ? 0 : 4),
                 'decimals' => $decimals,
             ], array_slice($ranked, 0, 8)),
         ];

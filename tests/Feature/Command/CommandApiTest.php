@@ -9,7 +9,9 @@ use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\DistrictMatch;
 use Database\Seeders\CommandPrototypeSeeder;
+use Database\Seeders\Support\CommandPrototypeData;
 use Illuminate\Support\Facades\Artisan;
 
 /**
@@ -99,7 +101,7 @@ test('admin sees the prototype headline, four alerts and the same shape every ro
         ->assertJsonPath('data.cascade.3.value', 180366)
         ->assertJsonPath('data.cascade.4.value', 28004)
         ->assertJsonPath('data.cascade.5.value', 66826)
-        ->assertJsonPath('data.performance.rings.0.value', 14.56)
+        ->assertJsonPath('data.performance.rings.0.value', 14.5602)
         ->assertJsonPath('data.performance.tiles.1.value', 143);
 
     expect($response->json('data.months'))->toHaveCount(10)
@@ -115,9 +117,9 @@ test('admin sees the prototype headline, four alerts and the same shape every ro
         ->and($alerts->json('data.alert_center.lines.2.subject.name'))->toBe('Karachi Central')
         ->and($alerts->json('data.alert_center.lines.3.values'))->toBe(['from_days' => 3.2, 'to_days' => 1.4])
         ->and($alerts->json('data.top8'))->toHaveCount(3)
-        ->and($alerts->json('data.top8.0.items.0.name'))->toBe('Naushahro Feroze')
+        ->and($alerts->json('data.top8.0.items.0.name'))->toBe('Karachi Central')
         ->and($alerts->json('data.top8.0.items'))->toHaveCount(8)
-        ->and($alerts->json('data.top8.2.items.0.value'))->toBe(301);
+        ->and($alerts->json('data.top8.2.items.0.value'))->toBe(385);
 });
 
 test('sector pages add up to the programme total and sort', function () {
@@ -143,7 +145,7 @@ test('sector pages add up to the programme total and sort', function () {
     natcasesort($sorted);
 
     expect($names)->toBe(array_values($sorted))
-        ->and($byName->json('data.total.bmus'))->toBe(147);
+        ->and($byName->json('data.total.bmus'))->toBe(163);
 
     $this->actingAs($users['admin'])->getJson('/api/command/sectors/bogus')->assertNotFound();
     $this->actingAs($users['admin'])->getJson('/api/command/sectors/public?sort=nope')->assertUnprocessable();
@@ -177,7 +179,7 @@ test('city officers, provincial viewers and country viewers only get their scope
 
     $cumulative = $this->actingAs($users['karachi_west'])->getJson("/api/command/cumulative?district={$sukkur->id}")->assertOk();
     expect($cumulative->json('meta.scope_name'))->toBe('Karachi West')
-        ->and($cumulative->json('data.cascade.0.value'))->toBe(20522);
+        ->and($cumulative->json('data.cascade.0.value'))->toBe(24446);
 
     $rows = $this->actingAs($users['karachi_west'])->getJson('/api/command/sectors/public')->assertOk();
     expect($rows->json('data.rows'))->toHaveCount(1)
@@ -240,7 +242,7 @@ test('map, drivers and incidence honour the contract', function () {
     expect($drivers->json('data.variables'))->toHaveCount(11)
         ->and(collect($drivers->json('data.variables'))->every(fn (array $v): bool => $v['available']))->toBeTrue()
         ->and($drivers->json('data.categories'))->toHaveCount(6)
-        ->and($drivers->json('data.categories.0.priority.0.name'))->toBe('Dadu')
+        ->and($drivers->json('data.categories.0.priority.0.name'))->toBe('Umerkot')
         ->and($drivers->json('data.categories.4.lowest_is_worst'))->toBeTrue()
         ->and($drivers->json('data.categories.0.responses'))->toHaveCount(2);
 
@@ -310,4 +312,37 @@ test('an empty database answers nulls and zeros, never an error', function () {
     expect($cumulative['meta']['has_returns'])->toBeFalse()
         ->and($cumulative['data']['performance']['rings'][0]['value'])->toBeNull()
         ->and($cumulative['data']['performance']['rings'][0]['status'])->toBe('not_enough_returns');
+});
+
+test('every district All row equals the prototype All table and the headline rates are the prototype means', function () {
+    $users = commandApiUsers();
+    $all = CommandPrototypeData::dataset('all');
+
+    $map = $this->actingAs($users['admin'])->getJson('/api/command/map')->assertOk();
+    $byKey = collect($map->json('data.districts'))->keyBy('match_key');
+    expect($byKey)->toHaveCount(29);
+
+    foreach ($all as $row) {
+        $d = $byKey->get(DistrictMatch::key((string) $row['name']));
+
+        expect($d)->not->toBeNull()
+            ->and([$d['suspects'], $d['tested'], $d['positive'], $d['mdr_rr'], $d['ai_tests'], $d['bmus']])
+            ->toBe([$row['sus'], $row['tested'], $row['pos'], $row['mdr'], $row['ai'], $row['bmu']], (string) $row['name'])
+            ->and($d['treatment_gap'])->toBe($row['pos'] - $row['st'])
+            ->and([round($d['positivity'], 1), round($d['tat_days'], 1)])->toBe([round($row['pos'] / $row['tested'] * 100, 1), round($row['tat'], 1)], (string) $row['name']);
+    }
+
+    // The Intelligence charts print what the All table prints, from unrounded values.
+    $top = $this->actingAs($users['admin'])->getJson('/api/command/intelligence')->assertOk();
+    $slowest = $top->json('data.top8.1.items');
+    expect($slowest[0]['name'])->toBe('Umerkot')
+        ->and(round($slowest[0]['value'], 1))->toBe(4.1)
+        ->and($slowest[0]['value'])->not->toBe(4.1)
+        ->and(array_column($top->json('data.top8.0.items'), 'name'))->toContain('Karachi Central', 'Karachi West')
+        ->and($top->json('data.alert_center.lines.0.map.indicator'))->toBe('treatment_gap');
+
+    $cumulative = $this->actingAs($users['admin'])->getJson('/api/command/cumulative')->assertOk();
+    expect(array_map(fn ($v): float => round((float) $v, 2), array_column($cumulative->json('data.performance.rings'), 'value')))->toBe([14.56, 87.65, 7.95])
+        ->and(round((float) $cumulative->json('data.performance.tiles.0.value'), 2))->toBe(3.08)
+        ->and($cumulative->json('data.performance.tiles.1.value'))->toBe(143);
 });

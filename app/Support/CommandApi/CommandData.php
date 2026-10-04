@@ -162,7 +162,7 @@ final class CommandData
             'started_pct' => self::rate($started, $positive),
             'success_pct' => $cohort > 0 ? self::rate((int) $outcome['successful'], $cohort) : null,
             'ltfu_pct' => $cohort > 0 ? self::rate((int) $outcome['lost_to_follow_up'], $cohort) : null,
-            'tat_days' => (float) $sum['tat_weight'] > 0 ? round((float) $sum['tat_weighted'] / (float) $sum['tat_weight'], 2) : null,
+            'tat_days' => (float) $sum['tat_weight'] > 0 ? round((float) $sum['tat_weighted'] / (float) $sum['tat_weight'], 4) : null,
             'mdr_rr' => $mdr !== null && (int) $mdr['record_count'] > 0 ? (int) $mdr['cases'] : null,
             'ai_tests' => $aiOn && $ai !== null && (int) $ai['record_count'] > 0 ? (int) $ai['tests'] : null,
             'bmus' => (int) $sum['active'],
@@ -215,7 +215,23 @@ final class CommandData
         $mdr = $this->monthly('mdr_rr_cases', ['cases'], $s, $user)[0];
         $ai = $this->monthly('ai_test_counts', ['tests'], $s, $user)[0];
 
-        return $this->metrics($sum, $outcome, $mdr, $ai);
+        $total = $this->metrics($sum, $outcome, $mdr, $ai);
+
+        // Medians cannot be pooled. The programme figure is the median of the
+        // district medians (the prototype's headline works this way); a single
+        // district keeps its own value.
+        $tats = array_values(array_filter(
+            array_column($this->districts($s, $user), 'tat_days'),
+            fn (mixed $v): bool => $v !== null,
+        ));
+
+        if (count($tats) >= 2) {
+            sort($tats);
+            $mid = intdiv(count($tats), 2);
+            $total['tat_days'] = round(count($tats) % 2 === 1 ? (float) $tats[$mid] : ((float) $tats[$mid - 1] + (float) $tats[$mid]) / 2, 4);
+        }
+
+        return $total;
     }
 
     /**
@@ -232,7 +248,7 @@ final class CommandData
 
     public static function rate(int $part, int $whole): ?float
     {
-        return $whole > 0 ? round($part / $whole * 100, 2) : null;
+        return $whole > 0 ? round($part / $whole * 100, 4) : null;
     }
 
     /**

@@ -41,8 +41,6 @@ class CommandFacilitySeeder extends Seeder
     /** Positivity pushes up over the last four months in Karachi Central. */
     private const KARACHI_CENTRAL_PUSH = [1, 1, 1, 1, 1, 1, .88, .96, 1.05, 1.14];
 
-    private const PUBLIC_HOSPITAL_DISTRICTS = 4;
-
     private int $submitterId = 0;
 
     public function run(): void
@@ -64,7 +62,6 @@ class CommandFacilitySeeder extends Seeder
             ->mapWithKeys(fn (City $city): array => [DistrictMatch::key($city->name) => $city]);
         $captured = $this->capturedTotals();
         $targets = Proto::targets();
-        $hospitalDistricts = $this->publicHospitalDistricts($targets['public']);
 
         foreach (['public', 'private', 'ppm'] as $sector) {
             foreach ($targets[$sector] as $i => $target) {
@@ -74,10 +71,12 @@ class CommandFacilitySeeder extends Seeder
                     continue;
                 }
 
-                $existing = $captured[$city->id][$sector] ?? ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0];
-                $count = (int) $target['bmu'] - $existing['count'];
+                $existing = $captured[$city->id][$sector] ?? ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0, 'empty' => [], 'bmu_kind' => 0];
+                // Sites that already report take their slot and their numbers off the target.
+                // Sites that exist but have no returns take a slot and get a series.
+                $slots = (int) $target['bmu'] - $existing['count'];
 
-                if ($count <= 0) {
+                if ($slots <= 0) {
                     continue;
                 }
 
@@ -87,13 +86,28 @@ class CommandFacilitySeeder extends Seeder
                 }
                 $reduced['st'] = min((int) $reduced['st'], (int) $reduced['pos']);
 
-                $bmus = Proto::bmus($sector, $reduced, $count);
-                $key = DistrictMatch::key($city->name);
+                if ((int) $target['st'] > 0 && $reduced['st'] < (int) $target['st']) {
+                    $ratio = $reduced['st'] / (int) $target['st'];
+                    $reduced['cohort'] = Proto::round((int) $target['cohort'] * $ratio);
+                    $reduced['success'] = Proto::round((int) $target['success'] * $ratio);
+                    $reduced['lost'] = min(Proto::round((int) $target['lost'] * $ratio), $reduced['cohort'] - $reduced['success']);
+                }
 
-                foreach ($bmus as $bmu) {
-                    $ordinal = (int) $bmu['ordinal'];
-                    $kind = $this->kind($sector, $ordinal, $count, in_array($i, $hospitalDistricts, true));
-                    $facility = $this->facility($city, $sector, $kind, $ordinal, $i);
+                $empties = $existing['empty'];
+                $bmus = Proto::bmus($sector, $reduced, $slots);
+                $key = DistrictMatch::key($city->name);
+                $needBmu = max(0, (int) $target['bmu_core'] - $existing['bmu_kind']);
+
+                foreach ($bmus as $j => $bmu) {
+                    if ($j < count($empties)) {
+                        $facility = $empties[$j];
+                        $ordinal = $j + 1;
+                    } else {
+                        $ordinal = $j - count($empties) + 1;
+                        $kind = $this->kind($sector, $ordinal, $needBmu);
+                        $facility = $this->facility($city, $sector, $kind, $ordinal, $i, $needBmu);
+                    }
+
                     $this->seedSeries($facility, $bmu, $sector, $key, $ordinal);
                 }
             }
@@ -101,60 +115,64 @@ class CommandFacilitySeeder extends Seeder
 
     }
 
-    /**
-     * @param  list<array<string, float|int|string>>  $publicTargets
-     * @return list<int>
-     */
-    private function publicHospitalDistricts(array $publicTargets): array
-    {
-        $order = array_keys($publicTargets);
-        usort($order, fn (int $a, int $b): int => [$publicTargets[$b]['bmu'], $a] <=> [$publicTargets[$a]['bmu'], $b]);
-
-        return array_slice($order, 0, self::PUBLIC_HOSPITAL_DISTRICTS);
-    }
-
-    private function kind(string $sector, int $ordinal, int $count, bool $hospitalDistrict): FacilityKind
+    /** The first sites of a public cell are BMUs, as many as the All table counts; any further site is a district hospital. */
+    private function kind(string $sector, int $ordinal, int $needBmu): FacilityKind
     {
         return match ($sector) {
-            'public' => $hospitalDistrict && $ordinal === $count ? FacilityKind::Hospital : FacilityKind::Bmu,
+            'public' => $ordinal <= $needBmu ? FacilityKind::Bmu : FacilityKind::Hospital,
             'private' => FacilityKind::Clinic,
             default => $ordinal % 2 === 0 ? FacilityKind::Hospital : FacilityKind::Clinic,
         };
     }
 
     /**
-     * Captured (non-seeded) returns per city and sector, so they can be taken off the target.
+     * Captured (non-seeded) sites per city and sector. Sites with returns are
+     * counted with their numbers so they can be taken off the target; sites
+     * with no return are listed so they receive a series.
      *
-     * @return array<int, array<string, array{count: int, sus: int, tested: int, pos: int, st: int}>>
+     * @return array<int, array<string, array{count: int, sus: int, tested: int, pos: int, st: int, empty: list<Facility>, bmu_kind: int}>>
      */
     private function capturedTotals(): array
     {
         $totals = [];
         $facilities = Facility::query()
             ->where(fn ($query) => $query->whereNull('code')->orWhere('code', 'not like', self::CODE_PREFIX.'%'))
-            ->get(['id', 'city_id', 'sector']);
+            ->orderBy('id')
+            ->get();
 
         foreach ($facilities as $facility) {
-            $cell = $totals[$facility->city_id][$facility->sector->value] ?? ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0];
+            $cell = $totals[$facility->city_id][$facility->sector->value] ?? ['count' => 0, 'sus' => 0, 'tested' => 0, 'pos' => 0, 'st' => 0, 'empty' => [], 'bmu_kind' => 0];
             $sums = DB::table('daily_returns')->where('facility_id', $facility->id)
-                ->selectRaw('COALESCE(SUM(suspects),0) as s, COALESCE(SUM(tested),0) as t, COALESCE(SUM(positive),0) as p, COALESCE(SUM(started_treatment),0) as a')
+                ->selectRaw('COUNT(*) as n, COALESCE(SUM(suspects),0) as s, COALESCE(SUM(tested),0) as t, COALESCE(SUM(positive),0) as p, COALESCE(SUM(started_treatment),0) as a')
                 ->first();
-            $cell['count']++;
-            $cell['sus'] += (int) ($sums->s ?? 0);
-            $cell['tested'] += (int) ($sums->t ?? 0);
-            $cell['pos'] += (int) ($sums->p ?? 0);
-            $cell['st'] += (int) ($sums->a ?? 0);
+
+            if ($facility->kind === FacilityKind::Bmu) {
+                $cell['bmu_kind']++;
+            }
+
+            if ((int) ($sums->n ?? 0) === 0) {
+                $cell['empty'][] = $facility;
+            } else {
+                $cell['count']++;
+                $cell['sus'] += (int) ($sums->s ?? 0);
+                $cell['tested'] += (int) ($sums->t ?? 0);
+                $cell['pos'] += (int) ($sums->p ?? 0);
+                $cell['st'] += (int) ($sums->a ?? 0);
+            }
+
             $totals[$facility->city_id][$facility->sector->value] = $cell;
         }
 
         return $totals;
     }
 
-    private function facility(City $city, string $sector, FacilityKind $kind, int $ordinal, int $index): Facility
+    private function facility(City $city, string $sector, FacilityKind $kind, int $ordinal, int $index, int $bmus = 0): Facility
     {
         $code = self::CODE_PREFIX.$sector.'-'.Str::slug($city->name).'-'.$ordinal;
         $name = match ($sector) {
-            'public' => $kind === FacilityKind::Hospital ? "{$city->name} District Hospital" : "{$city->name} BMU {$ordinal}",
+            'public' => $kind === FacilityKind::Hospital
+                ? "{$city->name} District Hospital".($ordinal - $bmus > 1 ? ' '.($ordinal - $bmus) : '')
+                : "{$city->name} BMU {$ordinal}",
             'private' => "{$city->name} Private Clinic {$ordinal}",
             default => "{$city->name} PPM Site {$ordinal}",
         };
@@ -251,13 +269,14 @@ class CommandFacilitySeeder extends Seeder
             $contactRows = [];
             $hivRows = [];
 
-            $cohortTotal = array_sum($started);
-            $successTotal = Proto::round($cohortTotal * (float) $bmu['su'] / 100);
-            $lostTotal = min(Proto::round($cohortTotal * (float) $bmu['ltfu'] / 100), max(0, $cohortTotal - $successTotal));
-            $successByMonth = Proto::alloc($successTotal, $started);
-            $lostByMonth = Proto::alloc($lostTotal, $started);
+            $cohortTotal = (int) $bmu['cohort'];
+            $successTotal = (int) $bmu['success'];
+            $lostTotal = (int) $bmu['lost'];
+            $cohortByMonth = Proto::alloc($cohortTotal, array_map(fn (int $x): int => $x + 1, $started));
+            $successByMonth = Proto::allocCapped($successTotal, $cohortByMonth, $cohortByMonth);
+            $lostByMonth = Proto::allocCapped($lostTotal, $cohortByMonth, array_map(fn (int $c, int $x): int => $c - $x, $cohortByMonth, $successByMonth));
 
-            foreach ($started as $m => $cohort) {
+            foreach ($cohortByMonth as $m => $cohort) {
                 $month = sprintf('%04d-%02d', self::ANCHOR_YEAR, $m + 1);
                 $successful = min($successByMonth[$m], $cohort);
                 $lost = min($lostByMonth[$m], $cohort - $successful);
@@ -319,7 +338,7 @@ class CommandFacilitySeeder extends Seeder
         $total = array_sum($tested);
         $early = array_sum(array_slice($tested, 0, 8));
         $baseline = $early > 0
-            ? max(.6, ($base * $total - $shape[0] * $tested[8] - $shape[1] * $tested[9]) / $early)
+            ? max(.2, ($base * $total - $shape[0] * $tested[8] - $shape[1] * $tested[9]) / $early)
             : $base;
         $series = array_fill(0, 8, round($baseline, 2));
         $series[] = $shape[0];

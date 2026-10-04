@@ -1,14 +1,10 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { LogOut } from 'lucide-react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { clearClientSession } from '@/lib/sign-out';
-import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
 import { send } from '@/routes/verification';
@@ -30,21 +26,7 @@ export default function Profile({
         <>
             <Head title="Profile settings" />
 
-            <div className="mb-6 flex items-center justify-between gap-3">
-                <h1 className="text-xl font-semibold">Account</h1>
-                <Button variant="outline" asChild>
-                    <Link
-                        href={logout()}
-                        as="button"
-                        replace
-                        data-test="account-logout"
-                        onClick={clearClientSession}
-                    >
-                        <LogOut className="mr-2 size-4" />
-                        Log out
-                    </Link>
-                </Button>
-            </div>
+            <h1 className="mb-6 text-xl font-semibold">Account</h1>
 
             <div className="space-y-6">
                 <Heading
@@ -140,8 +122,6 @@ export default function Profile({
                     )}
                 </Form>
             </div>
-
-            <DeleteUser />
         </>
     );
 }

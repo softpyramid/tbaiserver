@@ -185,7 +185,7 @@ export type MapDistrict = {
     ltfu_pct: number | null;
     tat_days: number | null;
     mdr_rr: number;
-    ai_tests: number;
+    ai_tests: number | null;
     bmus: number;
     treatment_gap: number;
     coverage_pct: number | null;

@@ -589,19 +589,26 @@ function MapView({
                                         num(chosen.tat_days, 1, ' d'),
                                     ],
                                     ['MDR/RR-TB', String(chosen.mdr_rr)],
-                                    ['AI tests', fmt(chosen.ai_tests)],
+                                    [
+                                        'AI tests',
+                                        chosen.ai_tests === null
+                                            ? null
+                                            : fmt(chosen.ai_tests),
+                                    ],
                                     ['Active BMUs', String(chosen.bmus)],
                                     [
                                         'Coverage',
                                         num(chosen.coverage_pct, 0, '%'),
                                     ],
                                 ] as const
-                            ).map(([label, value]) => (
-                                <span key={label}>
-                                    {label}
-                                    <b>{value}</b>
-                                </span>
-                            ))}
+                            )
+                                .filter(([, value]) => value !== null)
+                                .map(([label, value]) => (
+                                    <span key={label}>
+                                        {label}
+                                        <b>{value}</b>
+                                    </span>
+                                ))}
                         </div>
                         <Sparkline
                             values={sp}

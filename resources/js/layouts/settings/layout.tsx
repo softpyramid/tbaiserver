@@ -38,11 +38,37 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                 description="Manage your profile and account settings"
             />
 
+            <nav
+                aria-label="Settings"
+                data-test="settings-tabs"
+                className="mb-6 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 md:hidden"
+            >
+                {sidebarNavItems.map((item, index) => {
+                    const current = isCurrentOrParentUrl(item.href);
+
+                    return (
+                        <Link
+                            key={`tab-${toUrl(item.href)}-${index}`}
+                            href={item.href}
+                            aria-current={current ? 'page' : undefined}
+                            className={cn(
+                                'flex min-h-10 items-center justify-center rounded-md px-2 text-center text-sm focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none',
+                                current
+                                    ? 'bg-background font-semibold text-foreground shadow-sm ring-1 ring-border'
+                                    : 'font-medium text-muted-foreground',
+                            )}
+                        >
+                            {item.title}
+                        </Link>
+                    );
+                })}
+            </nav>
+
             <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
+                <aside className="hidden w-full max-w-xl md:block lg:w-48">
                     <nav
                         className="flex flex-col space-y-1 space-x-0"
-                        aria-label="Settings"
+                        aria-label="Settings list"
                     >
                         {sidebarNavItems.map((item, index) => (
                             <Button
@@ -65,7 +91,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                     </nav>
                 </aside>
 
-                <Separator className="my-6 lg:hidden" />
+                <Separator className="my-6 max-md:hidden lg:hidden" />
 
                 <div className="flex-1 md:max-w-2xl">
                     <section className="max-w-xl space-y-12">

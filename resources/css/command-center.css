@@ -814,6 +814,10 @@
 /* Phone (under 768 px): stacked blocks, nothing above is changed.     */
 /* ------------------------------------------------------------------ */
 @media (max-width: 767px) {
+    .cc-arrow {
+        display: none;
+    }
+
     .cc-root {
         position: relative;
         inset: auto;

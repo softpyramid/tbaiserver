@@ -255,3 +255,33 @@ export type Intelligence = {
     alert_center: { lines: AlertLine[]; all: AlertLine[] };
     top8: TopEight[];
 };
+
+export type DriverVariable = { key: string; label: string; available: boolean };
+
+export type DriverCategory = {
+    letter: string;
+    key: string;
+    label: string;
+    indicator: string;
+    lowest_is_worst: boolean;
+    signals: string[];
+    responses: string[];
+    priority: { city_id: number; name: string; value: number }[];
+};
+
+export type Drivers = {
+    variables: DriverVariable[];
+    categories: DriverCategory[];
+    default_category: string;
+};
+
+export type Incidence = {
+    monthly: { month: string; label: string; value: number | null }[];
+    yearly: { year: number; value: number | null; kind: string }[];
+    defaults: { month: string; year: number; monthly_chart: 'bar' | 'line' };
+};
+
+export type IncidenceMeta = {
+    province: { id: number; name: string } | null;
+    y_axis: { min: number; max: number };
+};

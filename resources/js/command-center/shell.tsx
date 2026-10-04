@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { CommandContext, type MapIntent, type SortState } from './context';
 import { PlaceholderPage } from './pages/placeholder';
+import { DriversPage } from './pages/drivers';
+import { IncidencePage } from './pages/incidence';
 import { IntelligencePage } from './pages/intelligence';
 import { MapPage } from './pages/map';
 import { SectorPage } from './pages/sector';
@@ -281,6 +283,10 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                                 />
                             ) : current?.key === 'intelligence' ? (
                                 <IntelligencePage key={current.key} />
+                            ) : current?.key === 'drivers' ? (
+                                <DriversPage key={current.key} />
+                            ) : current?.key === 'incidence' ? (
+                                <IncidencePage key={current.key} />
                             ) : current?.key === 'map' ? (
                                 <MapPage key={current.key} />
                             ) : switchedOff ? (

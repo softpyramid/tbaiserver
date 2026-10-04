@@ -6,6 +6,43 @@ $flag = static function (string $key): bool {
     return filter_var($value, FILTER_VALIDATE_BOOLEAN);
 };
 
+/*
+ * Whether the command center areas (drivers, interventions, incidence, AI
+ * tests) are on by default, per environment, when their env variable is
+ * absent. Every entry is false, which is how develop behaves today and keeps
+ * production off. The PR that ships the new pages flips local, dev, and
+ * staging to true here, in this one place.
+ */
+$areaDefaults = [
+    'local' => false,
+    'dev' => false,
+    'staging' => false,
+    'production' => false,
+];
+
+/*
+ * Flags for the command center pages. An explicit env value always wins.
+ * When the variable is absent, the area follows $areaDefaults, and an
+ * environment not listed there is off.
+ */
+$areaFlag = static function (string $key) use ($flag, $areaDefaults): bool {
+    $value = env($key);
+
+    if ($value === null || $value === '') {
+        return $areaDefaults[(string) env('APP_ENV', 'production')] ?? false;
+    }
+
+    return $flag($key);
+};
+
+$interventions = (static function () use ($flag, $areaFlag): bool {
+    $value = env('TBAI_SHOW_INTERVENTIONS');
+
+    return $value === null || $value === ''
+        ? $areaFlag('TBAI_SHOW_DRIVERS')
+        : $flag('TBAI_SHOW_INTERVENTIONS');
+})();
+
 return [
 
     /*
@@ -32,21 +69,29 @@ return [
     'show_telehealth' => $flag('TBAI_SHOW_TELEHEALTH'),
 
     /*
-    | Product areas that wait on programme sign-off. Each is off by default.
+    | Product areas that wait on programme sign-off. Screening is off by default.
     | Turning a flag on restores the links and the pages. While a flag is
     | off, the pages answer with the normal not found page.
     |
     | screening: the screening questionnaire, waiting on the TB programme.
-    | drivers: Drivers and Interventions, a placeholder with no data yet.
-    | incidence: Incidence targets, a placeholder with no data yet.
-    | ai_tests: the AI-assisted tests tile on Overview, which has no data source yet.
+    | drivers: Drivers and Interventions page of the command center.
+    | interventions: the response and priority lines on that page. Follows drivers.
+    | incidence: Incidence page of the command center.
+    | ai_tests: AI Assisted Testing page and every AI-assisted figure.
+    |
+    | drivers, interventions, incidence, and ai_tests are off in every
+    | environment unless the env variable says otherwise. area_defaults is the one
+    | place to switch them on by default for an environment.
     */
+
+    'area_defaults' => $areaDefaults,
 
     'features' => [
         'screening' => $flag('TBAI_SHOW_SCREENING'),
-        'drivers' => $flag('TBAI_SHOW_DRIVERS'),
-        'incidence' => $flag('TBAI_SHOW_INCIDENCE'),
-        'ai_tests' => $flag('TBAI_SHOW_AI_TESTS'),
+        'drivers' => $areaFlag('TBAI_SHOW_DRIVERS'),
+        'interventions' => $interventions,
+        'incidence' => $areaFlag('TBAI_SHOW_INCIDENCE'),
+        'ai_tests' => $areaFlag('TBAI_SHOW_AI_TESTS'),
     ],
 
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',

@@ -1,0 +1,37 @@
+<?php
+
+namespace Database\Seeders;
+
+use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
+use Illuminate\Database\Seeder;
+
+/**
+ * Staging data for the command center: the 29 Sindh districts, facilities
+ * and returns that reproduce the programme headline, monthly outcome and
+ * driver tables, province incidence, and the AI testing fixtures.
+ *
+ * Runs only in local, dev, and staging. In any other environment (production
+ * included) it writes nothing. Deterministic and safe to run again: each
+ * step upserts by natural key and never edits or deletes existing users,
+ * facilities, or returns.
+ *
+ *   php artisan db:seed --class=CommandPrototypeSeeder
+ */
+class CommandPrototypeSeeder extends Seeder
+{
+    use SkipsOutsideLocalDevStaging;
+
+    public function run(): void
+    {
+        if ($this->skipsOutsideLocalDevStaging()) {
+            return;
+        }
+
+        $this->call([
+            GeographySeeder::class,
+            CommandGeographySeeder::class,
+            CommandFacilitySeeder::class,
+            CommandIndicatorSeeder::class,
+        ]);
+    }
+}

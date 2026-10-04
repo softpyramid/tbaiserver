@@ -285,3 +285,20 @@ export type IncidenceMeta = {
     province: { id: number; name: string } | null;
     y_axis: { min: number; max: number };
 };
+
+export type AiPatient = {
+    id: string;
+    summary: string;
+    location: string;
+    symptoms: string;
+    probability: number;
+    laboratory: string;
+    history: string;
+    city_id: number | null;
+    level: 'high' | 'moderate' | 'low';
+};
+
+export type AiTests = {
+    patients: AiPatient[];
+    default_patient: string | null;
+};

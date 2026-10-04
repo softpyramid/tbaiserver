@@ -215,7 +215,23 @@ final class CommandData
         $mdr = $this->monthly('mdr_rr_cases', ['cases'], $s, $user)[0];
         $ai = $this->monthly('ai_test_counts', ['tests'], $s, $user)[0];
 
-        return $this->metrics($sum, $outcome, $mdr, $ai);
+        $total = $this->metrics($sum, $outcome, $mdr, $ai);
+
+        // Medians cannot be pooled. The programme figure is the median of the
+        // district medians (the prototype's headline works this way); a single
+        // district keeps its own value.
+        $tats = array_values(array_filter(
+            array_column($this->districts($s, $user), 'tat_days'),
+            fn (mixed $v): bool => $v !== null,
+        ));
+
+        if (count($tats) >= 2) {
+            sort($tats);
+            $mid = intdiv(count($tats), 2);
+            $total['tat_days'] = round(count($tats) % 2 === 1 ? (float) $tats[$mid] : ((float) $tats[$mid - 1] + (float) $tats[$mid]) / 2, 2);
+        }
+
+        return $total;
     }
 
     /**

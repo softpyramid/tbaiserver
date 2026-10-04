@@ -127,15 +127,66 @@ final class CommandPrototypeData
     }
 
     /**
-     * The per district, per sector targets that add up to the All dataset.
+     * Largest remainder split of an integer by weights, with a ceiling per slot.
+     * What a slot cannot take goes to the others, in proportion to their weights.
      *
-     * Each sector keeps the prototype's own sector table. The counts of all
-     * 87 cells (29 districts times three sectors) are then scaled together,
-     * metric by metric, so that they sum to the All headline exactly (the
-     * prototype's sector tables add up to about 0.5 percent more than its All
-     * dataset). Rates are the sector table's own, moved by one constant per rate
-     * so the weighted programme rate equals the All headline (the prototype's
-     * All and sector tables disagree on rates). The result is cached.
+     * @param  list<float|int>  $weights
+     * @param  list<int>  $caps
+     * @return list<int>
+     */
+    public static function allocCapped(int $total, array $weights, array $caps): array
+    {
+        $out = array_fill(0, count($weights), 0);
+        $open = array_keys($weights);
+        $left = $total;
+
+        while ($left > 0 && $open !== []) {
+            $share = self::alloc($left, array_map(fn (int $i): float => max(0.0, (float) $weights[$i]) + 1e-9, $open));
+            $over = false;
+
+            foreach ($open as $k => $i) {
+                $room = $caps[$i] - $out[$i];
+
+                if ($share[$k] > $room) {
+                    $out[$i] += $room;
+                    $left -= $room;
+                    $over = true;
+                    unset($open[$k]);
+                }
+            }
+
+            if (! $over) {
+                foreach ($open as $k => $i) {
+                    $out[$i] += $share[$k];
+                }
+
+                $left = 0;
+            }
+
+            $open = array_values($open);
+        }
+
+        return array_values($out);
+    }
+
+    /**
+     * The per district, per sector targets.
+     *
+     * Every district's All row is the prototype's own, to the unit: the three
+     * sector cells of a district add up to it exactly (suspects, tested,
+     * positive, started, MDR/RR, AI tests), and the outcome cohorts and the
+     * turnaround are set so that the district's success, loss to follow-up and
+     * turnaround read as in the All table. The split between the sectors follows
+     * the shares of the prototype's own sector tables, capped so a later step of
+     * the pathway never exceeds an earlier one. The prototype's sector tables
+     * and its All table were generated separately and disagree, so a sector row
+     * differs from the prototype's sector row by that district's disagreement.
+     *
+     * Treatment outcome cohorts are the patients who started treatment a year
+     * earlier, so they are sized per district (about the started count times a
+     * factor, from a least squares tilt) such that the programme success and
+     * loss to follow-up, weighted by cohort, equal the All table's headline
+     * means (87.65 and 7.95). Each result is cached.
      *
      * @return array<string, list<array<string, float|int|string>>>
      */
@@ -155,80 +206,61 @@ final class CommandPrototypeData
             $sectors[$sector] = self::dataset($sector);
         }
 
+        $cohorts = self::cohorts($all);
         $cache = ['public' => [], 'private' => [], 'ppm' => []];
-        $cells = count($all);
 
-        foreach (['sus', 'tested', 'pos', 'st', 'mdr', 'ai'] as $metric) {
-            $weights = [];
-
-            foreach ($order as $sector) {
-                foreach ($sectors[$sector] as $row) {
-                    $weights[] = (float) $row[$metric];
-                }
-            }
-
-            $total = (int) array_sum(array_map(fn (array $row): int => (int) $row[$metric], $all));
-            $scaled = self::alloc($total, $weights);
+        foreach ($all as $i => $row) {
+            $cells = [];
 
             foreach ($order as $position => $sector) {
-                foreach ($sectors[$sector] as $i => $row) {
-                    $sectors[$sector][$i][$metric] = $scaled[$position * $cells + $i];
-                }
-            }
-        }
-
-        // One shift per rate, the same for every cell, so that the programme
-        // rate (weighted by tests for turnaround, by treatment starts for
-        // outcomes) equals the prototype's All headline. The sectors keep
-        // their differences from each other.
-        $rates = static function (array $shift) use ($order, $sectors): array {
-            $acc = ['tat' => [0.0, 0.0], 'su' => [0.0, 0.0], 'ltfu' => [0.0, 0.0]];
-
-            foreach ($order as $sector) {
-                foreach ($sectors[$sector] as $row) {
-                    [$tat, $su, $ltfu] = self::shifted($row, $shift);
-                    $acc['tat'][0] += $tat * (int) $row['tested'];
-                    $acc['tat'][1] += (int) $row['tested'];
-                    $acc['su'][0] += $su * (int) $row['st'];
-                    $acc['su'][1] += (int) $row['st'];
-                    $acc['ltfu'][0] += $ltfu * (int) $row['st'];
-                    $acc['ltfu'][1] += (int) $row['st'];
-                }
+                $cells[$position] = $sectors[$sector][$i];
             }
 
-            return array_map(fn (array $a): float => $a[1] > 0 ? $a[0] / $a[1] : 0.0, $acc);
-        };
+            $column = fn (string $key): array => array_map(fn (array $cell): float => (float) $cell[$key], $cells);
+            $sus = self::alloc((int) $row['sus'], $column('sus'));
+            $tested = self::allocCapped((int) $row['tested'], $column('tested'), $sus);
+            $pos = self::allocCapped((int) $row['pos'], $column('pos'), $tested);
+            $st = self::allocCapped((int) $row['st'], $column('st'), $pos);
+            $mdr = self::allocCapped((int) $row['mdr'], $column('mdr'), $pos);
+            $ai = self::allocCapped((int) $row['ai'], $column('ai'), $tested);
 
-        // The prototype shows 3.1 days as its turnaround headline (a median of
-        // district values), so that is the target; the other two are the means
-        // of the All dataset.
-        $target = [
-            'tat' => 3.077,
-            'su' => array_sum(array_map(fn (array $row): float => (float) $row['su'], $all)) / $cells,
-            'ltfu' => array_sum(array_map(fn (array $row): float => (float) $row['ltfu'], $all)) / $cells,
-        ];
-        $shift = ['tat' => 0.0, 'su' => 0.0, 'ltfu' => 0.0];
+            $cohortTotal = self::cohortReadingAs($cohorts[$i], (float) $row['su'], (float) $row['ltfu']);
+            $successTotal = self::round($cohortTotal * (float) $row['su'] / 100);
+            $lostTotal = min(self::round($cohortTotal * (float) $row['ltfu'] / 100), $cohortTotal - $successTotal);
+            $cohort = self::alloc($cohortTotal, $st);
+            $success = self::allocCapped($successTotal, array_map(fn (int $c, array $cell): float => $c * (float) $cell['su'], $cohort, $cells), $cohort);
+            $room = array_map(fn (int $c, int $s): int => $c - $s, $cohort, $success);
+            $lost = self::allocCapped($lostTotal, array_map(fn (int $c, array $cell): float => $c * (float) $cell['ltfu'], $cohort, $cells), $room);
 
-        // The clamps in shifted() make the mean move less than the shift, so
-        // walk towards the target.
-        for ($i = 0; $i < 12; $i++) {
-            $now = $rates($shift);
+            // One shift per district so the tests weighted turnaround is the All row's.
+            $tat = array_map(fn (array $cell): float => (float) $cell['tat'], $cells);
 
-            foreach ($shift as $rate => $value) {
-                $shift[$rate] = $value + $target[$rate] - $now[$rate];
+            for ($pass = 0; $pass < 4; $pass++) {
+                $mass = (float) array_sum($tested);
+                $mean = $mass > 0 ? array_sum(array_map(fn (float $t, int $n): float => $t * $n, $tat, $tested)) / $mass : (float) $row['tat'];
+                $tat = array_map(fn (float $t): float => max(.5, $t + (float) $row['tat'] - $mean), $tat);
             }
-        }
 
-        foreach ($order as $sector) {
-            foreach ($sectors[$sector] as $row) {
-                [$row['tat'], $row['su'], $row['ltfu']] = self::shifted($row, $shift);
-
-                // Scaling each metric on its own can, in a very small cell, put
-                // a later step of the pathway above an earlier one.
-                $row['tested'] = min((int) $row['tested'], (int) $row['sus']);
-                $row['pos'] = min((int) $row['pos'], (int) $row['tested']);
-                $row['st'] = min((int) $row['st'], (int) $row['pos']);
-                $cache[$sector][] = $row;
+            foreach ($order as $position => $sector) {
+                $cell = $cells[$position];
+                $cell['sus'] = $sus[$position];
+                $cell['tested'] = $tested[$position];
+                $cell['pos'] = $pos[$position];
+                $cell['st'] = $st[$position];
+                $cell['mdr'] = $mdr[$position];
+                $cell['ai'] = $ai[$position];
+                $cell['cohort'] = $cohort[$position];
+                $cell['success'] = $success[$position];
+                $cell['lost'] = $lost[$position];
+                $cell['su'] = $cohort[$position] > 0 ? 100 * $success[$position] / $cohort[$position] : (float) $row['su'];
+                $cell['ltfu'] = $cohort[$position] > 0 ? 100 * $lost[$position] / $cohort[$position] : (float) $row['ltfu'];
+                $cell['tat'] = $tat[$position];
+                // The All table's BMU count is the number of BMUs (kind), which
+                // the public cell must hold; a public cell can hold more sites
+                // (district hospitals) when its own table lists more.
+                $cell['bmu_core'] = $sector === 'public' ? (int) $row['bmu'] : 0;
+                $cell['bmu'] = $sector === 'public' ? max((int) $row['bmu'], (int) $cell['bmu']) : (int) $cell['bmu'];
+                $cache[$sector][] = $cell;
             }
         }
 
@@ -236,19 +268,76 @@ final class CommandPrototypeData
     }
 
     /**
-     * One cell's turnaround, success and loss rates after the programme shift.
-     * Success and loss can never add up to more than 97 percent.
-     *
-     * @param  array<string, float|int|string>  $row
-     * @param  array<string, float>  $shift
-     * @return array{0: float, 1: float, 2: float}
+     * The cohort size nearest to `$near` for which whole patients print as the
+     * All table's rates (success to a whole percent, loss to one decimal).
+     * Loss that the prototype draws above what success leaves is left as is.
      */
-    private static function shifted(array $row, array $shift): array
+    private static function cohortReadingAs(int $near, float $su, float $ltfu): int
     {
-        $ltfu = max(.5, (float) $row['ltfu'] + $shift['ltfu']);
-        $su = min(97.0 - $ltfu, (float) $row['su'] + $shift['su']);
+        if ($ltfu > 100 - $su) {
+            return $near;
+        }
 
-        return [max(.5, (float) $row['tat'] + $shift['tat']), $su, $ltfu];
+        $reads = function (int $c) use ($su, $ltfu): bool {
+            $success = self::round($c * $su / 100);
+            $lost = self::round($c * $ltfu / 100);
+
+            return $success + $lost <= $c
+                && round(100 * $success / $c) === round($su)
+                && round(100 * $lost / $c, 1) === round($ltfu, 1);
+        };
+
+        for ($step = 0; $step <= max(12, (int) ($near * .12)); $step++) {
+            foreach ([$near + $step, $near - $step] as $c) {
+                if ($c >= 20 && $reads($c)) {
+                    return $c;
+                }
+            }
+        }
+
+        return $near;
+    }
+
+    /**
+     * Cohort size per district: the started count times a factor that makes
+     * the cohort weighted success and loss rates equal the means of the All
+     * table. The factors are the smallest change (least squares) that does it.
+     *
+     * @param  list<array<string, float|int|string>>  $all
+     * @return list<int>
+     */
+    private static function cohorts(array $all): array
+    {
+        $n = count($all);
+        $meanLtfu = array_sum(array_map(fn (array $r): float => (float) $r['ltfu'], $all)) / $n;
+        $meanSu = array_sum(array_map(fn (array $r): float => (float) $r['su'], $all)) / $n;
+        $a = [];
+        $b = [];
+
+        foreach ($all as $i => $r) {
+            // The prototype draws success and loss independently, so in some
+            // districts they add up to more than 100 percent. Loss is the one
+            // that gives way (a cohort cannot lose more than it has left).
+            $loss = min((float) $r['ltfu'], 100 - (float) $r['su']);
+            $a[$i] = (int) $r['st'] * ($loss - $meanLtfu);
+            $b[$i] = (int) $r['st'] * ((float) $r['su'] - $meanSu);
+        }
+
+        $aa = array_sum(array_map(fn (float $x): float => $x * $x, $a));
+        $bb = array_sum(array_map(fn (float $x): float => $x * $x, $b));
+        $ab = array_sum(array_map(fn (float $x, float $y): float => $x * $y, $a, $b));
+        $c0 = -array_sum($a);
+        $c1 = -array_sum($b);
+        $det = $aa * $bb - $ab * $ab;
+        $l1 = ($c0 * $bb - $c1 * $ab) / $det;
+        $l2 = ($aa * $c1 - $ab * $c0) / $det;
+        $cohorts = [];
+
+        foreach ($all as $i => $r) {
+            $cohorts[] = max(1, self::round((int) $r['st'] * max(.25, 1 + $l1 * $a[$i] + $l2 * $b[$i])));
+        }
+
+        return $cohorts;
     }
 
     /**
@@ -284,6 +373,9 @@ final class CommandPrototypeData
         $mdr = self::alloc((int) $d['mdr'], $weights);
         $ai = self::alloc((int) $d['ai'], $tested);
         $out = [];
+        $cohortTotal = (int) ($d['cohort'] ?? array_sum($started));
+        $successTotal = (int) ($d['success'] ?? self::round($cohortTotal * (float) $d['su'] / 100));
+        $lostTotal = (int) ($d['lost'] ?? self::round($cohortTotal * (float) $d['ltfu'] / 100));
 
         // Each month's jitter is scaled to average 1 across the district's BMUs,
         // so the district curve keeps the prototype's month weights while each
@@ -318,11 +410,23 @@ final class CommandPrototypeData
             $multipliers['tat'][$j] = .75 + .5 * self::rnd($seed + $j, 7);
         }
         $norm = [];
-        foreach (['su' => $started, 'ltfu' => $started, 'tat' => $tested] as $rate => $weights) {
+        foreach (['tat' => $tested] as $rate => $weights) {
             $sum = array_sum($weights);
             $norm[$rate] = $sum > 0 ? array_sum(array_map(fn (int $w, float $m): float => $w * $m, $weights, $multipliers[$rate])) / $sum : 1.0;
             $norm[$rate] = $norm[$rate] > 0 ? $norm[$rate] : 1.0;
         }
+
+        $cohortB = self::alloc($cohortTotal, array_map(fn (int $x): float => $x + 1.0, $started));
+        $successB = self::allocCapped(
+            $successTotal,
+            array_map(fn (int $c, float $m): float => $c * $m, $cohortB, $multipliers['su']),
+            $cohortB,
+        );
+        $lostB = self::allocCapped(
+            $lostTotal,
+            array_map(fn (int $c, float $m): float => $c * $m, $cohortB, $multipliers['ltfu']),
+            array_map(fn (int $c, int $x): int => $c - $x, $cohortB, $successB),
+        );
 
         for ($j = 0; $j < $count; $j++) {
             $monthTested = $jitterTested[$j];
@@ -336,8 +440,9 @@ final class CommandPrototypeData
                 'st' => $started[$j],
                 'mdr' => $mdr[$j],
                 'ai' => $ai[$j],
-                'su' => min(99.0, (float) $d['su'] * $multipliers['su'][$j] / $norm['su']),
-                'ltfu' => (float) $d['ltfu'] * $multipliers['ltfu'][$j] / $norm['ltfu'],
+                'cohort' => $cohortB[$j],
+                'success' => $successB[$j],
+                'lost' => $lostB[$j],
                 'tat' => (float) $d['tat'] * $multipliers['tat'][$j] / $norm['tat'],
                 'month_tested_weights' => $monthTested,
                 'month_positive_weights' => $monthPositive,

@@ -40,7 +40,7 @@ test('command seeder reproduces the prototype programme headline exactly and is 
         ->and($first['mdr'])->toBe(931)
         ->and($first['ai'])->toBe(66826)
         ->and($first['bmus'])->toBe(143)
-        ->and(DB::table('facilities')->where('sector', 'public')->count())->toBe(147)
+        ->and(DB::table('facilities')->where('sector', 'public')->count())->toBe(163)
         ->and(DB::table('facilities')->where('sector', 'private')->count())->toBe(128)
         ->and(DB::table('facilities')->where('sector', 'ppm')->count())->toBe(124)
         ->and(DB::table('cities')->join('provinces', 'provinces.id', '=', 'cities.province_id')->where('provinces.slug', 'sindh')->count())->toBe(29)

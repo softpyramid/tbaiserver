@@ -46,7 +46,8 @@ final class MapBuilder
                 'tat_days' => $d['tat_days'],
                 'mdr_rr' => $d['mdr_rr'],
                 'ai_tests' => $d['ai_tests'],
-                'bmus' => $d['bmus'],
+                // The All view counts BMUs (as the Cumulative tile does); a sector view counts that sector's reporting sites.
+                'bmus' => $s->sector === null ? $d['active_bmus'] : $d['bmus'],
                 'treatment_gap' => $d['treatment_gap'],
                 'coverage_pct' => $d['coverage_pct'],
                 'value' => $value,

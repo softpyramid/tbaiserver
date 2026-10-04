@@ -158,3 +158,66 @@ export type BmuDrilldown = {
 
 export type Sector = 'public' | 'private' | 'ppm';
 export type MapSector = 'all' | Sector;
+
+export type MapIndicator = {
+    key: string;
+    label: string;
+    format: {
+        type: 'int' | 'percent' | 'decimal';
+        decimals?: number;
+        suffix?: string;
+    };
+    lowest_is_worst: boolean;
+};
+
+export type MapDistrict = {
+    city_id: number;
+    match_key: string;
+    name: string;
+    short_name: string;
+    seat: [number, number] | null;
+    suspects: number;
+    tested: number;
+    positive: number;
+    positivity: number | null;
+    started_pct: number | null;
+    success_pct: number | null;
+    ltfu_pct: number | null;
+    tat_days: number | null;
+    mdr_rr: number;
+    ai_tests: number | null;
+    bmus: number;
+    treatment_gap: number;
+    coverage_pct: number | null;
+    value: number | null;
+    heat: number;
+    trend12: number[];
+};
+
+export type MapData = {
+    indicators: MapIndicator[];
+    sectors: MapSector[];
+    scale: { min: number; max: number } | null;
+    districts: MapDistrict[];
+    top5: { city_id: number; name: string; value: number | null }[];
+    pulse_top3: number[];
+    hidden: string[];
+    selected: number | null;
+    trend_months: string[];
+    geometry: {
+        url: string;
+        match_property: string;
+        indicative: boolean;
+        attribution: string;
+    };
+    schematic: { outline: [number, number][]; note: string };
+};
+
+export type GeoFeature = {
+    properties: Record<string, string>;
+    geometry:
+        | { type: 'Polygon'; coordinates: [number, number][][] }
+        | { type: 'MultiPolygon'; coordinates: [number, number][][][] };
+};
+
+export type GeoJson = { attribution?: string; features: GeoFeature[] };

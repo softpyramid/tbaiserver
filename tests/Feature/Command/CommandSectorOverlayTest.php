@@ -122,3 +122,56 @@ test('a district officer gets only their district from the overlay, and the BMU 
             ->and($items->every(fn (array $b): bool => collect($b['months'])->sum('positive') === $b['positive'] && collect($b['months'])->sum('tested') === $b['tested']))->toBeTrue();
     }
 });
+
+test('with an empty sector_indicators table every sector page falls back to daily returns', function () {
+    $users = commandApiUsers();
+    $overlaid = [];
+
+    foreach (['public', 'private', 'ppm'] as $sector) {
+        $overlaid[$sector] = $this->actingAs($users['admin'])->getJson("/api/command/sectors/{$sector}")->assertOk()->json('data');
+    }
+
+    DB::table('sector_indicators')->delete();
+    expect(DB::table('sector_indicators')->count())->toBe(0);
+
+    foreach (['public', 'private', 'ppm'] as $sector) {
+        $response = $this->actingAs($users['admin'])->getJson("/api/command/sectors/{$sector}")->assertOk();
+        $rows = $response->json('data.rows');
+        $map = collect($this->actingAs($users['admin'])->getJson("/api/command/map?sector={$sector}")->assertOk()->json('data.districts'))->keyBy('city_id');
+
+        expect($rows)->toHaveCount(29);
+
+        // Each row is the district's daily returns for that sector, the same figures the map shows.
+        foreach ($rows as $row) {
+            expect($row['suspects'])->toBe($map[$row['city_id']]['suspects'], "{$sector} {$row['district']}")
+                ->and($row['tested'])->toBe($map[$row['city_id']]['tested'])
+                ->and($row['positive'])->toBe($map[$row['city_id']]['positive']);
+        }
+
+        // The total is the sum of the computed rows, and the page is not the overlay's.
+        expect($response->json('data.total.suspects'))->toBe(array_sum(array_column($rows, 'suspects')))
+            ->and($response->json('data.total.positive'))->toBe(array_sum(array_column($rows, 'positive')))
+            ->and($response->json('data'))->not->toBe($overlaid[$sector]);
+    }
+
+    $this->actingAs($users['karachi_west'])->getJson('/api/command/sectors/public')->assertOk()
+        ->assertJsonCount(1, 'data.rows');
+});
+
+test('All, Intelligence, Cumulative, the frame and every map are identical with and without overlay rows', function () {
+    $users = commandApiUsers();
+    $paths = [
+        '/api/command/frame', '/api/command/cumulative', '/api/command/intelligence',
+        '/api/command/map', '/api/command/map?sector=public', '/api/command/map?sector=private', '/api/command/map?sector=ppm',
+        '/api/command/drivers', '/api/command/incidence',
+    ];
+    $fetch = fn (): array => array_map(fn (string $path): array => $this->actingAs($users['admin'])->getJson($path)->assertOk()->json('data'), $paths);
+
+    expect(DB::table('sector_indicators')->count())->toBe(87);
+
+    $with = $fetch();
+    DB::table('sector_indicators')->delete();
+    $without = $fetch();
+
+    expect($without)->toBe($with);
+});

@@ -129,7 +129,6 @@ class CommandFacilitySeeder extends Seeder
      */
     private function capturedTotals(): array
     {
-        /** @var array<int, array<string, array{count: int, sus: int, tested: int, pos: int, st: int}>> $totals */
         $totals = [];
         $facilities = Facility::query()
             ->where(fn ($query) => $query->whereNull('code')->orWhere('code', 'not like', self::CODE_PREFIX.'%'))

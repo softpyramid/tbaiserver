@@ -68,28 +68,37 @@ test('command seeder never writes in production or any other environment', funct
     }
 })->with(['production', 'testing', 'prod']);
 
-test('command center flags are off in every environment unless the variable is set', function () {
+test('command center flags default on in local, dev and staging, off in production and testing, and an explicit value wins', function () {
     $config = fn (string $env, array $vars): array => json_decode((string) shell_exec(
         'cd '.escapeshellarg(base_path()).' && '
         .collect($vars)->map(fn ($v, $k) => $k.'='.escapeshellarg($v))->implode(' ')
         .' APP_ENV='.escapeshellarg($env)
         .' php -r \'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo json_encode(config("tbai.features"));\''
     ), true);
+    $four = fn (array $features): array => [$features['drivers'], $features['interventions'], $features['incidence'], $features['ai_tests']];
 
     $local = $config('local', []);
+    $dev = $config('dev', []);
     $staging = $config('staging', []);
     $production = $config('production', []);
+    $testing = $config('testing', []);
+    $unlisted = $config('qa', []);
     $override = $config('production', ['TBAI_SHOW_DRIVERS' => 'true']);
-    $on = $config('staging', ['TBAI_SHOW_DRIVERS' => 'true', 'TBAI_SHOW_AI_TESTS' => 'true']);
-    $off = $config('staging', ['TBAI_SHOW_DRIVERS' => 'false']);
+    $on = $config('production', ['TBAI_SHOW_DRIVERS' => 'true', 'TBAI_SHOW_AI_TESTS' => 'true']);
+    $off = $config('staging', ['TBAI_SHOW_DRIVERS' => 'false', 'TBAI_SHOW_INCIDENCE' => 'false', 'TBAI_SHOW_AI_TESTS' => 'false']);
     $interventions = $config('staging', ['TBAI_SHOW_DRIVERS' => 'true', 'TBAI_SHOW_INTERVENTIONS' => 'false']);
+    $followsDrivers = $config('staging', ['TBAI_SHOW_DRIVERS' => 'false']);
 
-    expect(array_unique(array_values(config('tbai.area_defaults'))))->toBe([false])
-        ->and([$local['drivers'], $local['interventions'], $local['incidence'], $local['ai_tests']])->toBe([false, false, false, false])
-        ->and([$staging['drivers'], $staging['interventions'], $staging['incidence'], $staging['ai_tests']])->toBe([false, false, false, false])
-        ->and([$production['drivers'], $production['interventions'], $production['incidence'], $production['ai_tests']])->toBe([false, false, false, false])
-        ->and([$override['drivers'], $override['interventions'], $override['incidence']])->toBe([true, true, false])
-        ->and([$on['drivers'], $on['interventions'], $on['incidence'], $on['ai_tests']])->toBe([true, true, false, true])
-        ->and([$off['drivers'], $off['interventions']])->toBe([false, false])
-        ->and([$interventions['drivers'], $interventions['interventions']])->toBe([true, false]);
+    expect(config('tbai.area_defaults'))->toBe(['local' => true, 'dev' => true, 'staging' => true, 'production' => false])
+        ->and($four($local))->toBe([true, true, true, true])
+        ->and($four($dev))->toBe([true, true, true, true])
+        ->and($four($staging))->toBe([true, true, true, true])
+        ->and($four($production))->toBe([false, false, false, false])
+        ->and($four($testing))->toBe([false, false, false, false])
+        ->and($four($unlisted))->toBe([false, false, false, false])
+        ->and($four($override))->toBe([true, true, false, false])
+        ->and($four($on))->toBe([true, true, false, true])
+        ->and($four($off))->toBe([false, false, false, false])
+        ->and([$interventions['drivers'], $interventions['interventions']])->toBe([true, false])
+        ->and([$followsDrivers['drivers'], $followsDrivers['interventions']])->toBe([false, false]);
 });

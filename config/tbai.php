@@ -9,14 +9,13 @@ $flag = static function (string $key): bool {
 /*
  * Whether the command center areas (drivers, interventions, incidence, AI
  * tests) are on by default, per environment, when their env variable is
- * absent. Every entry is false, which is how develop behaves today and keeps
- * production off. The PR that ships the new pages flips local, dev, and
- * staging to true here, in this one place.
+ * absent. Local, dev, and staging are on; production is off. An environment
+ * that is not listed here (testing, for example) is off.
  */
 $areaDefaults = [
-    'local' => false,
-    'dev' => false,
-    'staging' => false,
+    'local' => true,
+    'dev' => true,
+    'staging' => true,
     'production' => false,
 ];
 
@@ -79,9 +78,11 @@ return [
     | incidence: Incidence page of the command center.
     | ai_tests: AI Assisted Testing page and every AI-assisted figure.
     |
-    | drivers, interventions, incidence, and ai_tests are off in every
-    | environment unless the env variable says otherwise. area_defaults is the one
-    | place to switch them on by default for an environment.
+    | drivers, interventions, incidence, and ai_tests are on in local, dev, and
+    | staging and off in production (and in any environment not listed in
+    | area_defaults) unless the env variable says otherwise. An explicit true or
+    | false in the environment always wins. area_defaults is the one place to
+    | change the default for an environment.
     */
 
     'area_defaults' => $areaDefaults,

@@ -258,6 +258,18 @@ test('map, drivers and incidence honour the contract', function () {
     $this->actingAs($users['sindh'])->getJson('/api/command/incidence')->assertOk()->assertJsonPath('meta.province.name', 'Sindh');
 });
 
+test('with the flags on the frame lists all nine pages in order', function () {
+    $users = commandApiUsers();
+    $frame = $this->actingAs($users['admin'])->getJson('/api/command/frame')->assertOk();
+
+    expect(collect($frame->json('data.screens'))->pluck('number')->all())->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        ->and(collect($frame->json('data.screens'))->pluck('key')->all())->toBe(['cumulative', 'intelligence', 'public', 'private', 'ppm', 'drivers', 'map', 'ai_tests', 'incidence']);
+
+    foreach (['drivers', 'incidence', 'ai-tests'] as $page) {
+        $this->actingAs($users['admin'])->getJson("/api/command/{$page}")->assertOk();
+    }
+});
+
 test('turning flags off removes the pages and every AI figure', function () {
     $users = commandApiUsers();
     config(['tbai.features.drivers' => false, 'tbai.features.interventions' => false, 'tbai.features.incidence' => false, 'tbai.features.ai_tests' => false]);

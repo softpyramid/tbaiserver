@@ -19,18 +19,22 @@ export function Panel({
     style,
     children,
     id,
+    titleStyle,
 }: {
     title: ReactNode;
     sub?: ReactNode;
     style: CSSProperties;
     children: ReactNode;
     id?: string;
+    titleStyle?: CSSProperties;
 }) {
     const heading = id ? `${id}-h` : undefined;
 
     return (
         <section className="cc-pn" style={style} aria-labelledby={heading}>
-            <h4 id={heading}>{title}</h4>
+            <h4 id={heading} style={titleStyle}>
+                {title}
+            </h4>
             {sub ? <div className="sub">{sub}</div> : null}
             {children}
         </section>

@@ -50,7 +50,7 @@ final class FrameBuilder
             ],
             'months' => Labels::months($s->months()),
             'assets' => [
-                'base' => '/command/',
+                'base' => '/cc-assets/',
                 'backgrounds' => ['default' => 'bg-default.jpg', 'lab' => 'bg-lab.jpg', 'ajrak' => 'bg-ajrak.jpg'],
                 'logos' => ['sindh_govt' => 'logo-sindh-govt.png', 'tbai' => 'logo-tbai.png'],
                 'webp' => true,

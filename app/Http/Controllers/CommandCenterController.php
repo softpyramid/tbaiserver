@@ -49,6 +49,7 @@ class CommandCenterController extends Controller
 
         return Inertia::render('command/center', [
             'backUrl' => route('command.index'),
+            'backLabel' => __('entry.back_to_app'),
         ]);
     }
 

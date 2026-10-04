@@ -224,11 +224,13 @@ test('the parent of the active page is marked open', function () {
         ->assertOk()
         ->assertInertia(function (Assert $page) {
             $registered = navEntry($page, 'command', 'registered');
-            $overview = navEntry($page, 'command', 'command');
+            $commandCenter = navEntry($page, 'command', 'command_center');
+            $children = collect($commandCenter['children']);
 
             expect($registered['expanded'])->toBeTrue()
-                ->and($overview['expanded'])->toBeFalse()
-                ->and($overview['current'])->toBeFalse()
+                ->and($commandCenter['expanded'])->toBeTrue()
+                ->and($children->firstWhere('key', 'command_center_reports')['current'])->toBeTrue()
+                ->and($children->firstWhere('key', 'command_center_executive')['current'])->toBeFalse()
                 ->and(array_column($registered['children'], 'label'))->toBe(['Public', 'Private', 'PPM']);
         });
 
@@ -248,8 +250,9 @@ test('exactly one admin sidebar link is current on each admin page', function ()
     $facility = Facility::factory()->create();
 
     $pages = [
-        [route('command.index'), 'command'],
-        [route('command.map'), 'command'],
+        [route('command.index'), 'command_center_reports'],
+        [route('command.center'), 'command_center_executive'],
+        [route('command.map'), 'command_center_reports'],
         [route('facilities.index'), 'facilities'],
         [route('facilities.home', $facility->team), 'facilities'],
         [route('admin.daily-returns.index'), 'returns'],
@@ -268,8 +271,17 @@ test('exactly one admin sidebar link is current on each admin page', function ()
             ->assertInertia(function (Assert $page) use ($expected, $url) {
                 $current = collect($page->toArray()['props']['nav']['groups'])
                     ->flatMap(fn (array $group): array => $group['items'])
-                    ->filter(fn (array $item): bool => $item['current'])
-                    ->pluck('key')
+                    ->flatMap(function (array $item): array {
+                        $keys = $item['current'] ? [$item['key']] : [];
+
+                        foreach ($item['children'] as $child) {
+                            if (($child['current'] ?? false) === true) {
+                                $keys[] = $child['key'];
+                            }
+                        }
+
+                        return $keys;
+                    })
                     ->all();
 
                 expect($current)->toBe([$expected], $url);
@@ -288,11 +300,23 @@ test('the admin sidebar has no repeated viewer list and no duplicate names', fun
                 ->flatMap(fn (array $group): array => $group['items']);
             $labels = $items->pluck('label');
 
-            expect($labels->all())->toBe(['Command center', 'Facilities', 'Returns', 'People and access', 'Audit log'])
+            $commandCenter = $items->firstWhere('key', 'command_center');
+
+            expect($labels->all())->toBe(['Command Center', 'Facilities', 'Returns', 'People and access', 'Audit log'])
                 ->and($labels->unique()->count())->toBe($labels->count())
                 ->and($items->pluck('key')->all())->not->toContain('registered')
+                ->and($items->pluck('key')->all())->not->toContain('command_map')
+                ->and($items->pluck('key')->all())->not->toContain('command_alerts')
+                ->and($items->pluck('key')->all())->not->toContain('command_drivers')
+                ->and($items->pluck('key')->all())->not->toContain('command_incidence')
                 ->and($items->pluck('key')->all())->not->toContain('daily_returns')
-                ->and($items->every(fn (array $item): bool => $item['children'] === []))->toBeTrue();
+                ->and(array_column($commandCenter['children'], 'key'))->toBe([
+                    'command_center_executive',
+                    'command_center_reports',
+                ])
+                ->and($items->reject(fn (array $item): bool => $item['key'] === 'command_center')->every(
+                    fn (array $item): bool => $item['children'] === [],
+                ))->toBeTrue();
         });
 });
 
@@ -314,7 +338,7 @@ test('the viewer sidebar is the short list with the renamed labels and no accoun
                 ->pluck('label')
                 ->all();
 
-            expect($labels)->toBe(['Overview', 'Registered', 'Map', 'Alerts', 'Daily returns']);
+            expect($labels)->toBe(['Command Center', 'Registered', 'Map', 'Alerts', 'Daily returns']);
         });
 });
 

@@ -29,7 +29,8 @@ test('the full-screen command center boots for every viewer role', function () {
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('command/center')
-                ->where('backUrl', route('command.index')));
+                ->where('backUrl', route('command.index'))
+                ->where('backLabel', __('entry.back_to_app')));
     }
 });
 
@@ -67,4 +68,10 @@ test('the command center front end keeps to the copy and security rules', functi
         expect(preg_match('/demo data/i', $source))->toBe(0, "{$file} labels data as demo");
         expect(preg_match('/\bteam\b/i', $source))->toBe(0, "{$file} says team");
     }
+
+    $shell = (string) file_get_contents(resource_path('js/command-center/shell.tsx'));
+
+    expect($shell)->not->toContain('cc-back')
+        ->and($shell)->toContain('aria-label={backLabel}')
+        ->and($shell)->toContain('href={backUrl}');
 });

@@ -11,18 +11,22 @@ class RoleHome
      * Where this person should land after sign-in.
      *
      * Technicians and the facility in-charge open today's register.
-     * City, provincial, and country viewers open the command center.
-     * A TB-AI admin opens the command center, with a strip of things that need attention.
-     * Anyone else opens their account page.
+     * City, provincial, and country viewers, and a TB-AI admin, open the
+     * command center. When command center landing is on, that home is the
+     * executive view. Anyone else opens their account page.
      */
     public function url(User $user): string
     {
+        $commandHome = config('tbai.command_center.landing')
+            ? route('command.center')
+            : route('command.index');
+
         if ($user->isTbaiAdmin()) {
-            return route('command.index');
+            return $commandHome;
         }
 
         if ($user->programmeAssignments()->exists()) {
-            return route('command.index');
+            return $commandHome;
         }
 
         $facilityTeam = $this->facilityTeam($user);

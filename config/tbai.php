@@ -96,6 +96,16 @@ return [
     ],
 
     /*
+    | Where programme roles and admins land after sign-in. Off opens the
+    | detailed reports page. On opens the executive view. An explicit env
+    | value always wins. Default is off in every environment.
+    */
+
+    'command_center' => [
+        'landing' => $flag('TBAI_COMMAND_CENTER_LANDING'),
+    ],
+
+    /*
     | Command center copy owned by the programme, served by the API so it can
     | change without a release. The six lines per category are placeholders
     | until the programme confirms the wording.

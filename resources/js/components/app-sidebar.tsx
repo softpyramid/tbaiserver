@@ -9,9 +9,11 @@ import {
     History,
     FileText,
     Inbox,
+    LayoutDashboard,
     LayoutGrid,
     List,
     MapPinned,
+    MonitorPlay,
     ScrollText,
     Users,
     type LucideIcon,
@@ -35,7 +37,9 @@ import { about } from '@/routes';
 import type { NavItem } from '@/types';
 
 const icons: Record<string, LucideIcon> = {
-    command: LayoutGrid,
+    command_center: LayoutDashboard,
+    command_center_executive: MonitorPlay,
+    command_center_reports: LayoutGrid,
     registered: List,
     command_map: MapPinned,
     command_alerts: Inbox,

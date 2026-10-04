@@ -22,7 +22,7 @@ class SidebarNavigation
      *         badge: int|null,
      *         expanded: bool,
      *         current: bool,
-     *         children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *         children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      *     }>
      * }>
      */
@@ -32,15 +32,13 @@ class SidebarNavigation
             return [];
         }
 
-        $groups = $this->sections($user, $facilityTeam);
-
-        return $this->markExpanded($groups, $this->currentPath());
+        return $this->sections($user, $facilityTeam);
     }
 
     /**
-     * The command center has one sidebar link for the TB-AI admin, so the
-     * pages under it (Overview, Registered, Map, Alerts) are reached with a tab
-     * strip on the page itself. Everyone else has those in the sidebar.
+     * Admin still reaches Overview, Registered, Map, and Alerts through the
+     * tab strip. The full-screen executive view has no strip. Programme roles
+     * use the sidebar instead.
      *
      * @return list<array{id: string, label: string, href: string, current: bool, badge: int|null}>
      */
@@ -48,7 +46,7 @@ class SidebarNavigation
     {
         $name = request()->route()?->getName();
 
-        if ($user === null || ! $user->isTbaiAdmin() || $name === null || ! str_starts_with($name, 'command.')) {
+        if ($user === null || ! $user->isTbaiAdmin() || $name === null || $name === 'command.center' || ! str_starts_with($name, 'command.')) {
             return [];
         }
 
@@ -79,7 +77,7 @@ class SidebarNavigation
      *         badge: int|null,
      *         expanded: bool,
      *         current: bool,
-     *         children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *         children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      *     }>
      * }>
      */
@@ -87,8 +85,8 @@ class SidebarNavigation
     {
         if ($user->isTbaiAdmin()) {
             return [
-                $this->group('command', '', [
-                    $this->link('command', __('entry.nav_command'), route('command.index'), null, ['command.']),
+                $this->group('command', __('entry.nav_group_command_center'), [
+                    $this->commandCenterParent(),
                 ]),
                 $this->group('administration', __('entry.nav_group_administration'), $this->administrationItems()),
             ];
@@ -96,7 +94,7 @@ class SidebarNavigation
 
         if ($user->programmeAssignments()->exists()) {
             return [
-                $this->group('command', __('entry.nav_group_command'), $this->commandItems()),
+                $this->group('command', __('entry.nav_group_command_center'), $this->commandItems()),
             ];
         }
 
@@ -117,13 +115,13 @@ class SidebarNavigation
      *     badge: int|null,
      *     expanded: bool,
      *     current: bool,
-     *     children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      * }>
      */
     private function commandItems(): array
     {
         $items = [
-            $this->link('command', __('entry.nav_overview'), route('command.index'), null, ['command.index']),
+            $this->commandCenterParent(),
             $this->parent('registered', __('entry.nav_registered'), [
                 $this->child('public', Sector::Public->label(), route('command.sectors.show', ['sector' => Sector::Public->value])),
                 $this->child('private', Sector::Private->label(), route('command.sectors.show', ['sector' => Sector::Private->value])),
@@ -154,7 +152,7 @@ class SidebarNavigation
      *     badge: int|null,
      *     expanded: bool,
      *     current: bool,
-     *     children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      * }>
      */
     private function administrationItems(): array
@@ -180,7 +178,7 @@ class SidebarNavigation
      *     badge: int|null,
      *     expanded: bool,
      *     current: bool,
-     *     children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      * }>
      */
     private function facilityItems(User $user, Team $facilityTeam): array
@@ -211,7 +209,7 @@ class SidebarNavigation
      *     badge: int|null,
      *     expanded: bool,
      *     current: bool,
-     *     children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      * }>  $items
      * @return array{
      *     key: string,
@@ -223,7 +221,7 @@ class SidebarNavigation
      *         badge: int|null,
      *         expanded: bool,
      *         current: bool,
-     *         children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *         children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      *     }>
      * }
      */
@@ -245,7 +243,7 @@ class SidebarNavigation
      *     badge: int|null,
      *     expanded: bool,
      *     current: bool,
-     *     children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      * }
      */
     private function link(string $key, string $label, string $href, ?int $badge = null, array $routes = []): array
@@ -282,7 +280,6 @@ class SidebarNavigation
     }
 
     /**
-     * @param  list<array{key: string, label: string, href: string, badge: int|null}>  $children
      * @return array{
      *     key: string,
      *     label: string,
@@ -290,81 +287,90 @@ class SidebarNavigation
      *     badge: int|null,
      *     expanded: bool,
      *     current: bool,
-     *     children: list<array{key: string, label: string, href: string, badge: int|null}>
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
+     * }
+     */
+    private function commandCenterParent(): array
+    {
+        $name = request()->route()?->getName();
+        $onCenter = $name === 'command.center';
+        $onReports = is_string($name) && str_starts_with($name, 'command.') && ! $onCenter;
+
+        return $this->parent('command_center', __('entry.nav_group_command_center'), [
+            $this->child(
+                'command_center_executive',
+                __('entry.nav_command_center_executive'),
+                route('command.center'),
+                null,
+                $onCenter,
+                true,
+            ),
+            $this->child(
+                'command_center_reports',
+                __('entry.nav_command_center_reports'),
+                route('command.index'),
+                null,
+                $onReports,
+            ),
+        ]);
+    }
+
+    /**
+     * @param  list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>  $children
+     * @return array{
+     *     key: string,
+     *     label: string,
+     *     href: null,
+     *     badge: int|null,
+     *     expanded: bool,
+     *     current: bool,
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
      * }
      */
     private function parent(string $key, string $label, array $children): array
     {
+        $current = $this->currentPath();
+        $expanded = false;
+
+        foreach ($children as $child) {
+            if ($this->childIsCurrent($child, $current)) {
+                $expanded = true;
+                break;
+            }
+        }
+
         return [
             'key' => $key,
             'label' => $label,
             'href' => null,
             'badge' => null,
-            'expanded' => false,
+            'expanded' => $expanded,
             'current' => false,
             'children' => $children,
         ];
     }
 
     /**
-     * @return array{key: string, label: string, href: string, badge: int|null}
+     * @return array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}
      */
-    private function child(string $key, string $label, string $href, ?int $badge = null): array
+    private function child(string $key, string $label, string $href, ?int $badge = null, ?bool $current = null, ?bool $blank = null): array
     {
-        return [
+        $row = [
             'key' => $key,
             'label' => $label,
             'href' => $href,
             'badge' => $badge,
         ];
-    }
 
-    /**
-     * @param  list<array{
-     *     key: string,
-     *     label: string,
-     *     items: list<array{
-     *         key: string,
-     *         label: string,
-     *         href: string|null,
-     *         badge: int|null,
-     *         expanded: bool,
-     *         current: bool,
-     *         children: list<array{key: string, label: string, href: string, badge: int|null}>
-     *     }>
-     * }>  $groups
-     * @return list<array{
-     *     key: string,
-     *     label: string,
-     *     items: list<array{
-     *         key: string,
-     *         label: string,
-     *         href: string|null,
-     *         badge: int|null,
-     *         expanded: bool,
-     *         current: bool,
-     *         children: list<array{key: string, label: string, href: string, badge: int|null}>
-     *     }>
-     * }>
-     */
-    private function markExpanded(array $groups, string $current): array
-    {
-        foreach ($groups as $groupIndex => $group) {
-            foreach ($group['items'] as $itemIndex => $item) {
-                $open = false;
-
-                foreach ($item['children'] as $child) {
-                    if ($this->matches($child['href'], $current)) {
-                        $open = true;
-                        break;
-                    }
-                }
-
-                $groups[$groupIndex]['items'][$itemIndex]['expanded'] = $open;
-            }
+        if ($current !== null) {
+            $row['current'] = $current;
         }
 
-        return $groups;
+        if ($blank === true) {
+            $row['blank'] = true;
+        }
+
+        return $row;
     }
 
     private function currentPath(): string
@@ -372,6 +378,18 @@ class SidebarNavigation
         $path = '/'.ltrim(request()->path(), '/');
 
         return $path === '/' ? '/' : rtrim($path, '/');
+    }
+
+    /**
+     * @param  array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}  $child
+     */
+    private function childIsCurrent(array $child, string $current): bool
+    {
+        if (array_key_exists('current', $child)) {
+            return $child['current'] === true;
+        }
+
+        return $this->matches($child['href'], $current);
     }
 
     private function matches(string $href, string $current): bool

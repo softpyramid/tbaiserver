@@ -119,6 +119,9 @@ return [
     'facility_deactivated' => 'Facility deactivated.',
     'nav_group_platform' => 'Platform',
     'nav_group_command' => 'Command center',
+    'nav_group_command_center' => 'Command Center',
+    'nav_command_center_executive' => 'Executive view',
+    'nav_command_center_reports' => 'Detailed reports',
     'nav_group_administration' => 'Administration',
     'nav_group_my_facility' => 'Facility',
     'nav_registered' => 'Registered',
@@ -200,6 +203,7 @@ return [
     'error_session' => 'Session expired',
     'error_session_reason' => 'Your session expired. Sign in and try again.',
     'back_home' => 'Back to home',
+    'back_to_app' => 'Back to the app',
 
     'command_intro' => 'Open the facilities and daily returns in this scope.',
     'command_facility_count' => 'Facilities: :count',

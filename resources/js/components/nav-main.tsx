@@ -19,6 +19,8 @@ export type NavChild = {
     label: string;
     href: string;
     badge: number | null;
+    current?: boolean;
+    blank?: boolean;
 };
 
 export type NavEntry = {
@@ -119,6 +121,7 @@ export function NavMain({
                                 key={item.key}
                                 item={item}
                                 hrefs={hrefs}
+                                icons={icons}
                                 icon={icons[item.key] ?? null}
                                 open={openMap[item.key] ?? item.expanded}
                                 onToggle={() =>
@@ -141,12 +144,14 @@ export function NavMain({
 function NavRow({
     item,
     hrefs,
+    icons,
     icon,
     open,
     onToggle,
 }: {
     item: NavEntry;
     hrefs: string[];
+    icons: Record<string, LucideIcon>;
     icon: LucideIcon | null;
     open: boolean;
     onToggle: () => void;
@@ -155,7 +160,7 @@ function NavRow({
     const page = usePage();
     const Icon = icon;
     const childActive = item.children.some((child) =>
-        itemIsActive(child.href, page.url, hrefs),
+        childIsActive(child, page.url, hrefs),
     );
     const pending = item.children.reduce(
         (total, child) => total + (child.badge ?? 0),
@@ -220,10 +225,22 @@ function NavRow({
                     >
                         <SidebarMenuSub>
                             {item.children.map((child) => {
-                                const active = itemIsActive(
-                                    child.href,
+                                const active = childIsActive(
+                                    child,
                                     page.url,
                                     hrefs,
+                                );
+                                const ChildIcon = icons[child.key];
+
+                                const content = (
+                                    <>
+                                        {ChildIcon ? <ChildIcon /> : null}
+                                        <span>{child.label}</span>
+                                        {child.badge != null &&
+                                        child.badge > 0 ? (
+                                            <CountBadge count={child.badge} />
+                                        ) : null}
+                                    </>
                                 );
 
                                 return (
@@ -232,23 +249,36 @@ function NavRow({
                                             asChild
                                             isActive={active}
                                         >
-                                            <Link
-                                                href={child.href}
-                                                prefetch
-                                                aria-current={
-                                                    active ? 'page' : undefined
-                                                }
-                                                data-test={`nav-${child.key}`}
-                                                onClick={closeMobileDrawer}
-                                            >
-                                                <span>{child.label}</span>
-                                                {child.badge != null &&
-                                                child.badge > 0 ? (
-                                                    <CountBadge
-                                                        count={child.badge}
-                                                    />
-                                                ) : null}
-                                            </Link>
+                                            {child.blank ? (
+                                                <a
+                                                    href={child.href}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    aria-current={
+                                                        active
+                                                            ? 'page'
+                                                            : undefined
+                                                    }
+                                                    data-test={`nav-${child.key}`}
+                                                    onClick={closeMobileDrawer}
+                                                >
+                                                    {content}
+                                                </a>
+                                            ) : (
+                                                <Link
+                                                    href={child.href}
+                                                    prefetch
+                                                    aria-current={
+                                                        active
+                                                            ? 'page'
+                                                            : undefined
+                                                    }
+                                                    data-test={`nav-${child.key}`}
+                                                    onClick={closeMobileDrawer}
+                                                >
+                                                    {content}
+                                                </Link>
+                                            )}
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
                                 );
@@ -357,6 +387,18 @@ function pathnameOf(href: string): string {
     }
 
     return path;
+}
+
+function childIsActive(
+    child: NavChild,
+    currentPath: string,
+    hrefs: string[],
+): boolean {
+    if (child.current !== undefined) {
+        return child.current;
+    }
+
+    return itemIsActive(child.href, currentPath, hrefs);
 }
 
 function itemIsActive(

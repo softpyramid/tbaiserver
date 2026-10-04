@@ -68,7 +68,13 @@ function useStageFit() {
     return fit;
 }
 
-export function CommandShell({ backUrl }: { backUrl: string }) {
+export function CommandShell({
+    backUrl,
+    backLabel,
+}: {
+    backUrl: string;
+    backLabel: string;
+}) {
     const stage = useRef<HTMLDivElement>(null);
     const fit = useStageFit();
     const frame = useApi<Envelope<Frame>>('/api/command/frame');
@@ -204,13 +210,18 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                                         'TB-AI Sindh Govt. Super Intelligence Command Center'}
                                 </span>
                             </h1>
-                            <img
+                            <a
                                 className="cc-lg cc-lg2"
-                                alt="TB-AI"
-                                src="/cc-assets/logo-tbai.png"
-                                width={209}
-                                height={222}
-                            />
+                                href={backUrl}
+                                aria-label={backLabel}
+                            >
+                                <img
+                                    alt=""
+                                    src="/cc-assets/logo-tbai.png"
+                                    width={209}
+                                    height={222}
+                                />
+                            </a>
                         </header>
 
                         <nav
@@ -306,10 +317,6 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                                 />
                             ) : null}
                         </main>
-
-                        <a className="cc-back" href={backUrl}>
-                            Back to the app
-                        </a>
 
                         <div className="cc-pager">
                             {screens.map((s) => (

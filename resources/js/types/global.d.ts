@@ -66,6 +66,8 @@ declare module '@inertiajs/core' {
                             label: string;
                             href: string;
                             badge: number | null;
+                            current?: boolean;
+                            blank?: boolean;
                         }[];
                     }[];
                 }[];

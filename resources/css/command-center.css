@@ -151,6 +151,15 @@
     height: 62px;
     border-radius: 12px;
     box-shadow: 0 0 14px rgba(120, 200, 255, 0.6);
+    line-height: 0;
+    text-decoration: none;
+}
+
+.cc-lg2 img {
+    display: block;
+    height: 100%;
+    width: auto;
+    border-radius: inherit;
 }
 
 /* navigation pills */
@@ -747,20 +756,6 @@
     line-height: 24px;
 }
 
-.cc-back {
-    position: absolute;
-    left: 340px;
-    bottom: 6px;
-    font-size: 11px;
-    color: #10205a;
-    opacity: 0.75;
-    text-decoration: underline;
-}
-
-.cc-back:hover {
-    opacity: 1;
-}
-
 .cc-pager {
     position: absolute;
     left: 0;
@@ -1019,14 +1014,6 @@
         z-index: 20;
     }
 
-    .cc-back {
-        position: static;
-        display: block;
-        text-align: center;
-        padding: 12px;
-        font-size: 13px;
-    }
-
     .cc-pager {
         display: none;
     }
@@ -1038,6 +1025,10 @@
     .cc-root button,
     .cc-root a {
         min-height: 44px;
+    }
+
+    .cc-root a.cc-lg2 {
+        min-height: 0;
     }
 
     .cc-legend {

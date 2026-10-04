@@ -221,3 +221,37 @@ export type GeoFeature = {
 };
 
 export type GeoJson = { attribution?: string; features: GeoFeature[] };
+
+export type AlertLine = {
+    severity: 'critical' | 'attention' | 'emerging' | 'improvement';
+    text: string;
+    metric: string;
+    values: Record<string, number | string>;
+    subject: { type: string; id: number | null; name: string };
+    map: { sector: string; indicator: string; selected: number | null };
+};
+
+export type TopEightItem = {
+    city_id: number;
+    name: string;
+    short_name: string;
+    value: number;
+    decimals: number;
+};
+
+export type TopEight = {
+    key: string;
+    metric: string;
+    title_subject: string;
+    scope: string;
+    indicator: string;
+    axis_decimals: number;
+    value_decimals: number;
+    unit: string | null;
+    items: TopEightItem[];
+};
+
+export type Intelligence = {
+    alert_center: { lines: AlertLine[]; all: AlertLine[] };
+    top8: TopEight[];
+};

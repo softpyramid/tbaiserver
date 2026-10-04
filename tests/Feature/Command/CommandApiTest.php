@@ -276,6 +276,24 @@ test('turning flags off removes the pages and every AI figure', function () {
         ->and($drivers->json('data.categories.0.priority'))->toBe([]);
 });
 
+test('with no flag set the flagged endpoints answer 404 and stay out of frame.screens', function () {
+    $admin = User::factory()->create();
+    ProgrammeAssignment::factory()->create(['user_id' => $admin->id, 'role' => ProgrammeRole::TbaiAdmin]);
+
+    expect(config('tbai.features.drivers'))->toBeFalse()
+        ->and(config('tbai.features.interventions'))->toBeFalse()
+        ->and(config('tbai.features.incidence'))->toBeFalse()
+        ->and(config('tbai.features.ai_tests'))->toBeFalse();
+
+    foreach (['drivers', 'incidence', 'ai-tests'] as $page) {
+        $this->actingAs($admin)->getJson("/api/command/{$page}")->assertNotFound();
+    }
+
+    $frame = $this->actingAs($admin)->getJson('/api/command/frame')->assertOk();
+    expect(collect($frame->json('data.screens'))->pluck('key')->all())->not->toContain('drivers', 'incidence', 'ai_tests', 'ai-tests')
+        ->and($frame->json('data.flags'))->toBe(['drivers' => false, 'interventions' => false, 'incidence' => false, 'ai_tests' => false]);
+});
+
 test('an empty database answers nulls and zeros, never an error', function () {
     $admin = User::factory()->create();
     ProgrammeAssignment::factory()->create(['user_id' => $admin->id, 'role' => ProgrammeRole::TbaiAdmin]);

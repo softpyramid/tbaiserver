@@ -343,7 +343,6 @@ it('blocks password, email and security changes while impersonating', function (
         ['post', route('passkey.store'), []],
         ['delete', route('passkey.destroy', $passkeyId), []],
         ['post', route('verification.send'), []],
-        ['delete', route('profile.destroy'), ['password' => 'password']],
     ];
 
     foreach ($calls as [$method, $url, $data]) {

@@ -439,6 +439,16 @@ class TeamArea
             ];
         }
 
+        if (Gate::forUser($actor)->allows('impersonate', $member)) {
+            $actions[] = [
+                'kind' => 'post',
+                'label' => __('entry.impersonate'),
+                'url' => route('impersonation.start', $member),
+                'confirm' => __('entry.impersonate_confirm'),
+                'fields' => [],
+            ];
+        }
+
         if ($this->canToggleActive($actor, $team, $member, $lastOwner)) {
             $inactive = $member->deactivated_at !== null;
             $actions[] = [

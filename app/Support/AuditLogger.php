@@ -15,6 +15,12 @@ class AuditLogger
      */
     public function write(User $actor, string $action, ?Model $subject = null, array $properties = []): void
     {
+        $original = app(Impersonation::class)->originalId();
+
+        if ($original !== null && ! str_starts_with($action, 'impersonation.')) {
+            $properties['impersonated_by'] = $original;
+        }
+
         AuditLog::query()->create([
             'user_id' => $actor->id,
             'action' => $action,

@@ -10,6 +10,7 @@ use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\FacilityHomeController;
 use App\Http\Controllers\FacilityReturnHistoryController;
 use App\Http\Controllers\FallbackController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\ProgrammeAdminController;
 use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
@@ -81,7 +82,15 @@ Route::redirect('register', '/request-access');
 
 Route::get('manifest.webmanifest', WebManifestController::class)->name('manifest');
 
+Route::middleware(['auth'])->group(function () {
+    Route::post('impersonation/stop', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('impersonation/{user}', [ImpersonationController::class, 'start'])
+        ->whereNumber('user')
+        ->name('impersonation.start');
+
     Route::get('today', TodayShortcutController::class)->name('returns.home');
 
     Route::post('programme-assignments', [ProgrammeAssignmentController::class, 'store'])->name('programme-assignments.store');

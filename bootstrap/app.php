@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockSecurityChangesWhileImpersonating;
 use App\Http\Middleware\EncryptPrivateHistory;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
@@ -39,6 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             SetTeamUrlDefaults::class,
+            // After the Inertia middleware so the 403 page still gets its shared props.
+            BlockSecurityChangesWhileImpersonating::class,
         ]);
 
         // First in the group so every response carries the headers, including
@@ -54,8 +57,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
             $status = $response->getStatusCode();
+            $blocked = $status === 403 && $exception->getMessage() === __('entry.impersonation_blocked');
             $copy = match ($status) {
-                403 => [__('entry.error_not_allowed'), __('entry.error_not_allowed_reason')],
+                403 => [__('entry.error_not_allowed'), $blocked ? __('entry.impersonation_blocked') : __('entry.error_not_allowed_reason')],
                 404 => [__('entry.error_not_found'), __('entry.error_not_found_reason')],
                 419 => [__('entry.error_session'), __('entry.error_session_reason')],
                 default => null,

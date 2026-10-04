@@ -1,3 +1,4 @@
+import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { Link, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
@@ -22,30 +23,35 @@ export default function AuthCardLayout({
     const { name } = usePage().props;
 
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-            <div className="flex w-full max-w-md flex-col gap-6">
-                <Link
-                    href={home()}
-                    className="flex items-center gap-3 self-center font-medium"
-                >
-                    <AppLogoIcon alt="" className="size-10 rounded-lg" />
-                    <span className="text-sm font-semibold tracking-[0.18em] text-foreground">
-                        {name}
-                    </span>
-                </Link>
+        <>
+            <ImpersonationBanner />
+            <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+                <div className="flex w-full max-w-md flex-col gap-6">
+                    <Link
+                        href={home()}
+                        className="flex items-center gap-3 self-center font-medium"
+                    >
+                        <AppLogoIcon alt="" className="size-10 rounded-lg" />
+                        <span className="text-sm font-semibold tracking-[0.18em] text-foreground">
+                            {name}
+                        </span>
+                    </Link>
 
-                <div className="flex flex-col gap-6">
-                    <Card className="rounded-xl">
-                        <CardHeader className="px-10 pt-8 pb-0 text-center">
-                            <CardTitle className="text-xl">{title}</CardTitle>
-                            <CardDescription>{description}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="px-10 py-8">
-                            {children}
-                        </CardContent>
-                    </Card>
+                    <div className="flex flex-col gap-6">
+                        <Card className="rounded-xl">
+                            <CardHeader className="px-10 pt-8 pb-0 text-center">
+                                <CardTitle className="text-xl">
+                                    {title}
+                                </CardTitle>
+                                <CardDescription>{description}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="px-10 py-8">
+                                {children}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -7,15 +7,29 @@ $flag = static function (string $key): bool {
 };
 
 /*
- * Flags for the command center pages. An explicit env value always wins.
- * When the variable is absent, local, dev, and staging switch the area on
- * and every other environment (production included) leaves it off.
+ * Whether the command center areas (drivers, interventions, incidence, AI
+ * tests) are on by default, per environment, when their env variable is
+ * absent. Every entry is false, which is how develop behaves today and keeps
+ * production off. The PR that ships the new pages flips local, dev, and
+ * staging to true here, in this one place.
  */
-$areaFlag = static function (string $key) use ($flag): bool {
+$areaDefaults = [
+    'local' => false,
+    'dev' => false,
+    'staging' => false,
+    'production' => false,
+];
+
+/*
+ * Flags for the command center pages. An explicit env value always wins.
+ * When the variable is absent, the area follows $areaDefaults, and an
+ * environment not listed there is off.
+ */
+$areaFlag = static function (string $key) use ($flag, $areaDefaults): bool {
     $value = env($key);
 
     if ($value === null || $value === '') {
-        return in_array(env('APP_ENV', 'production'), ['local', 'dev', 'staging'], true);
+        return $areaDefaults[(string) env('APP_ENV', 'production')] ?? false;
     }
 
     return $flag($key);
@@ -65,9 +79,12 @@ return [
     | incidence: Incidence page of the command center.
     | ai_tests: AI Assisted Testing page and every AI-assisted figure.
     |
-    | drivers, interventions, incidence, and ai_tests are on in local, dev,
-    | and staging and off elsewhere unless the env variable says otherwise.
+    | drivers, interventions, incidence, and ai_tests are off in every
+    | environment unless the env variable says otherwise. area_defaults is the one
+    | place to switch them on by default for an environment.
     */
+
+    'area_defaults' => $areaDefaults,
 
     'features' => [
         'screening' => $flag('TBAI_SHOW_SCREENING'),

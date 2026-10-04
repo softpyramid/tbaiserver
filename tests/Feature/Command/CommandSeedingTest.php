@@ -67,7 +67,7 @@ test('command seeder never writes in production or any other environment', funct
     }
 })->with(['production', 'testing', 'prod']);
 
-test('command center flags follow the environment unless the variable is set', function () {
+test('command center flags are off in every environment unless the variable is set', function () {
     $config = fn (string $env, array $vars): array => json_decode((string) shell_exec(
         'cd '.escapeshellarg(base_path()).' && '
         .collect($vars)->map(fn ($v, $k) => $k.'='.escapeshellarg($v))->implode(' ')
@@ -76,14 +76,19 @@ test('command center flags follow the environment unless the variable is set', f
     ), true);
 
     $local = $config('local', []);
+    $staging = $config('staging', []);
     $production = $config('production', []);
     $override = $config('production', ['TBAI_SHOW_DRIVERS' => 'true']);
+    $on = $config('staging', ['TBAI_SHOW_DRIVERS' => 'true', 'TBAI_SHOW_AI_TESTS' => 'true']);
     $off = $config('staging', ['TBAI_SHOW_DRIVERS' => 'false']);
     $interventions = $config('staging', ['TBAI_SHOW_DRIVERS' => 'true', 'TBAI_SHOW_INTERVENTIONS' => 'false']);
 
-    expect([$local['drivers'], $local['interventions'], $local['incidence'], $local['ai_tests']])->toBe([true, true, true, true])
+    expect(array_unique(array_values(config('tbai.area_defaults'))))->toBe([false])
+        ->and([$local['drivers'], $local['interventions'], $local['incidence'], $local['ai_tests']])->toBe([false, false, false, false])
+        ->and([$staging['drivers'], $staging['interventions'], $staging['incidence'], $staging['ai_tests']])->toBe([false, false, false, false])
         ->and([$production['drivers'], $production['interventions'], $production['incidence'], $production['ai_tests']])->toBe([false, false, false, false])
         ->and([$override['drivers'], $override['interventions'], $override['incidence']])->toBe([true, true, false])
+        ->and([$on['drivers'], $on['interventions'], $on['incidence'], $on['ai_tests']])->toBe([true, true, false, true])
         ->and([$off['drivers'], $off['interventions']])->toBe([false, false])
         ->and([$interventions['drivers'], $interventions['interventions']])->toBe([true, false]);
 });

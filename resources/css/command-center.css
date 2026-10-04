@@ -241,6 +241,12 @@
     white-space: nowrap;
 }
 
+.cc-plain {
+    display: inline;
+    margin: 0;
+    font: inherit;
+}
+
 .cc-lnk {
     cursor: pointer;
     text-decoration: underline dotted;

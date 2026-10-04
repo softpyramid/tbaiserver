@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { CommandContext, type MapIntent, type SortState } from './context';
 import { PlaceholderPage } from './pages/placeholder';
+import { IntelligencePage } from './pages/intelligence';
 import { MapPage } from './pages/map';
 import { SectorPage } from './pages/sector';
 import { CumulativePage } from './pages/cumulative';
@@ -278,6 +279,8 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                                     key={current.key}
                                     sector={current.key as Sector}
                                 />
+                            ) : current?.key === 'intelligence' ? (
+                                <IntelligencePage key={current.key} />
                             ) : current?.key === 'map' ? (
                                 <MapPage key={current.key} />
                             ) : switchedOff ? (

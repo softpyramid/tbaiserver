@@ -94,3 +94,67 @@ export type Cumulative = {
     months: CumulativeMonth[];
     table: TableItem[];
 };
+
+export type ColumnFormat =
+    | { type: 'text' }
+    | { type: 'int' }
+    | { type: 'percent'; decimals: number }
+    | { type: 'decimal'; decimals: number };
+
+export type SectorColumn = {
+    key: string;
+    label: string;
+    align: 'left' | 'right';
+    format: ColumnFormat;
+};
+
+export type SectorRow = {
+    city_id: number | null;
+    district: string;
+    match_key: string | null;
+    [key: string]: string | number | null;
+};
+
+export type SectorTable = {
+    columns: SectorColumn[];
+    rows: SectorRow[];
+    total: SectorRow;
+    row_action: 'bmu_drilldown' | 'map';
+};
+
+export type BmuMonth = {
+    month: string;
+    label: string;
+    tested: number | null;
+    positive: number | null;
+};
+
+export type Bmu = {
+    facility_id: number;
+    name: string;
+    label: string;
+    suspects: number;
+    tested: number;
+    positive: number;
+    positivity: number | null;
+    success_pct: number | null;
+    ltfu_pct: number | null;
+    tat_days: number | null;
+    share_of_district_positive: number | null;
+    months: BmuMonth[];
+};
+
+export type BmuDrilldown = {
+    district: { city_id: number; name: string; match_key: string };
+    summary: {
+        active_bmus: number;
+        suspects: number;
+        tested: number;
+        positive: number;
+    };
+    bmus: Bmu[];
+    map: { sector: string; indicator: string; selected: number };
+};
+
+export type Sector = 'public' | 'private' | 'ppm';
+export type MapSector = 'all' | Sector;

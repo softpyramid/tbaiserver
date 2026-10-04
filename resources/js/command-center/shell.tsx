@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { CommandContext, type MapIntent, type SortState } from './context';
 import { PlaceholderPage } from './pages/placeholder';
+import { SectorPage } from './pages/sector';
 import { CumulativePage } from './pages/cumulative';
 import { TipProvider } from './tooltip';
-import type { Envelope, Frame, Screen } from './types';
+import type { Envelope, Frame, MapSector, Screen, Sector } from './types';
 import { at, LoadState } from './ui';
 import { useApi } from './use-api';
 
@@ -66,6 +68,12 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
     const fit = useStageFit();
     const frame = useApi<Envelope<Frame>>('/api/command/frame');
     const [wanted, setWanted] = useState<number>(() => numberFromHash());
+    const [sort, setSort] = useState<SortState>({ key: 'suspects', dir: -1 });
+    const [mapIntent, setMapIntent] = useState<MapIntent>({
+        sector: 'all',
+        selected: null,
+        indicator: null,
+    });
 
     const screens = useMemo<Screen[]>(
         () => frame.data?.data.screens ?? [],
@@ -88,6 +96,24 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
     const go = (screen: Screen) => {
         setWanted(screen.number);
         window.history.replaceState(null, '', `#${screen.number}`);
+    };
+
+    const openMap = (
+        sector: MapSector,
+        cityId: number | null,
+        indicator?: string,
+    ) => {
+        setMapIntent({
+            sector,
+            selected: cityId,
+            indicator: indicator ?? null,
+        });
+
+        const map = screens.find((s) => s.key === 'map');
+
+        if (map) {
+            go(map);
+        }
     };
 
     useEffect(() => {
@@ -139,110 +165,131 @@ export function CommandShell({ backUrl }: { backUrl: string }) {
                 style={style}
             >
                 <div className="cc-bgimg" aria-hidden="true" />
-                <TipProvider stageRef={stage}>
-                    <header className="cc-head">
-                        <img
-                            className="cc-lg cc-lg1"
-                            alt="Government of Sindh"
-                            src="/command/logo-sindh-govt.png"
-                            width={142}
-                            height={152}
-                        />
-                        <h1 className="cc-title">
-                            <span>
-                                {data?.title ??
-                                    'TB-AI Sindh Govt. Super Intelligence Command Center'}
-                            </span>
-                        </h1>
-                        <img
-                            className="cc-lg cc-lg2"
-                            alt="TB-AI"
-                            src="/command/logo-tbai.png"
-                            width={209}
-                            height={222}
-                        />
-                    </header>
+                <CommandContext.Provider
+                    value={{ openMap, mapIntent, sort, setSort }}
+                >
+                    <TipProvider stageRef={stage}>
+                        <header className="cc-head">
+                            <img
+                                className="cc-lg cc-lg1"
+                                alt="Government of Sindh"
+                                src="/cc-assets/logo-sindh-govt.png"
+                                width={142}
+                                height={152}
+                            />
+                            <h1 className="cc-title">
+                                <span>
+                                    {data?.title ??
+                                        'TB-AI Sindh Govt. Super Intelligence Command Center'}
+                                </span>
+                            </h1>
+                            <img
+                                className="cc-lg cc-lg2"
+                                alt="TB-AI"
+                                src="/cc-assets/logo-tbai.png"
+                                width={209}
+                                height={222}
+                            />
+                        </header>
 
-                    <nav className="cc-navs" aria-label="Command center pages">
-                        {screens.map((s) => {
-                            const box = NAV_BOX[s.number] ?? NAV_BOX[1];
-                            const on = s.number === current?.number;
-                            const small = s.label_lines.length > 1;
+                        <nav
+                            className="cc-navs"
+                            aria-label="Command center pages"
+                        >
+                            {screens.map((s) => {
+                                const box = NAV_BOX[s.number] ?? NAV_BOX[1];
+                                const on = s.number === current?.number;
+                                const small = s.label_lines.length > 1;
 
-                            return (
+                                return (
+                                    <button
+                                        key={s.number}
+                                        type="button"
+                                        className={`cc-nav${s.accent === 'alt' ? ' g2' : ''}${on ? ' on' : ''}${s.number === 6 || s.number === 7 ? ' cc-nav-sm' : ''}`}
+                                        style={{
+                                            ...at(
+                                                box[0],
+                                                box[1],
+                                                box[2],
+                                                box[3],
+                                            ),
+                                        }}
+                                        aria-current={on ? 'page' : undefined}
+                                        onClick={() => go(s)}
+                                    >
+                                        {small ? (
+                                            <small>
+                                                {s.label_lines.map(
+                                                    (line, i) => (
+                                                        <Fragment key={line}>
+                                                            {i > 0 ? (
+                                                                <>
+                                                                    {' '}
+                                                                    <br />
+                                                                </>
+                                                            ) : null}
+                                                            {line}
+                                                        </Fragment>
+                                                    ),
+                                                )}
+                                            </small>
+                                        ) : (
+                                            s.label
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </nav>
+
+                        <main
+                            className="cc-main"
+                            id="cc-main"
+                            aria-label={current?.label}
+                        >
+                            {frame.loading || frame.error ? (
+                                <LoadState
+                                    loading={frame.loading}
+                                    error={frame.error}
+                                    onRetry={frame.reload}
+                                />
+                            ) : current?.key === 'cumulative' ? (
+                                <CumulativePage key={current.key} />
+                            ) : current?.key === 'public' ||
+                              current?.key === 'private' ||
+                              current?.key === 'ppm' ? (
+                                <SectorPage
+                                    key={current.key}
+                                    sector={current.key as Sector}
+                                />
+                            ) : current ? (
+                                <PlaceholderPage
+                                    key={current.key}
+                                    title={current.label}
+                                />
+                            ) : null}
+                        </main>
+
+                        <a className="cc-back" href={backUrl}>
+                            Back to the app
+                        </a>
+
+                        <div className="cc-pager">
+                            {screens.map((s) => (
                                 <button
                                     key={s.number}
                                     type="button"
-                                    className={`cc-nav${s.accent === 'alt' ? ' g2' : ''}${on ? ' on' : ''}${s.number === 6 || s.number === 7 ? ' cc-nav-sm' : ''}`}
-                                    style={{
-                                        ...at(box[0], box[1], box[2], box[3]),
-                                    }}
-                                    aria-current={on ? 'page' : undefined}
+                                    className={
+                                        s.number === current?.number
+                                            ? 'on'
+                                            : undefined
+                                    }
+                                    aria-label={s.label}
                                     onClick={() => go(s)}
-                                >
-                                    {small ? (
-                                        <small>
-                                            {s.label_lines.map((line, i) => (
-                                                <Fragment key={line}>
-                                                    {i > 0 ? (
-                                                        <>
-                                                            {' '}
-                                                            <br />
-                                                        </>
-                                                    ) : null}
-                                                    {line}
-                                                </Fragment>
-                                            ))}
-                                        </small>
-                                    ) : (
-                                        s.label
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </nav>
-
-                    <main
-                        className="cc-main"
-                        id="cc-main"
-                        aria-label={current?.label}
-                    >
-                        {frame.loading || frame.error ? (
-                            <LoadState
-                                loading={frame.loading}
-                                error={frame.error}
-                                onRetry={frame.reload}
-                            />
-                        ) : current?.key === 'cumulative' ? (
-                            <CumulativePage key={current.key} />
-                        ) : current ? (
-                            <PlaceholderPage
-                                key={current.key}
-                                title={current.label}
-                            />
-                        ) : null}
-                    </main>
-
-                    <a className="cc-back" href={backUrl}>
-                        Back to the app
-                    </a>
-
-                    <div className="cc-pager">
-                        {screens.map((s) => (
-                            <button
-                                key={s.number}
-                                type="button"
-                                className={
-                                    s.number === current?.number
-                                        ? 'on'
-                                        : undefined
-                                }
-                                aria-label={s.label}
-                                onClick={() => go(s)}
-                            />
-                        ))}
-                    </div>
-                </TipProvider>
+                                />
+                            ))}
+                        </div>
+                    </TipProvider>
+                </CommandContext.Provider>
             </div>
         </div>
     );

@@ -78,26 +78,26 @@
 }
 
 .cc-stage[data-bg='lab'] .cc-bgimg {
-    background-image: url('/command/bg-lab.jpg');
+    background-image: url('/cc-assets/bg-lab.jpg');
 }
 
 .cc-stage[data-bg='ajrak'] .cc-bgimg {
-    background-image: url('/command/bg-ajrak.jpg');
+    background-image: url('/cc-assets/bg-ajrak.jpg');
     background-position: center center;
 }
 
 @supports (background-image: image-set(url('/a.webp') type('image/webp'))) {
     .cc-stage[data-bg='lab'] .cc-bgimg {
         background-image: image-set(
-            url('/command/bg-lab.webp') type('image/webp'),
-            url('/command/bg-lab.jpg') type('image/jpeg')
+            url('/cc-assets/bg-lab.webp') type('image/webp'),
+            url('/cc-assets/bg-lab.jpg') type('image/jpeg')
         );
     }
 
     .cc-stage[data-bg='ajrak'] .cc-bgimg {
         background-image: image-set(
-            url('/command/bg-ajrak.webp') type('image/webp'),
-            url('/command/bg-ajrak.jpg') type('image/jpeg')
+            url('/cc-assets/bg-ajrak.webp') type('image/webp'),
+            url('/cc-assets/bg-ajrak.jpg') type('image/jpeg')
         );
     }
 }
@@ -960,4 +960,16 @@
     .cc-legend {
         flex-wrap: wrap;
     }
+}
+
+.cc-rowbtn {
+    all: unset;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.cc-rowbtn:focus-visible {
+    outline: 3px solid #d6006e;
+    outline-offset: 2px;
 }

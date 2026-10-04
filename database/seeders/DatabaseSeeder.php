@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             LoginSeeder::class,
             FacilitySeeder::class,
             AlertRuleSeeder::class,
+            CommandPrototypeSeeder::class,
         ]);
     }
 }

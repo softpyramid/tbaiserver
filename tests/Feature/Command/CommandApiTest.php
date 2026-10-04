@@ -13,6 +13,7 @@ use App\Support\DistrictMatch;
 use Database\Seeders\CommandPrototypeSeeder;
 use Database\Seeders\Support\CommandPrototypeData;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @return array<string, User>
@@ -122,8 +123,10 @@ test('admin sees the prototype headline, four alerts and the same shape every ro
         ->and($alerts->json('data.top8.2.items.0.value'))->toBe(385);
 });
 
-test('sector pages add up to the programme total and sort', function () {
+test('sector pages computed from returns add up to the programme total and sort', function () {
     $users = commandApiUsers();
+    // No seeded sector rows: the pages compute from daily returns, as in production.
+    DB::table('sector_indicators')->delete();
     $sum = 0;
 
     foreach (['public', 'private', 'ppm'] as $sector) {

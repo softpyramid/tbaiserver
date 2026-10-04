@@ -112,6 +112,7 @@ final class CommandPrototypeData
                 'name' => $site[0],
                 'sus' => $sus,
                 'tested' => $tested,
+                'pr' => $rate,
                 'pos' => $pos,
                 'st' => $st,
                 'su' => 78 + $r(5) * 16,

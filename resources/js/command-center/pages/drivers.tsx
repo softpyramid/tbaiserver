@@ -114,7 +114,11 @@ export function DriversPage() {
 
             <nav
                 className="cc-txt"
-                style={{ ...at(1078, 354), lineHeight: '70px' }}
+                style={{
+                    ...at(1078, 354),
+                    lineHeight: '70px',
+                    pointerEvents: 'none',
+                }}
                 aria-label="Driver categories"
             >
                 {body.categories.map((c) => {
@@ -128,8 +132,16 @@ export function DriversPage() {
                                 aria-pressed={on}
                                 style={
                                     on
-                                        ? { color: PINK, fontWeight: 600 }
-                                        : undefined
+                                        ? {
+                                              color: PINK,
+                                              fontWeight: 600,
+                                              lineHeight: 1.25,
+                                              pointerEvents: 'auto',
+                                          }
+                                        : {
+                                              lineHeight: 1.25,
+                                              pointerEvents: 'auto',
+                                          }
                                 }
                                 onClick={() => setPicked(c.letter)}
                             >
@@ -142,7 +154,7 @@ export function DriversPage() {
 
             <svg
                 className="cc-abs cc-arrow"
-                style={{ left: 0, top: 0 }}
+                style={{ left: 0, top: 0, pointerEvents: 'none' }}
                 width={1456}
                 height={819}
                 fill="none"

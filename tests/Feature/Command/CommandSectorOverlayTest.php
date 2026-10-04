@@ -175,3 +175,25 @@ test('All, Intelligence, Cumulative, the frame and every map are identical with 
 
     expect($without)->toBe($with);
 });
+
+test('a one-district scope returns a single row identical to the total, and switched-off pages are absent from the frame', function () {
+    $users = commandApiUsers();
+    config(['tbai.features.drivers' => false, 'tbai.features.interventions' => false, 'tbai.features.incidence' => false, 'tbai.features.ai_tests' => false]);
+
+    // The sector table draws its total row only when there is more than one district row.
+    foreach (['public', 'private', 'ppm'] as $sector) {
+        $data = $this->actingAs($users['karachi_west'])->getJson("/api/command/sectors/{$sector}")->assertOk()->json('data');
+        $row = $data['rows'][0];
+
+        expect($data['rows'])->toHaveCount(1);
+
+        foreach (['suspects', 'tested', 'positive', 'mdr_rr', 'bmus'] as $key) {
+            expect($data['total'][$key])->toBe($row[$key], "{$sector} {$key}");
+        }
+    }
+
+    // Pages 6, 8 and 9 are not listed when their flags are off. The shell shows "Page not available" for those hashes.
+    $numbers = collect($this->actingAs($users['karachi_west'])->getJson('/api/command/frame')->assertOk()->json('data.screens'))->pluck('number')->all();
+
+    expect($numbers)->toBe([1, 2, 3, 4, 5, 7]);
+});

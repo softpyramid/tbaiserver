@@ -3,12 +3,14 @@
 namespace App\Support;
 
 use App\Enums\AreaType;
+use App\Enums\PopulationStatus;
 use App\Models\PopulationDenominator;
 
 /**
  * Resolves the population a rate is measured against. An exact year wins;
  * otherwise the latest earlier year stands in, so a rate is never silently
- * divided by a figure from a later year.
+ * divided by a figure from a later year. Only confirmed rows count: a
+ * placeholder without a PBS figure never feeds a rate.
  */
 final class PopulationLookup
 {
@@ -20,6 +22,8 @@ final class PopulationLookup
         $row = PopulationDenominator::query()
             ->where('area_type', $type)
             ->where('area_id', $areaId)
+            ->where('status', PopulationStatus::Confirmed)
+            ->whereNotNull('population')
             ->where('year', '<=', $year)
             ->orderByDesc('year')
             ->first(['population', 'year', 'source']);
@@ -42,6 +46,8 @@ final class PopulationLookup
         $rows = PopulationDenominator::query()
             ->where('area_type', $type)
             ->whereIn('area_id', $areaIds)
+            ->where('status', PopulationStatus::Confirmed)
+            ->whereNotNull('population')
             ->where('year', '<=', $year)
             ->orderBy('area_id')
             ->orderByDesc('year')

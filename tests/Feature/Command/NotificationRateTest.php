@@ -67,7 +67,53 @@ test('a notification card without a population reports population_missing', func
 
     expect($card['status'])->toBe('population_missing')
         ->and($card['cases'])->toBe(6)
+        ->and($card['message'])->toBeNull()
         ->and($card['rate'])->toBeNull();
+});
+
+test('a placeholder denominator never feeds a rate until its figure is entered', function () {
+    $city = City::factory()->create();
+    $facility = Facility::factory()->create(['city_id' => $city->id]);
+
+    CaseNotification::factory()->create(['facility_id' => $facility->id, 'month' => '2025-10', 'new_cases' => 5, 'relapse_cases' => 1]);
+    PopulationDenominator::factory()->placeholder($city->id)->create(['year' => 2025]);
+
+    $card = NotificationRate::card(AreaType::District, $city->id, '2025-10-31');
+
+    expect($card['status'])->toBe('population_missing')
+        ->and($card['population'])->toBeNull()
+        ->and($card['rate'])->toBeNull();
+
+    PopulationDenominator::query()->where('area_id', $city->id)->update(['population' => 200000, 'status' => 'confirmed']);
+
+    $card = NotificationRate::card(AreaType::District, $city->id, '2025-10-31');
+
+    expect($card['population'])->toBe(200000)
+        ->and($card['rate'])->toBe(3.0);
+});
+
+test('a province without a confirmed denominator says which population is not set', function () {
+    $province = Province::factory()->create(['name' => 'Sindh']);
+    $city = City::factory()->create(['province_id' => $province->id]);
+
+    CaseNotification::factory()->create(['facility_id' => Facility::factory()->create(['city_id' => $city->id])->id, 'month' => '2025-10', 'new_cases' => 5, 'relapse_cases' => 1]);
+    PopulationDenominator::factory()->province($province->id)->create(['year' => 2025, 'population' => null, 'status' => 'placeholder']);
+
+    $card = NotificationRate::card(AreaType::Province, $province->id, '2025-10-31');
+
+    expect($card['status'])->toBe('population_missing')
+        ->and($card['message'])->toBe('Sindh population not set')
+        ->and($card['rate'])->toBeNull();
+});
+
+test('a confirmed province denominator clears the missing-population message', function () {
+    $province = Province::factory()->create(['name' => 'Sindh']);
+    PopulationDenominator::factory()->province($province->id)->create(['year' => 2025, 'population' => 1000000]);
+
+    $card = NotificationRate::card(AreaType::Province, $province->id, '2025-10-31');
+
+    expect($card['status'])->toBe('no_notification_data')
+        ->and($card['message'])->toBeNull();
 });
 
 test('a notification card without notifications reports no_notification_data', function () {

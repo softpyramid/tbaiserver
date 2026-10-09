@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\AreaType;
 use App\Models\City;
+use App\Models\Province;
 use App\Support\CommandApi\Labels;
 use Illuminate\Support\Facades\DB;
 
@@ -49,6 +50,7 @@ final class NotificationRate
             'rate' => $monthCases['has_data'] ? self::rate($monthCases['cases'], $population) : null,
             'ytd_rate' => $ytdCases['has_data'] ? self::rate($ytdCases['cases'], $population) : null,
             'status' => $status,
+            'message' => self::missingMessage($type, $areaId, $status),
         ];
     }
 
@@ -76,6 +78,22 @@ final class NotificationRate
         }
 
         return $rates;
+    }
+
+    /**
+     * Why a rate is missing, when it points at a specific area. Provinces name
+     * themselves ("Sindh population not set"); a district keeps the generic
+     * wording because the placeholder is a district-level PBS gap.
+     */
+    private static function missingMessage(AreaType $type, int $areaId, ?string $status): ?string
+    {
+        if ($type !== AreaType::Province || $status !== 'population_missing') {
+            return null;
+        }
+
+        return __('entry.province_population_not_set', [
+            'province' => (string) Province::query()->whereKey($areaId)->value('name'),
+        ]);
     }
 
     /**

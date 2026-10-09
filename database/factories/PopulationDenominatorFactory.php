@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\AreaType;
+use App\Enums\PopulationStatus;
 use App\Models\City;
 use App\Models\PopulationDenominator;
 use App\Models\Province;
@@ -23,8 +24,10 @@ class PopulationDenominatorFactory extends Factory
             'area_id' => City::factory(),
             'year' => (int) date('Y'),
             'population' => $this->faker->numberBetween(50000, 2000000),
+            'status' => PopulationStatus::Confirmed,
             'source' => 'Test data',
             'source_year' => null,
+            'reference_url' => null,
             'method_note' => null,
             'entered_by' => null,
         ];
@@ -43,6 +46,14 @@ class PopulationDenominatorFactory extends Factory
         return $this->state(fn (): array => [
             'area_type' => AreaType::District,
             'area_id' => $cityId ?? City::factory(),
+        ]);
+    }
+
+    public function placeholder(?int $cityId = null): static
+    {
+        return $this->district($cityId)->state(fn (): array => [
+            'population' => null,
+            'status' => PopulationStatus::Placeholder,
         ]);
     }
 }

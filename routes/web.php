@@ -163,6 +163,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/programme-access', [ProgrammeAdminController::class, 'access'])->name('admin.programme-access.index');
     Route::get('admin/audit-log', [AuditLogAdminController::class, 'index'])->name('admin.audit-log.index');
     Route::get('admin/population-denominators', [PopulationDenominatorAdminController::class, 'index'])->name('admin.population-denominators.index');
+    Route::get('admin/population-denominators/create', [PopulationDenominatorAdminController::class, 'create'])->name('admin.population-denominators.create');
+    Route::post('admin/population-denominators', [PopulationDenominatorAdminController::class, 'store'])->name('admin.population-denominators.store');
+    Route::get('admin/population-denominators/{populationDenominator}/edit', [PopulationDenominatorAdminController::class, 'edit'])->name('admin.population-denominators.edit');
+    Route::patch('admin/population-denominators/{populationDenominator}', [PopulationDenominatorAdminController::class, 'update'])->name('admin.population-denominators.update');
     Route::get('admin/population-denominators/import', [PopulationDenominatorAdminController::class, 'importForm'])->name('admin.population-denominators.import-form');
     Route::post('admin/population-denominators/import', [PopulationDenominatorAdminController::class, 'import'])->name('admin.population-denominators.import');
     Route::get('admin/case-notifications', [CaseNotificationAdminController::class, 'index'])->name('admin.case-notifications.index');

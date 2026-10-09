@@ -103,6 +103,7 @@ export type NotificationCard = {
     rate: number | null;
     ytd_rate: number | null;
     status: 'no_notification_data' | 'population_missing' | null;
+    message: string | null;
 };
 
 export type Cumulative = {

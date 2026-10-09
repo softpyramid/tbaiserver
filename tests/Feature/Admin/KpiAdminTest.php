@@ -16,10 +16,20 @@ test('population denominator and case notification pages need the administer gat
 
     $this->actingAs($user)->get(route('admin.population-denominators.index'))->assertForbidden();
     $this->actingAs($user)->get(route('admin.case-notifications.index'))->assertForbidden();
+    $this->actingAs($user)->get(route('admin.population-denominators.create'))->assertForbidden();
     $this->actingAs($user)->get(route('admin.population-denominators.import-form'))->assertForbidden();
     $this->actingAs($user)->get(route('admin.case-notifications.import-form'))->assertForbidden();
+    $this->actingAs($user)->post(route('admin.population-denominators.store'), [])->assertForbidden();
     $this->actingAs($user)->post(route('admin.population-denominators.import'), [])->assertForbidden();
     $this->actingAs($user)->post(route('admin.case-notifications.import'), [])->assertForbidden();
+});
+
+test('population denominator edit and update need the administer gate', function () {
+    $user = User::factory()->create();
+    $row = PopulationDenominator::factory()->create();
+
+    $this->actingAs($user)->get(route('admin.population-denominators.edit', $row))->assertForbidden();
+    $this->actingAs($user)->patch(route('admin.population-denominators.update', $row), [])->assertForbidden();
 });
 
 test('a signed out visitor is sent to login for the kpi admin pages', function () {
@@ -79,6 +89,116 @@ test('a population denominator csv import upserts and audit logs the totals', fu
             'updated' => 1,
             'skipped' => 1,
         ]);
+});
+
+test('a population denominator csv import stores a placeholder row with its provenance', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $city = City::factory()->create(['name' => 'Jacobabad']);
+
+    $csv = "area_type,area_id,year,population,source,source_year,method_note,reference_url\n".
+        "district,{$city->id},2025,,PBS Census 2023,2023,,https://www.pbs.gov.pk/wp-content/uploads/census_tables/tables/table_1_sindh_districts.pdf";
+
+    $this->actingAs($admin)
+        ->post(route('admin.population-denominators.import'), [
+            'file' => UploadedFile::fake()->createWithContent('rows.csv', $csv),
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', '1 rows created, 0 rows updated, 0 rows skipped');
+
+    $row = PopulationDenominator::query()->where('area_id', $city->id)->where('year', 2025)->sole();
+
+    expect($row->population)->toBeNull()
+        ->and($row->status->value)->toBe('placeholder')
+        ->and($row->source)->toBe('PBS Census 2023')
+        ->and($row->source_year)->toBe(2023)
+        ->and($row->reference_url)->toBe('https://www.pbs.gov.pk/wp-content/uploads/census_tables/tables/table_1_sindh_districts.pdf');
+});
+
+test('a population denominator csv import rejects a row whose population is present but below one', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $city = City::factory()->create();
+
+    $csv = "area_type,area_id,year,population,source,source_year\n".
+        "district,{$city->id},2025,0,PBS Census 2023,2023\n";
+
+    $this->actingAs($admin)
+        ->post(route('admin.population-denominators.import'), [
+            'file' => UploadedFile::fake()->createWithContent('rows.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file')
+        ->assertStatus(302);
+
+    expect(PopulationDenominator::query()->count())->toBe(0);
+});
+
+test('a blank population gets the census default source and year in a single-row create', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $city = City::factory()->create(['name' => 'Matiari']);
+
+    $this->actingAs($admin)
+        ->post(route('admin.population-denominators.store'), [
+            'area_type' => 'district',
+            'area_id' => (string) $city->id,
+            'year' => '2025',
+            'population' => '',
+            'source' => '',
+            'source_year' => '',
+            'reference_url' => '',
+            'method_note' => '',
+        ])
+        ->assertRedirect(route('admin.population-denominators.index'))
+        ->assertSessionHas('status', 'Population denominator saved.');
+
+    $row = PopulationDenominator::query()->where('area_id', $city->id)->where('year', 2025)->sole();
+
+    expect($row->population)->toBeNull()
+        ->and($row->status->value)->toBe('placeholder')
+        ->and($row->source)->toBe('PBS Census 2023')
+        ->and($row->source_year)->toBe(2023)
+        ->and($row->entered_by)->toBe($admin->id)
+        ->and(AuditLog::query()->where('action', 'population_denominators.created')->sole()->properties['status'])->toBe('placeholder');
+});
+
+test('a district placeholder becomes confirmed once a census figure is entered', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $city = City::factory()->create(['name' => 'Jacobabad']);
+    $row = PopulationDenominator::factory()->placeholder($city->id)->create([
+        'year' => 2025,
+        'source' => 'PBS Census 2023',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.population-denominators.edit', $row))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('resources/population-form')
+            ->where('mode', 'edit')
+            ->where('row.area', 'Jacobabad')
+            ->where('row.year', 2025)
+            ->where('row.status', 'placeholder')
+            ->where('locked.year', '2025'));
+
+    $this->actingAs($admin)
+        ->patch(route('admin.population-denominators.update', $row), [
+            'population' => '1250000',
+            'source' => '',
+            'source_year' => '2023',
+            'reference_url' => '',
+            'method_note' => '',
+        ])
+        ->assertRedirect(route('admin.population-denominators.index'));
+
+    $row->refresh();
+
+    expect($row->population)->toBe(1250000)
+        ->and($row->status->value)->toBe('confirmed')
+        ->and($row->source)->toBe('PBS Census 2023')
+        ->and($row->entered_by)->toBe($admin->id)
+        ->and(AuditLog::query()->where('action', 'population_denominators.updated')->sole()->properties['status'])->toBe('confirmed');
 });
 
 test('the case notification list shows rows and the notified count', function () {

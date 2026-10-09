@@ -28,6 +28,11 @@ const TILE_ICONS: Record<string, string> = {
     negative: '⚪',
 };
 
+/** Positivity and rates compare against the previous equal-length period. */
+const CHANGE_HELP = 'Percentage points vs the previous equal-length period.';
+const FOOTNOTE =
+    'Rates divide by the selected area\u2019s PBS Census 2023 population (KPI reference data \u00b7 Population). Positivity and rate changes are in percentage points versus the previous equal-length period.';
+
 export function CumulativePage() {
     const { data, error, loading, reload } = useApi<Envelope<Cumulative>>(
         '/api/command/cumulative',
@@ -111,7 +116,10 @@ export function CumulativePage() {
                                         row.status,
                                     )}
                                     {row.change ? (
-                                        <span className="cc-change">
+                                        <span
+                                            className="cc-change"
+                                            title={CHANGE_HELP}
+                                        >
                                             {' '}
                                             {row.change}
                                         </span>
@@ -160,7 +168,10 @@ export function CumulativePage() {
                             }}
                         >
                             {performance.rings.map((r) => (
-                                <div key={r.key} style={{ textAlign: 'center' }}>
+                                <div
+                                    key={r.key}
+                                    style={{ textAlign: 'center' }}
+                                >
                                     <RingGauge
                                         value={r.value}
                                         max={r.max}
@@ -169,7 +180,12 @@ export function CumulativePage() {
                                         status={r.status}
                                     />
                                     {r.change ? (
-                                        <div className="cc-change">{r.change}</div>
+                                        <div
+                                            className="cc-change"
+                                            title={CHANGE_HELP}
+                                        >
+                                            {r.change}
+                                        </div>
                                     ) : null}
                                 </div>
                             ))}
@@ -229,13 +245,25 @@ export function CumulativePage() {
                                     paddingTop: 18,
                                 }}
                             >
-                                <div style={{ textAlign: 'center', minWidth: 170 }}>
-                                    <div style={{ fontSize: 38, fontWeight: 700 }}>
+                                <div
+                                    style={{
+                                        textAlign: 'center',
+                                        minWidth: 170,
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            fontSize: 38,
+                                            fontWeight: 700,
+                                        }}
+                                    >
                                         {notification.rate === null
                                             ? 'n/a'
                                             : `${notification.rate.toFixed(1)}`}
                                     </div>
-                                    <div style={{ fontSize: 13, opacity: 0.75 }}>
+                                    <div
+                                        style={{ fontSize: 13, opacity: 0.75 }}
+                                    >
                                         per 100,000 population
                                     </div>
                                     {notification.rate === null ? (
@@ -251,10 +279,11 @@ export function CumulativePage() {
                                                         : '#e5484d',
                                             }}
                                         >
-                                            {notification.status ===
-                                            'no_notification_data'
-                                                ? 'No notification data'
-                                                : 'Population not set'}
+                                            {notification.message ??
+                                                (notification.status ===
+                                                'no_notification_data'
+                                                    ? 'No notification data'
+                                                    : 'Population not set')}
                                         </div>
                                     ) : null}
                                 </div>
@@ -268,8 +297,14 @@ export function CumulativePage() {
                                     }}
                                 >
                                     <div>
-                                        <dt style={{ opacity: 0.75, fontSize: 13 }}>
-                                            Cases notified · {notification.period_label}
+                                        <dt
+                                            style={{
+                                                opacity: 0.75,
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            Cases notified ·{' '}
+                                            {notification.period_label}
                                         </dt>
                                         <dd style={{ margin: 0, fontSize: 22 }}>
                                             {notification.cases === null
@@ -278,7 +313,12 @@ export function CumulativePage() {
                                         </dd>
                                     </div>
                                     <div>
-                                        <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                        <dt
+                                            style={{
+                                                opacity: 0.75,
+                                                fontSize: 13,
+                                            }}
+                                        >
                                             Year to date
                                         </dt>
                                         <dd style={{ margin: 0, fontSize: 22 }}>
@@ -288,7 +328,12 @@ export function CumulativePage() {
                                         </dd>
                                     </div>
                                     <div>
-                                        <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                        <dt
+                                            style={{
+                                                opacity: 0.75,
+                                                fontSize: 13,
+                                            }}
+                                        >
                                             Population
                                         </dt>
                                         <dd style={{ margin: 0, fontSize: 22 }}>
@@ -299,10 +344,20 @@ export function CumulativePage() {
                                     </div>
                                     {notification.source ? (
                                         <div>
-                                            <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                            <dt
+                                                style={{
+                                                    opacity: 0.75,
+                                                    fontSize: 13,
+                                                }}
+                                            >
                                                 Source
                                             </dt>
-                                            <dd style={{ margin: 0, fontSize: 18 }}>
+                                            <dd
+                                                style={{
+                                                    margin: 0,
+                                                    fontSize: 18,
+                                                }}
+                                            >
                                                 {notification.source}
                                             </dd>
                                         </div>
@@ -313,6 +368,9 @@ export function CumulativePage() {
                     ) : null}
                 </div>
             )}
+            <p className="cc-foot" style={{ fontSize: 12, opacity: 0.75 }}>
+                {FOOTNOTE}
+            </p>
         </>
     );
 }

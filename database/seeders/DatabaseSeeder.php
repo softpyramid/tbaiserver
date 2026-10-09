@@ -14,6 +14,8 @@ class DatabaseSeeder extends Seeder
      * Both login and facility seeders skip production. FacilitySeeder is
      * idempotent, so calling it again here does not duplicate facilities
      * or daily returns. AlertRuleSeeder uses the same environment guard.
+     * PopulationDenominatorSeeder runs last because it piggybacks on the
+     * Sindh districts CommandPrototypeSeeder creates.
      */
     public function run(): void
     {
@@ -22,6 +24,7 @@ class DatabaseSeeder extends Seeder
             FacilitySeeder::class,
             AlertRuleSeeder::class,
             CommandPrototypeSeeder::class,
+            PopulationDenominatorSeeder::class,
         ]);
     }
 }

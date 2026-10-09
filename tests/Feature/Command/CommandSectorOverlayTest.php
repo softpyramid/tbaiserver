@@ -36,7 +36,7 @@ test('staging sector pages equal the prototype Public, Private and PPM tables ex
                     overlayPrinted($r['ltfu_pct'], 1),
                     overlayPrinted($r['tat_days'], 1),
                 ])->toBe([
-                    overlayPrinted($p['pr'], 1),
+                    overlayPrinted($p['tested'] > 0 ? $p['pos'] / $p['tested'] * 100 : 0, 1),
                     overlayPrinted($p['pos'] > 0 ? $p['st'] / $p['pos'] * 100 : 0, 0),
                     overlayPrinted($p['su'], 0),
                     overlayPrinted($p['ltfu'], 1),
@@ -44,9 +44,13 @@ test('staging sector pages equal the prototype Public, Private and PPM tables ex
                 ], "{$sector} {$p['name']}");
         }
 
-        // The total row is the prototype's: sums for counts, plain means for rates.
+        // The total row is the prototype's: sums for counts, a pooled rate for
+        // positivity (sum positive ÷ sum tested), plain means for the rest.
         $total = $response->json('data.total');
         $mean = fn (string $key): float => array_sum(array_column($proto, $key)) / count($proto);
+        $pooled = fn (string $num, string $den): float => array_sum(array_column($proto, $den)) > 0
+            ? array_sum(array_column($proto, $num)) / array_sum(array_column($proto, $den)) * 100
+            : 0;
 
         expect([$total['suspects'], $total['tested'], $total['positive'], $total['mdr_rr'], $total['ai_tests'], $total['bmus']])
             ->toBe([
@@ -54,7 +58,7 @@ test('staging sector pages equal the prototype Public, Private and PPM tables ex
                 array_sum(array_column($proto, 'mdr')), array_sum(array_column($proto, 'ai')), array_sum(array_column($proto, 'bmu')),
             ])
             ->and([overlayPrinted($total['positivity'], 1), overlayPrinted($total['success_pct'], 0), overlayPrinted($total['ltfu_pct'], 1), overlayPrinted($total['tat_days'], 1)])
-            ->toBe([overlayPrinted($mean('pr'), 1), overlayPrinted($mean('su'), 0), overlayPrinted($mean('ltfu'), 1), overlayPrinted($mean('tat'), 1)], $sector);
+            ->toBe([overlayPrinted($pooled('pos', 'tested'), 1), overlayPrinted($mean('su'), 0), overlayPrinted($mean('ltfu'), 1), overlayPrinted($mean('tat'), 1)], $sector);
     }
 });
 

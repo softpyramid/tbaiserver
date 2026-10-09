@@ -42,11 +42,17 @@ class CommandMapData
         $indicator = MapIndicator::tryFrom($request->string('indicator')->toString()) ?? MapIndicator::Suspects;
         $byCity = $this->rowsByCity($rows);
         $trendByCity = $this->rowsByCity($trendRows);
+        $cities = $this->cities($user, $selection);
+        $notificationRates = NotificationRate::districtRates(
+            array_map(fn (City $city): int => $city->id, $cities),
+            $selection['period']->to,
+        );
         $districts = [];
         $hidden = [];
 
-        foreach ($this->cities($user, $selection) as $city) {
+        foreach ($cities as $city) {
             $summary = CommandTotals::summarize($byCity[$city->id] ?? []);
+            $summary['notification_rate'] = $notificationRates[$city->id] ?? null;
 
             // A district with no returns in the period has nothing to show, so it
             // is left off the map and the list. A district picked on purpose stays.
@@ -70,6 +76,7 @@ class CommandMapData
                     'provisional_tat' => $summary['provisional_tat'],
                     'treatment_gap' => $summary['treatment_gap'],
                     'testing_coverage' => CommandTotals::testingCoverage($summary['tested'], $summary['suspects']),
+                    'notification_rate' => $summary['notification_rate'],
                 ],
                 'lines' => $this->lines($summary),
                 'display' => $this->display($indicator, $summary),
@@ -272,6 +279,9 @@ class CommandMapData
             MapIndicator::ProvisionalTat => $this->tatLabel($summary['provisional_tat']),
             MapIndicator::TreatmentGap => (string) $summary['treatment_gap'],
             MapIndicator::TestingCoverage => $this->coverageLabel($summary['tested'], $summary['suspects']),
+            MapIndicator::NotificationRate => $summary['notification_rate'] === null
+                ? __('entry.population_not_set')
+                : number_format($summary['notification_rate'], 1, '.', '').' '.__('entry.notification_per_100k'),
         };
     }
 

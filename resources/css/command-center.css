@@ -318,6 +318,14 @@
     font-weight: 600;
 }
 
+.cc-change {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5a6b8c;
+}
+
 /* panels, tiles, rings */
 .cc-pn {
     position: absolute;

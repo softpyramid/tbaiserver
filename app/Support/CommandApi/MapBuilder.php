@@ -5,6 +5,7 @@ namespace App\Support\CommandApi;
 use App\Models\User;
 use App\Support\CommandPeriod;
 use App\Support\DistrictMatch;
+use App\Support\NotificationRate;
 
 final class MapBuilder
 {
@@ -19,6 +20,7 @@ final class MapBuilder
         $indicator = isset($indicators[$indicator]) ? $indicator : 'positivity';
         $meta = $indicators[$indicator];
         $districts = $this->data->districts($s, $user);
+        $notificationRates = NotificationRate::districtRates(array_column($districts, 'city_id'), $s->to);
         $trend = $this->trend($s, $user);
         $maxPositive = 0;
 
@@ -29,6 +31,7 @@ final class MapBuilder
         $rows = [];
 
         foreach ($districts as $d) {
+            $d['notification_rate'] = $notificationRates[$d['city_id']] ?? null;
             $value = $d[$meta['field']];
             $rows[] = [
                 'city_id' => $d['city_id'],
@@ -50,6 +53,7 @@ final class MapBuilder
                 'bmus' => $s->sector === null ? $d['active_bmus'] : $d['bmus'],
                 'treatment_gap' => $d['treatment_gap'],
                 'coverage_pct' => $d['coverage_pct'],
+                'notification_rate' => $d['notification_rate'],
                 'value' => $value,
                 'heat' => $maxPositive > 0 ? round((int) $d['positive'] / $maxPositive, 3) : 0.0,
                 'trend12' => $trend['values'][$d['city_id']] ?? array_fill(0, 12, 0),

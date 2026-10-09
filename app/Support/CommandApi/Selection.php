@@ -3,6 +3,7 @@
 namespace App\Support\CommandApi;
 
 use App\Enums\Sector;
+use App\Support\CommandPeriod;
 
 /**
  * The filters a command center API request resolved to, after scope locking.
@@ -33,6 +34,16 @@ final readonly class Selection
     public function withCity(?int $cityId): self
     {
         return new self($this->sector, $this->provinceId, $cityId, $this->from, $this->to, $this->scopeName, $this->provinceName, $this->locks);
+    }
+
+    /**
+     * The same scope and filters over the period immediately before this one.
+     */
+    public function previous(): self
+    {
+        $period = (new CommandPeriod($this->from, $this->to))->previous();
+
+        return $this->withPeriod($period->from, $period->to);
     }
 
     /**

@@ -234,7 +234,7 @@ test('map, drivers and incidence honour the contract', function () {
         ->and($map->json('data.trend_months'))->toHaveCount(12)
         ->and($map->json('data.pulse_top3'))->toHaveCount(3)
         ->and($map->json('data.top5'))->toHaveCount(5)
-        ->and($map->json('data.indicators'))->toHaveCount(7)
+        ->and($map->json('data.indicators'))->toHaveCount(8)
         ->and($map->json('data.scale.min'))->toBeLessThanOrEqual($map->json('data.scale.max'))
         ->and($map->json('data.selected'))->toBe(City::query()->where('slug', 'karachi-west')->value('id'));
 

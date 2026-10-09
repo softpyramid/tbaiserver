@@ -536,7 +536,7 @@ function MapView({
                         on={heatOn}
                         onClick={() => setIntent({ heat: !heatOn })}
                     >
-                        ● Heat layer
+                        ● TB positive (count)
                     </Chip>
                 </div>
                 <div className="cc-sh">Indicator</div>

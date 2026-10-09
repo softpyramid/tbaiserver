@@ -165,11 +165,13 @@ final class SectorBuilder
 
         foreach (DB::table('sector_indicators')->where('sector', $sector)->whereIn('city_id', $cityIds)->get() as $r) {
             $positive = (int) $r->positive;
+            $tested = (int) $r->tested;
             $rows[(int) $r->city_id] = [
                 'suspects' => (int) $r->suspects,
-                'tested' => (int) $r->tested,
+                'tested' => $tested,
                 'positive' => $positive,
-                'positivity' => round((float) $r->positivity, 4),
+                // Pooled from the counts, never read from the stored column.
+                'positivity' => CommandData::rate($positive, $tested),
                 'started_pct' => $positive > 0 ? round((int) $r->started_treatment / $positive * 100, 4) : 0.0,
                 'success_pct' => round((float) $r->success_pct, 4),
                 'ltfu_pct' => round((float) $r->ltfu_pct, 4),
@@ -192,12 +194,16 @@ final class SectorBuilder
     {
         $sum = fn (string $key): ?int => in_array(null, array_column($rows, $key), true) ? null : (int) array_sum(array_column($rows, $key));
         $mean = fn (string $key): float => round(array_sum(array_column($rows, $key)) / count($rows), 4);
+        $tested = $sum('tested');
+        $positive = $sum('positive');
 
         return [
             'suspects' => $sum('suspects'),
-            'tested' => $sum('tested'),
-            'positive' => $sum('positive'),
-            'positivity' => $mean('positivity'),
+            'tested' => $tested,
+            'positive' => $positive,
+            // Programme positivity is pooled (sum positive ÷ sum tested), not a
+            // mean of district rates.
+            'positivity' => $tested !== null && $tested > 0 ? round((int) $positive / $tested * 100, 4) : null,
             'started_pct' => $mean('started_pct'),
             'success_pct' => $mean('success_pct'),
             'ltfu_pct' => $mean('ltfu_pct'),

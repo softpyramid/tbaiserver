@@ -51,7 +51,9 @@ class CommandSectorIndicatorSeeder extends Seeder
                     'tested' => $row['tested'],
                     'positive' => $row['pos'],
                     'started_treatment' => $row['st'],
-                    'positivity' => $row['pr'],
+                    // Stored pooled from the counts so it always matches the
+                    // positivity the app computes from positive ÷ tested.
+                    'positivity' => $row['tested'] > 0 ? round($row['pos'] / $row['tested'] * 100, 4) : 0.0,
                     'success_pct' => $row['su'],
                     'ltfu_pct' => $row['ltfu'],
                     'tat_days' => $row['tat'],

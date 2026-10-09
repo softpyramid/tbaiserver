@@ -18,6 +18,7 @@ type Kpi = {
     key: string;
     label: string;
     value: string;
+    change?: string | null;
 };
 
 type UnavailableItem = {
@@ -40,6 +41,21 @@ type Attention = {
     };
 };
 
+type NotificationCard = {
+    label: string;
+    sub: string;
+    period: string;
+    period_label: string;
+    cases: number | null;
+    ytd_cases: number | null;
+    population: number | null;
+    population_year: number | null;
+    source: string | null;
+    rate: number | null;
+    ytd_rate: number | null;
+    status: 'no_notification_data' | 'population_missing' | null;
+};
+
 type Props = {
     attention?: Attention | null;
     title: string;
@@ -58,6 +74,7 @@ type Props = {
     cascade: CascadeBar[];
     months: MonthPoint[];
     hasReturns: boolean;
+    notification?: NotificationCard | null;
     notCollected: {
         heading: string;
         items: UnavailableItem[];
@@ -124,6 +141,7 @@ export default function CommandIndex({
     cascade,
     months,
     hasReturns,
+    notification,
     notCollected,
 }: Props) {
     const [mode, setMode] = useChartMode();
@@ -157,9 +175,104 @@ export default function CommandIndex({
                         <div className="mt-1 text-lg font-semibold break-words">
                             {kpi.value}
                         </div>
+                        {kpi.change ? (
+                            <div
+                                className="mt-0.5 text-xs text-muted-foreground"
+                                data-test={`kpi-${kpi.key}-change`}
+                            >
+                                {kpi.change}
+                            </div>
+                        ) : null}
                     </li>
                 ))}
             </ul>
+
+            {notification ? (
+                <section
+                    className="min-w-0 rounded-lg border p-4"
+                    aria-label={notification.label}
+                    data-test="notification-card"
+                >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 className="text-sm font-medium">
+                                {notification.label}
+                            </h2>
+                            <p className="text-xs text-muted-foreground">
+                                {notification.sub}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {notification.period_label}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <div
+                                className="text-2xl font-semibold"
+                                data-test="notification-rate"
+                            >
+                                {notification.rate === null
+                                    ? notification.status ===
+                                      'no_notification_data'
+                                        ? 'n/a'
+                                        : 'n/a'
+                                    : `${notification.rate.toFixed(1)}`}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                per 100,000 population
+                            </div>
+                            {notification.rate === null ? (
+                                <div
+                                    className="mt-0.5 text-xs"
+                                    data-test="notification-status"
+                                >
+                                    {notification.status ===
+                                    'no_notification_data'
+                                        ? 'No notification data'
+                                        : 'Population not set'}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+                        <div data-test="notification-cases">
+                            <dt className="text-muted-foreground">
+                                Cases notified
+                            </dt>
+                            <dd className="font-medium">
+                                {notification.cases === null
+                                    ? 'n/a'
+                                    : notification.cases.toLocaleString()}
+                            </dd>
+                        </div>
+                        <div data-test="notification-ytd">
+                            <dt className="text-muted-foreground">
+                                Year to date
+                            </dt>
+                            <dd className="font-medium">
+                                {notification.ytd_cases === null
+                                    ? 'n/a'
+                                    : notification.ytd_cases.toLocaleString()}
+                            </dd>
+                        </div>
+                        <div data-test="notification-population">
+                            <dt className="text-muted-foreground">
+                                Population
+                            </dt>
+                            <dd className="font-medium">
+                                {notification.population === null
+                                    ? '—'
+                                    : `${notification.population.toLocaleString()} · ${notification.population_year}`}
+                            </dd>
+                        </div>
+                        <div data-test="notification-source">
+                            <dt className="text-muted-foreground">Source</dt>
+                            <dd className="font-medium">
+                                {notification.source ?? '—'}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+            ) : null}
 
             <section
                 className="flex min-w-0 flex-col gap-3"

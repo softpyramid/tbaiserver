@@ -2,10 +2,13 @@
 
 namespace App\Support;
 
+use App\Enums\AreaType;
 use App\Enums\Sector;
 use App\Models\City;
 use App\Models\Province;
 use App\Models\User;
+use App\Support\CommandApi\Labels;
+use App\Support\CommandApi\PositivityChange;
 use Illuminate\Http\Request;
 
 /**
@@ -31,17 +34,83 @@ class CommandCenterPage
         $selection = $this->selection($request, $user, null, null);
         $rows = $this->rows($user, $selection);
         $summary = CommandTotals::summarize($rows);
+        $previousSelection = $selection;
+        $previousSelection['period'] = $selection['period']->previous();
+        $previousSummary = CommandTotals::summarize($this->rows($user, $previousSelection));
 
         return [
             ...$this->frame($user, $selection, 'cumulative', showSector: true, showPlace: true),
             'title' => __('entry.cumulative_title'),
             'totals' => $this->totals($summary),
-            'kpis' => $this->kpis($summary),
+            'kpis' => $this->kpis($summary, PositivityChange::label(
+                $summary['positive'],
+                $summary['tested'],
+                $previousSummary['positive'],
+                $previousSummary['tested'],
+            )),
             'cascade' => $this->cascade($summary),
             'months' => CommandTotals::runningMonths($rows, $selection['period']),
+            'notification' => $this->notification($selection),
             'hasReturns' => $rows !== [],
             'notCollected' => $this->notCollected(),
         ];
+    }
+
+    /**
+     * @param  array{
+     *     period: CommandPeriod,
+     *     provinceId: int|null,
+     *     cityId: int|null,
+     *     sector: Sector|null,
+     *     facilityId: int|null
+     * }  $selection
+     * @return array<string, mixed>
+     */
+    private function notification(array $selection): array
+    {
+        $area = $this->notificationArea($selection);
+
+        if ($area === null) {
+            return [
+                'label' => __('entry.notification_rate_title'),
+                'sub' => __('entry.notification_rate_sub'),
+                'period' => substr($selection['period']->to, 0, 7),
+                'period_label' => Labels::month(substr($selection['period']->to, 0, 7)),
+                'cases' => null,
+                'ytd_cases' => null,
+                'population' => null,
+                'population_year' => null,
+                'source' => null,
+                'rate' => null,
+                'ytd_rate' => null,
+                'status' => 'population_missing',
+            ];
+        }
+
+        return NotificationRate::card($area[0], $area[1], $selection['period']->to);
+    }
+
+    /**
+     * @param  array{
+     *     period: CommandPeriod,
+     *     provinceId: int|null,
+     *     cityId: int|null,
+     *     sector: Sector|null,
+     *     facilityId: int|null
+     * }  $selection
+     * @return array{0: AreaType, 1: int}|null
+     */
+    private function notificationArea(array $selection): ?array
+    {
+        if ($selection['cityId'] !== null) {
+            return [AreaType::District, $selection['cityId']];
+        }
+
+        if ($selection['provinceId'] !== null) {
+            return [AreaType::Province, $selection['provinceId']];
+        }
+
+        return null;
     }
 
     /**
@@ -345,9 +414,9 @@ class CommandCenterPage
      *     active_facilities: int,
      *     provisional_tat: float|null
      * }  $summary
-     * @return list<array{key: string, label: string, value: string}>
+     * @return list<array{key: string, label: string, value: string, change?: string|null}>
      */
-    private function kpis(array $summary): array
+    private function kpis(array $summary, ?string $positivityChange = null): array
     {
         return [
             ['key' => 'suspects', 'label' => __('entry.suspects'), 'value' => (string) $summary['suspects']],
@@ -360,6 +429,7 @@ class CommandCenterPage
                 'value' => $summary['positivity'] === null
                     ? __('entry.positivity_unavailable')
                     : $this->presenter->positivity($summary['positive'], $summary['tested']),
+                'change' => $positivityChange,
             ],
             ['key' => 'started_treatment', 'label' => __('entry.started_treatment_short'), 'value' => (string) $summary['started_treatment']],
             ['key' => 'treatment_gap', 'label' => __('entry.kpi_treatment_gap'), 'value' => (string) $summary['treatment_gap']],

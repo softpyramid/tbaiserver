@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessRequestController;
 use App\Http\Controllers\Api\CommandApiController;
 use App\Http\Controllers\AuditLogAdminController;
+use App\Http\Controllers\CaseNotificationAdminController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DailyReturnAdminController;
 use App\Http\Controllers\DailyReturnController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\FacilityHomeController;
 use App\Http\Controllers\FacilityReturnHistoryController;
 use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\PopulationDenominatorAdminController;
 use App\Http\Controllers\ProgrammeAdminController;
 use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
@@ -160,6 +162,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('admin/access-requests/{accessRequest}', [ProgrammeAdminController::class, 'updateAccessRequest'])->name('admin.access-requests.update');
     Route::get('admin/programme-access', [ProgrammeAdminController::class, 'access'])->name('admin.programme-access.index');
     Route::get('admin/audit-log', [AuditLogAdminController::class, 'index'])->name('admin.audit-log.index');
+    Route::get('admin/population-denominators', [PopulationDenominatorAdminController::class, 'index'])->name('admin.population-denominators.index');
+    Route::get('admin/population-denominators/import', [PopulationDenominatorAdminController::class, 'importForm'])->name('admin.population-denominators.import-form');
+    Route::post('admin/population-denominators/import', [PopulationDenominatorAdminController::class, 'import'])->name('admin.population-denominators.import');
+    Route::get('admin/case-notifications', [CaseNotificationAdminController::class, 'index'])->name('admin.case-notifications.index');
+    Route::get('admin/case-notifications/import', [CaseNotificationAdminController::class, 'importForm'])->name('admin.case-notifications.import-form');
+    Route::post('admin/case-notifications/import', [CaseNotificationAdminController::class, 'import'])->name('admin.case-notifications.import');
     Route::get('admin/teams', function () {
         abort_unless(request()->user()?->isTbaiAdmin(), 403);
 

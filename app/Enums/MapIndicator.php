@@ -11,6 +11,7 @@ enum MapIndicator: string
     case ProvisionalTat = 'provisional_tat';
     case TreatmentGap = 'treatment_gap';
     case TestingCoverage = 'testing_coverage';
+    case NotificationRate = 'notification_rate';
 
     public function label(): string
     {
@@ -20,6 +21,7 @@ enum MapIndicator: string
             self::ProvisionalTat => __('entry.column_tat_provisional'),
             self::TreatmentGap => __('entry.column_treatment_gap'),
             self::TestingCoverage => __('entry.testing_coverage'),
+            self::NotificationRate => __('entry.notification_rate_title'),
         };
     }
 
@@ -42,6 +44,7 @@ enum MapIndicator: string
             self::ProvisionalTat => $summary['provisional_tat'],
             self::TreatmentGap => $summary['treatment_gap'],
             self::TestingCoverage => CommandTotals::testingCoverage($summary['tested'], $summary['suspects']),
+            self::NotificationRate => $summary['notification_rate'] ?? null,
         };
     }
 

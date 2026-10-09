@@ -41,6 +41,7 @@ final class Labels
             'lost_to_follow_up' => ['field' => 'ltfu_pct', 'label' => 'Lost to follow-up', 'format' => ['type' => 'percent', 'decimals' => 1], 'lowest_is_worst' => false, 'decimals' => 1],
             'treatment_gap' => ['field' => 'treatment_gap', 'label' => 'Treatment gap', 'format' => ['type' => 'int'], 'lowest_is_worst' => false, 'decimals' => 0],
             'testing_coverage' => ['field' => 'coverage_pct', 'label' => 'Testing coverage', 'format' => ['type' => 'percent', 'decimals' => 1], 'lowest_is_worst' => true, 'decimals' => 0],
+            'notification_rate' => ['field' => 'notification_rate', 'label' => 'TB case notification rate', 'format' => ['type' => 'decimal', 'decimals' => 1, 'suffix' => ' per 100k'], 'lowest_is_worst' => false, 'decimals' => 1],
             'ai_tests' => ['field' => 'ai_tests', 'label' => 'AI-assisted tests', 'format' => ['type' => 'int'], 'lowest_is_worst' => false, 'decimals' => 0],
         ];
 

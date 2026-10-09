@@ -48,6 +48,17 @@ class AdminTabs
     }
 
     /**
+     * @return list<array{id: string, label: string, href: string, current: bool, badge: int|null}>
+     */
+    public static function kpis(string $current): array
+    {
+        return self::build($current, [
+            ['population_denominators', __('entry.nav_population_denominators'), route('admin.population-denominators.index'), null],
+            ['case_notifications', __('entry.nav_case_notifications'), route('admin.case-notifications.index'), null],
+        ]);
+    }
+
+    /**
      * @param  list<array{0: string, 1: string, 2: string, 3: int|null}>  $rows
      * @return list<array{id: string, label: string, href: string, current: bool, badge: int|null}>
      */

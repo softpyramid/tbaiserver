@@ -60,6 +60,7 @@ export type RingItem = {
     max: number;
     unit: string;
     status?: MetricStatus;
+    change?: string;
 };
 
 export type TileItem = {
@@ -86,6 +87,22 @@ export type TableItem = {
     value: number | null;
     unit: string | null;
     status?: MetricStatus;
+    change?: string;
+};
+
+export type NotificationCard = {
+    label: string;
+    sub: string;
+    period: string;
+    period_label: string;
+    cases: number | null;
+    ytd_cases: number | null;
+    population: number | null;
+    population_year: number | null;
+    source: string | null;
+    rate: number | null;
+    ytd_rate: number | null;
+    status: 'no_notification_data' | 'population_missing' | null;
 };
 
 export type Cumulative = {
@@ -93,6 +110,7 @@ export type Cumulative = {
     performance: { rings: RingItem[]; tiles: TileItem[] };
     months: CumulativeMonth[];
     table: TableItem[];
+    notification?: NotificationCard | null;
 };
 
 export type ColumnFormat =
@@ -189,6 +207,7 @@ export type MapDistrict = {
     bmus: number;
     treatment_gap: number;
     coverage_pct: number | null;
+    notification_rate: number | null;
     value: number | null;
     heat: number;
     trend12: number[];

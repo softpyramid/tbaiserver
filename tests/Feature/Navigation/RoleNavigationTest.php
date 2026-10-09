@@ -27,11 +27,12 @@ test('a tb-ai admin sees the administration group and can open it', function () 
             ->where('nav.groups.0.key', 'command')
             ->has('nav.groups.0.items', 1)
             ->where('nav.groups.1.key', 'administration')
-            ->has('nav.groups.1.items', 4)
+            ->has('nav.groups.1.items', 5)
             ->where('nav.groups.1.items.0.key', 'facilities')
             ->where('nav.groups.1.items.1.key', 'returns')
             ->where('nav.groups.1.items.2.key', 'people')
-            ->where('nav.groups.1.items.3.key', 'audit_log'),
+            ->where('nav.groups.1.items.3.key', 'kpis')
+            ->where('nav.groups.1.items.4.key', 'audit_log'),
         );
 
     $this->actingAs($admin)->get(route('facilities.index'))->assertOk();
@@ -42,6 +43,8 @@ test('a tb-ai admin sees the administration group and can open it', function () 
     $this->actingAs($admin)->get(route('admin.programme-assignments.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.access-requests.index'))->assertOk();
     $this->actingAs($admin)->get(route('admin.programme-access.index'))->assertOk();
+    $this->actingAs($admin)->get(route('admin.population-denominators.index'))->assertOk();
+    $this->actingAs($admin)->get(route('admin.case-notifications.index'))->assertOk();
     $this->actingAs($admin)
         ->get(route('admin.teams.index'))
         ->assertStatus(301)
@@ -302,7 +305,7 @@ test('the admin sidebar has no repeated viewer list and no duplicate names', fun
 
             $commandCenter = $items->firstWhere('key', 'command_center');
 
-            expect($labels->all())->toBe(['Command Center', 'Facilities', 'Returns', 'People and access', 'Audit log'])
+            expect($labels->all())->toBe(['Command Center', 'Facilities', 'Returns', 'People and access', 'KPI reference data', 'Audit log'])
                 ->and($labels->unique()->count())->toBe($labels->count())
                 ->and($items->pluck('key')->all())->not->toContain('registered')
                 ->and($items->pluck('key')->all())->not->toContain('command_map')

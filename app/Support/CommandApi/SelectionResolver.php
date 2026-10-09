@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 final class SelectionResolver
 {
-    public const INDICATORS = ['suspects', 'positivity', 'median_tat', 'lost_to_follow_up', 'treatment_gap', 'testing_coverage', 'ai_tests'];
+    public const INDICATORS = ['suspects', 'positivity', 'median_tat', 'lost_to_follow_up', 'treatment_gap', 'testing_coverage', 'notification_rate', 'ai_tests'];
 
     public const SORT_KEYS = ['district', 'suspects', 'tested', 'positive', 'positivity', 'started_pct', 'success_pct', 'ltfu_pct', 'tat_days', 'mdr_rr', 'ai_tests', 'bmus'];
 

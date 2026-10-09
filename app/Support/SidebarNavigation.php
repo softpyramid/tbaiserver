@@ -166,6 +166,7 @@ class SidebarNavigation
             $this->link('facilities', __('entry.nav_facilities'), route('facilities.index'), null, ['facilities.']),
             $this->link('returns', __('entry.nav_returns'), route('admin.daily-returns.index'), null, ['admin.daily-returns', 'admin.revisions', 'admin.screening-sessions']),
             $this->link('people', __('entry.nav_people'), route('admin.users.index'), $badge, ['admin.users', 'admin.memberships', 'admin.programme-', 'admin.access-requests']),
+            $this->link('kpis', __('entry.nav_kpis'), route('admin.population-denominators.index'), null, ['admin.population-denominators', 'admin.case-notifications']),
             $this->link('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), null, ['admin.audit-log']),
         ];
     }

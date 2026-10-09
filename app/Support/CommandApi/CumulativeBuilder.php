@@ -2,7 +2,9 @@
 
 namespace App\Support\CommandApi;
 
+use App\Enums\AreaType;
 use App\Models\User;
+use App\Support\NotificationRate;
 
 final class CumulativeBuilder
 {
@@ -14,6 +16,8 @@ final class CumulativeBuilder
     public function build(Selection $s, User $user): array
     {
         $t = $this->data->totals($s, $user);
+        $previous = $this->data->totals($s->previous(), $user);
+        $positivityChange = PositivityChange::label($t['positive'], $t['tested'], $previous['positive'], $previous['tested']);
         $ai = (bool) config('tbai.features.ai_tests');
 
         return [
@@ -27,7 +31,7 @@ final class CumulativeBuilder
             ],
             'performance' => [
                 'rings' => [
-                    $this->ring('positivity', 'Positivity rate', $t['positivity'], 30, 'not_enough_returns'),
+                    $this->ring('positivity', 'Positivity rate', $t['positivity'], 30, 'not_enough_returns', $positivityChange),
                     $this->ring('treatment_success', 'Treatment success', $t['success_pct'], 100, 'not_collected'),
                     $this->ring('lost_to_follow_up', 'Lost to follow-up', $t['ltfu_pct'], 30, 'not_collected'),
                 ],
@@ -43,7 +47,7 @@ final class CumulativeBuilder
                 $this->row('tested', '🔬', 'Tested', 'How many actually received testing', $t['tested'], null),
                 $this->row('positive', '🟢', 'TB positive', 'Confirmed/diagnosed cases', $t['positive'], null),
                 $this->row('negative', '⚪', 'TB negative', 'Ruled out through diagnostic pathway', $t['negative'], null),
-                $this->row('positivity', '📊', 'Positivity rate', 'Positive ÷ tested', $t['positivity'], '%', 'not_enough_returns'),
+                $this->row('positivity', '📊', 'Positivity rate', 'Positive results ÷ valid completed tests x 100', $t['positivity'], '%', 'not_enough_returns', null, $positivityChange),
                 $this->row('started_treatment', '💊', 'Started treatment', 'Diagnosed → treatment', $t['started'], null),
                 $this->row('treatment_success', '✅', 'Treatment success', 'Programme performance', $t['success_pct'], '%', 'not_collected'),
                 $this->row('lost_to_follow_up', '🔴', 'Lost to follow-up', 'Where patients are dropping out', $t['ltfu_pct'], '%', 'not_collected'),
@@ -52,7 +56,27 @@ final class CumulativeBuilder
                 $this->row('ai_assisted_tests', '🤖', 'AI-assisted tests', 'TB-AI diagnostic utilization', $ai ? $t['ai_tests'] : null, null, 'not_collected'),
             ],
             'has_returns' => $t['bmus'] > 0,
+            'notification' => $this->notification($s),
         ];
+    }
+
+    /**
+     * The notification card measures a single area, so it needs a province or
+     * district to divide by; the all-scope view has no one population.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function notification(Selection $s): ?array
+    {
+        if ($s->cityId !== null) {
+            return NotificationRate::card(AreaType::District, $s->cityId, $s->to);
+        }
+
+        if ($s->provinceId !== null) {
+            return NotificationRate::card(AreaType::Province, $s->provinceId, $s->to);
+        }
+
+        return null;
     }
 
     /**
@@ -94,10 +118,11 @@ final class CumulativeBuilder
     /**
      * @return array<string, mixed>
      */
-    private function ring(string $key, string $label, mixed $value, int $max, string $missing): array
+    private function ring(string $key, string $label, mixed $value, int $max, string $missing, ?string $change = null): array
     {
         return ['key' => $key, 'label' => $label, 'value' => $value, 'max' => $max, 'unit' => '%']
-            + ($value === null ? ['status' => $missing] : []);
+            + ($value === null ? ['status' => $missing] : [])
+            + ($change === null ? [] : ['change' => $change]);
     }
 
     /**
@@ -112,9 +137,10 @@ final class CumulativeBuilder
     /**
      * @return array<string, mixed>
      */
-    private function row(string $key, string $icon, string $label, string $meaning, mixed $value, ?string $unit, string $missing = 'not_enough_returns', ?string $status = null): array
+    private function row(string $key, string $icon, string $label, string $meaning, mixed $value, ?string $unit, string $missing = 'not_enough_returns', ?string $status = null, ?string $change = null): array
     {
         return ['key' => $key, 'icon' => $icon, 'label' => $label, 'meaning' => $meaning, 'value' => $value, 'unit' => $unit]
-            + ($value === null ? ['status' => $missing] : ($status !== null ? ['status' => $status] : []));
+            + ($value === null ? ['status' => $missing] : ($status !== null ? ['status' => $status] : []))
+            + ($change === null ? [] : ['change' => $change]);
     }
 }

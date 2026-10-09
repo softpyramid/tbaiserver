@@ -41,7 +41,7 @@ export function CumulativePage() {
     const scope = data.meta.scope_name ?? 'Sindh';
     const filters = (data.meta as { filters?: { district?: string | null } })
         .filters;
-    const { cascade, performance, months, table } = data.data;
+    const { cascade, performance, months, table, notification } = data.data;
     const bars = cascade
         .filter((c) => c.value !== null)
         .map((c) => ({
@@ -110,13 +110,19 @@ export function CumulativePage() {
                                         row.unit,
                                         row.status,
                                     )}
+                                    {row.change ? (
+                                        <span className="cc-change">
+                                            {' '}
+                                            {row.change}
+                                        </span>
+                                    ) : null}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             ) : (
-                <div className="cc-abs cc-cum" style={at(350, 108, 1090, 690)}>
+                <div className="cc-abs cc-cum" style={at(350, 108, 1090, 970)}>
                     <Panel
                         id="cc-cascade"
                         title={`Diagnostic & treatment cascade: ${scope} total`}
@@ -154,14 +160,18 @@ export function CumulativePage() {
                             }}
                         >
                             {performance.rings.map((r) => (
-                                <RingGauge
-                                    key={r.key}
-                                    value={r.value}
-                                    max={r.max}
-                                    color={RING_COLORS[r.key] ?? '#3b6cf0'}
-                                    label={r.label}
-                                    status={r.status}
-                                />
+                                <div key={r.key} style={{ textAlign: 'center' }}>
+                                    <RingGauge
+                                        value={r.value}
+                                        max={r.max}
+                                        color={RING_COLORS[r.key] ?? '#3b6cf0'}
+                                        label={r.label}
+                                        status={r.status}
+                                    />
+                                    {r.change ? (
+                                        <div className="cc-change">{r.change}</div>
+                                    ) : null}
+                                </div>
                             ))}
                         </div>
                         <Kpis columns={3} style={{ marginTop: 14 }}>
@@ -203,6 +213,104 @@ export function CumulativePage() {
                             label="Cumulative cases by month, running total"
                         />
                     </Panel>
+
+                    {notification ? (
+                        <Panel
+                            id="cc-notification"
+                            title={`${notification.label} · ${notification.period_label}`}
+                            sub={notification.sub}
+                            style={at(0, 700, 1090, 260)}
+                        >
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 40,
+                                    paddingTop: 18,
+                                }}
+                            >
+                                <div style={{ textAlign: 'center', minWidth: 170 }}>
+                                    <div style={{ fontSize: 38, fontWeight: 700 }}>
+                                        {notification.rate === null
+                                            ? 'n/a'
+                                            : `${notification.rate.toFixed(1)}`}
+                                    </div>
+                                    <div style={{ fontSize: 13, opacity: 0.75 }}>
+                                        per 100,000 population
+                                    </div>
+                                    {notification.rate === null ? (
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.75,
+                                                marginTop: 6,
+                                                color:
+                                                    notification.status ===
+                                                    'no_notification_data'
+                                                        ? undefined
+                                                        : '#e5484d',
+                                            }}
+                                        >
+                                            {notification.status ===
+                                            'no_notification_data'
+                                                ? 'No notification data'
+                                                : 'Population not set'}
+                                        </div>
+                                    ) : null}
+                                </div>
+                                <dl
+                                    style={{
+                                        flex: 1,
+                                        margin: 0,
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gap: '10px 32px',
+                                    }}
+                                >
+                                    <div>
+                                        <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                            Cases notified · {notification.period_label}
+                                        </dt>
+                                        <dd style={{ margin: 0, fontSize: 22 }}>
+                                            {notification.cases === null
+                                                ? 'n/a'
+                                                : fmt(notification.cases)}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                            Year to date
+                                        </dt>
+                                        <dd style={{ margin: 0, fontSize: 22 }}>
+                                            {notification.ytd_cases === null
+                                                ? 'n/a'
+                                                : fmt(notification.ytd_cases)}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                            Population
+                                        </dt>
+                                        <dd style={{ margin: 0, fontSize: 22 }}>
+                                            {notification.population === null
+                                                ? '—'
+                                                : `${fmt(notification.population)} · ${notification.population_year}`}
+                                        </dd>
+                                    </div>
+                                    {notification.source ? (
+                                        <div>
+                                            <dt style={{ opacity: 0.75, fontSize: 13 }}>
+                                                Source
+                                            </dt>
+                                            <dd style={{ margin: 0, fontSize: 18 }}>
+                                                {notification.source}
+                                            </dd>
+                                        </div>
+                                    ) : null}
+                                </dl>
+                            </div>
+                        </Panel>
+                    ) : null}
                 </div>
             )}
         </>

@@ -50,5 +50,9 @@ export function formatValue(
         return `${value.toFixed(1)} days`;
     }
 
+    if (unit === 'per_100k') {
+        return `${value.toFixed(1)} per 100k`;
+    }
+
     return fmt(value);
 }

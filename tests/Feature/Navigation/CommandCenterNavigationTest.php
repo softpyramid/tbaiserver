@@ -169,6 +169,7 @@ test('the executive view hides admin command tabs and keeps administration in or
                     'facilities',
                     'returns',
                     'people',
+                    'kpis',
                     'audit_log',
                 ])
                 ->and(collect($administration['items'])->firstWhere('key', 'people')['badge'])->toBe(1);

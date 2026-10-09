@@ -55,7 +55,7 @@ test('priority districts are the top 3 from daily returns and pending drivers ha
             ->where('categories.0.districts.2.value', '1')
             ->missing('categories.0.score')
             ->missing('categories.0.districts.0.score')
-            ->where('categories.1.formula', 'Top 3 districts with tested above zero, highest positivity first. Positivity is positive divided by tested.')
+            ->where('categories.1.formula', 'Top 3 districts with tested above zero, highest positivity first. Positivity is positive results divided by valid completed tests, times 100.')
             ->where('categories.1.actions', [
                 'Targeted screening.',
                 'Intensify contact investigation.',

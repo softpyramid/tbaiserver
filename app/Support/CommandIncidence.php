@@ -90,6 +90,7 @@ class CommandIncidence
                 'estimateAreaType' => __('entry.estimate_area_type'),
                 'estimateArea' => __('entry.estimate_area'),
                 'estimateYear' => __('entry.incidence_year'),
+                'estimateYearHint' => __('entry.estimate_year_hint'),
                 'estimateRate' => __('entry.estimate_rate'),
                 'estimateLower' => __('entry.estimate_lower'),
                 'estimateUpper' => __('entry.estimate_upper'),

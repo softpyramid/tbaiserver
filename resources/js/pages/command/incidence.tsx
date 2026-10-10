@@ -59,6 +59,7 @@ type Props = {
         estimateAreaType: string;
         estimateArea: string;
         estimateYear: string;
+        estimateYearHint: string;
         estimateRate: string;
         estimateLower: string;
         estimateUpper: string;
@@ -384,6 +385,7 @@ function AddEstimate({
                                 required
                                 defaultValue={String(yearOptions[0] ?? '')}
                                 aria-label={labels.estimateYear}
+                                aria-describedby="estimate-year-hint"
                                 className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
                             >
                                 {yearOptions.map((year) => (
@@ -392,6 +394,9 @@ function AddEstimate({
                                     </option>
                                 ))}
                             </select>
+                            <p id="estimate-year-hint" className="text-xs text-muted-foreground">
+                                {labels.estimateYearHint}
+                            </p>
                             <InputError message={errors.year} />
                         </label>
                         <label className="flex min-w-0 flex-col gap-1 text-sm">

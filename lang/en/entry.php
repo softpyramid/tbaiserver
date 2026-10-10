@@ -398,6 +398,7 @@ return [
     'estimate_cases' => 'Estimated cases',
     'estimate_source_label' => 'Source',
     'estimate_method_label' => 'Method',
+    'estimate_year_hint' => 'Update source year to the WHO Global TB Report edition used.',
     'estimate_reference_label' => 'Reference URL',
     'estimate_country_area_id' => 'A national estimate has no area.',
     'estimate_area_required' => 'Choose the province or district for this estimate.',

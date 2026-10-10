@@ -29,8 +29,8 @@ test('after seeding the national card shows the seeded rate, source and method',
             ->where('estimate.year', 2026)
             ->where('estimate.scope', 'national_reference')
             ->where('estimate.sub', '(Pakistan national estimate, 2026)')
-            ->where('estimate.source', 'Pakistan estimate, 292 per 100,000, source to be confirmed by Hira')
-            ->where('estimate.method', 'To be confirmed by Hira')
+            ->where('estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
+            ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)')
             ->where('estimate.status', null));
 });
 
@@ -273,7 +273,7 @@ test('the word incidence never appears in positivity or notification labels, map
     }
 });
 
-test('who never appears anywhere next to the estimate', function () {
+test('the seeded national estimate cites the WHO source and method', function () {
     $users = commandApiUsers();
     $this->seed(IncidenceEstimateSeeder::class);
 
@@ -281,10 +281,11 @@ test('who never appears anywhere next to the estimate', function () {
         ->get(route('command.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('estimate.source', 'Pakistan estimate, 292 per 100,000, source to be confirmed by Hira')
-            ->where('estimate.method', 'To be confirmed by Hira'));
+            ->where('estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
+            ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)'));
 
     $body = $this->actingAs($users['admin'])->getJson('/api/command/incidence')->assertOk()->content();
 
-    expect($body)->not->toContain('WHO');
+    expect($body)->toContain('WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
+        ->and($body)->toContain('WHO estimated incidence (new and relapse cases)');
 });

@@ -33,6 +33,7 @@ test('with no targets the empty state shows and no series is returned', function
             ->where('estimateStoreUrl', route('command.incidence.estimates.store'))
             ->has('estimateAreas', 1)
             ->where('estimateAreas.0.type', 'country')
+            ->where('incidenceLabels.estimateYearHint', 'Update source year to the WHO Global TB Report edition used.')
             ->missing('months'));
 
     expect(Schema::hasColumn('incidence_targets', 'patient_id'))->toBeFalse()

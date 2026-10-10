@@ -2,12 +2,10 @@
 
 namespace App\Support;
 
-use App\Enums\AreaType;
 use App\Enums\Sector;
 use App\Models\City;
 use App\Models\Province;
 use App\Models\User;
-use App\Support\CommandApi\Labels;
 use App\Support\CommandApi\PositivityChange;
 use Illuminate\Http\Request;
 
@@ -50,7 +48,7 @@ class CommandCenterPage
             )),
             'cascade' => $this->cascade($summary),
             'months' => CommandTotals::runningMonths($rows, $selection['period']),
-            'notification' => $this->notification($selection),
+            'notification' => $this->notification($selection, $user),
             'estimate' => IncidenceEstimateLookup::card(
                 $selection['provinceId'],
                 $selection['cityId'],
@@ -72,51 +70,14 @@ class CommandCenterPage
      * }  $selection
      * @return array<string, mixed>
      */
-    private function notification(array $selection): array
+    private function notification(array $selection, User $user): array
     {
-        $area = $this->notificationArea($selection);
-
-        if ($area === null) {
-            return [
-                'label' => __('entry.notification_rate_title'),
-                'sub' => __('entry.notification_rate_sub'),
-                'period' => substr($selection['period']->to, 0, 7),
-                'period_label' => Labels::month(substr($selection['period']->to, 0, 7)),
-                'cases' => null,
-                'ytd_cases' => null,
-                'population' => null,
-                'population_year' => null,
-                'source' => null,
-                'rate' => null,
-                'ytd_rate' => null,
-                'status' => 'population_missing',
-            ];
-        }
-
-        return NotificationRate::card($area[0], $area[1], $selection['period']->to);
-    }
-
-    /**
-     * @param  array{
-     *     period: CommandPeriod,
-     *     provinceId: int|null,
-     *     cityId: int|null,
-     *     sector: Sector|null,
-     *     facilityId: int|null
-     * }  $selection
-     * @return array{0: AreaType, 1: int}|null
-     */
-    private function notificationArea(array $selection): ?array
-    {
-        if ($selection['cityId'] !== null) {
-            return [AreaType::District, $selection['cityId']];
-        }
-
-        if ($selection['provinceId'] !== null) {
-            return [AreaType::Province, $selection['provinceId']];
-        }
-
-        return null;
+        return NotificationRate::forSelection(
+            $selection['provinceId'],
+            $selection['cityId'],
+            $selection['period']->to,
+            $user,
+        );
     }
 
     /**

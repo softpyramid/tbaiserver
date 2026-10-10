@@ -3,8 +3,12 @@
 namespace App\Support;
 
 use App\Enums\AreaType;
+use App\Enums\PopulationStatus;
+use App\Enums\ProgrammeRole;
 use App\Models\City;
+use App\Models\PopulationDenominator;
 use App\Models\Province;
+use App\Models\User;
 use App\Support\CommandApi\Labels;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +21,36 @@ use Illuminate\Support\Facades\DB;
 final class NotificationRate
 {
     public const PER = 100000;
+
+    /**
+     * The card for the viewer's place. A district or province filter (or a
+     * single assignment of that kind) uses that area. All uses a confirmed
+     * country row when one exists, and otherwise the only confirmed province
+     * row, which is Sindh while that is the only province with a figure.
+     *
+     * @return array<string, mixed>
+     */
+    public static function forSelection(?int $provinceId, ?int $cityId, string $to, ?User $user = null): array
+    {
+        [$provinceId, $cityId] = self::impliedPlace($user, $provinceId, $cityId);
+
+        if ($cityId !== null) {
+            return self::card(AreaType::District, $cityId, $to);
+        }
+
+        if ($provinceId !== null) {
+            return self::card(AreaType::Province, $provinceId, $to);
+        }
+
+        $year = (int) substr($to, 0, 4);
+        $area = self::allScopeArea($year);
+
+        if ($area !== null) {
+            return self::card($area[0], $area[1], $to);
+        }
+
+        return self::unresolvedCard($to);
+    }
 
     /**
      * The card for one area, anchored on the last month of the period.
@@ -81,6 +115,106 @@ final class NotificationRate
     }
 
     /**
+     * A viewer with no place filter still has a programme scope. Admin and
+     * country viewers stay on All. A single province or district assignment
+     * is that place.
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    private static function impliedPlace(?User $user, ?int $provinceId, ?int $cityId): array
+    {
+        if ($provinceId !== null || $cityId !== null || $user === null || $user->isTbaiAdmin()) {
+            return [$provinceId, $cityId];
+        }
+
+        $assignments = $user->programmeAssignments()->get();
+
+        if ($assignments->contains(fn ($assignment): bool => $assignment->role === ProgrammeRole::CountryViewer)) {
+            return [null, null];
+        }
+
+        $city = $assignments->where('role', ProgrammeRole::CityOfficer)->values();
+        $onlyCity = $city->count() === 1 ? $city->first() : null;
+
+        if ($onlyCity !== null && $onlyCity->scope_id !== null) {
+            return [null, (int) $onlyCity->scope_id];
+        }
+
+        $province = $assignments->where('role', ProgrammeRole::ProvincialViewer)->values();
+        $onlyProvince = $province->count() === 1 ? $province->first() : null;
+
+        if ($onlyProvince !== null && $onlyProvince->scope_id !== null) {
+            return [(int) $onlyProvince->scope_id, null];
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * All has no selected place. A confirmed country row is the national
+     * denominator. Until one exists, the only confirmed province row stands
+     * in (Sindh, while that is the only province with a figure).
+     *
+     * @return array{0: AreaType, 1: int}|null
+     */
+    private static function allScopeArea(int $year): ?array
+    {
+        $countryId = PopulationDenominator::query()
+            ->where('area_type', AreaType::Country)
+            ->where('status', PopulationStatus::Confirmed)
+            ->whereNotNull('population')
+            ->where('year', '<=', $year)
+            ->orderByDesc('year')
+            ->value('area_id');
+
+        if ($countryId !== null) {
+            return [AreaType::Country, (int) $countryId];
+        }
+
+        $provinceIds = PopulationDenominator::query()
+            ->where('area_type', AreaType::Province)
+            ->where('status', PopulationStatus::Confirmed)
+            ->whereNotNull('population')
+            ->where('year', '<=', $year)
+            ->distinct()
+            ->pluck('area_id');
+
+        if ($provinceIds->count() !== 1) {
+            return null;
+        }
+
+        return [AreaType::Province, (int) $provinceIds->first()];
+    }
+
+    /**
+     * All could not be tied to one population. No case rows is a different
+     * answer from a missing denominator.
+     *
+     * @return array<string, mixed>
+     */
+    private static function unresolvedCard(string $to): array
+    {
+        $month = substr($to, 0, 7);
+        $hasCases = DB::table('case_notifications')->where('month', $month)->exists();
+
+        return [
+            'label' => __('entry.notification_rate_title'),
+            'sub' => __('entry.notification_rate_sub'),
+            'period' => $month,
+            'period_label' => Labels::month($month),
+            'cases' => null,
+            'ytd_cases' => null,
+            'population' => null,
+            'population_year' => null,
+            'source' => null,
+            'rate' => null,
+            'ytd_rate' => null,
+            'status' => $hasCases ? 'population_missing' : 'no_notification_data',
+            'message' => null,
+        ];
+    }
+
+    /**
      * Why a rate is missing, when it points at a specific area. Provinces name
      * themselves ("Sindh population not set"); a district keeps the generic
      * wording because the placeholder is a district-level PBS gap.
@@ -108,8 +242,13 @@ final class NotificationRate
 
         if ($type === AreaType::District) {
             $query->where('f.city_id', $areaId);
-        } else {
+        } elseif ($type === AreaType::Province) {
             $query->whereIn('f.city_id', City::query()->where('province_id', $areaId)->select('cities.id'));
+        } else {
+            $query->whereIn('f.city_id', City::query()->whereIn(
+                'province_id',
+                Province::query()->where('country_id', $areaId)->select('provinces.id'),
+            )->select('cities.id'));
         }
 
         $row = $query->first();

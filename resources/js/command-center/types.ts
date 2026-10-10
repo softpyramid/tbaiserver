@@ -106,12 +106,29 @@ export type NotificationCard = {
     message: string | null;
 };
 
+export type EstimateCard = {
+    label: string;
+    sub: string | null;
+    rate: number | null;
+    lower: number | null;
+    upper: number | null;
+    year: number | null;
+    area: string | null;
+    scope: 'own' | 'national_reference' | null;
+    source: string | null;
+    method: string | null;
+    reference_url: string | null;
+    status: 'no_estimate' | null;
+    message: string | null;
+};
+
 export type Cumulative = {
     cascade: CascadeItem[];
     performance: { rings: RingItem[]; tiles: TileItem[] };
     months: CumulativeMonth[];
     table: TableItem[];
     notification?: NotificationCard | null;
+    estimate?: EstimateCard | null;
 };
 
 export type ColumnFormat =
@@ -295,14 +312,33 @@ export type Drivers = {
     default_category: string;
 };
 
+export type IncidenceYearPoint = {
+    year: number;
+    estimate: number | null;
+    estimate_scope: 'own' | 'national_reference' | null;
+    target: number | null;
+};
+
 export type Incidence = {
-    monthly: { month: string; label: string; value: number | null }[];
-    yearly: { year: number; value: number | null; kind: string }[];
-    defaults: { month: string; year: number; monthly_chart: 'bar' | 'line' };
+    yearly: IncidenceYearPoint[];
+    estimate: {
+        rate: number;
+        lower: number | null;
+        upper: number | null;
+        year: number;
+        source: string;
+        method: string;
+        reference_url: string | null;
+        area_label: string;
+        scope: 'own' | 'national_reference';
+        note: string | null;
+    } | null;
+    defaults: { year: number };
 };
 
 export type IncidenceMeta = {
     province: { id: number; name: string } | null;
+    unit: string | null;
     y_axis: { min: number; max: number };
 };
 

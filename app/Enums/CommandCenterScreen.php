@@ -25,7 +25,7 @@ enum CommandCenterScreen: string
             self::Drivers => 'Drivers',
             self::Map => 'Map',
             self::Assisted => 'AI Assisted Testing',
-            self::Incidence => 'Incidence',
+            self::Incidence => 'Estimated TB Incidence Rate',
         };
     }
 

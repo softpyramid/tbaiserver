@@ -15,7 +15,9 @@ class DatabaseSeeder extends Seeder
      * idempotent, so calling it again here does not duplicate facilities
      * or daily returns. AlertRuleSeeder uses the same environment guard.
      * PopulationDenominatorSeeder runs last because it piggybacks on the
-     * Sindh districts CommandPrototypeSeeder creates.
+     * Sindh districts CommandPrototypeSeeder creates. IncidenceEstimateSeeder
+     * is registered for every environment, production included, because the
+     * national reference row must exist for the estimate card to answer.
      */
     public function run(): void
     {
@@ -25,6 +27,7 @@ class DatabaseSeeder extends Seeder
             AlertRuleSeeder::class,
             CommandPrototypeSeeder::class,
             PopulationDenominatorSeeder::class,
+            IncidenceEstimateSeeder::class,
         ]);
     }
 }

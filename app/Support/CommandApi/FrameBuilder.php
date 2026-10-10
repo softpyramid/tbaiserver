@@ -78,7 +78,7 @@ final class FrameBuilder
             [6, 'drivers', 'TB Drivers & Intervention Intelligence', ['TB Drivers & Intervention', 'Intelligence'], '/command/drivers', 'ajrak', 'default', 'drivers'],
             [7, 'map', 'Geospatial Heatmapping', ['Geospatial Heatmapping'], '/command/map', 'ajrak', 'default', null],
             [8, 'ai_tests', 'AI Assisted Testing', ['AI Assisted Testing'], '/command/ai-tests', 'ajrak', 'default', 'ai_tests'],
-            [9, 'incidence', 'Incidence', ['Incidence'], '/command/incidence', 'ajrak', 'default', 'incidence'],
+            [9, 'incidence', 'Estimated TB Incidence Rate', ['Estimated TB Incidence', 'Rate'], '/command/incidence', 'ajrak', 'default', 'incidence'],
         ];
         $api = ['cumulative' => 'cumulative', 'intelligence' => 'intelligence', 'public' => 'sectors/public', 'private' => 'sectors/private', 'ppm' => 'sectors/ppm', 'drivers' => 'drivers', 'map' => 'map', 'ai_tests' => 'ai-tests', 'incidence' => 'incidence'];
         $screens = [];

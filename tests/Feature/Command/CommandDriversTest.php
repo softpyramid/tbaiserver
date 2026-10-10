@@ -211,7 +211,7 @@ test('a city officer does not see another city and facility staff cannot open dr
             $screenLabels = array_column($page->toArray()['props']['screens'], 'label');
 
             expect($labels)->toContain('Drivers and Interventions')
-                ->and($labels)->toContain('Incidence')
+                ->and($labels)->toContain('Estimated TB Incidence Rate')
                 ->and($labels)->not->toContain('AI Assisted Testing')
                 ->and($screenLabels)->not->toContain('AI Assisted Testing');
         });

@@ -112,6 +112,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('command/incidence', [CommandCenterController::class, 'storeIncidence'])
         ->middleware('feature:incidence')
         ->name('command.incidence.store');
+    Route::post('command/incidence/estimates', [CommandCenterController::class, 'storeIncidenceEstimate'])
+        ->middleware('feature:incidence')
+        ->name('command.incidence.estimates.store');
     Route::get('command/sectors/{sector}', [CommandCenterController::class, 'sector'])
         ->whereIn('sector', ['public', 'private', 'ppm'])
         ->name('command.sectors.show');

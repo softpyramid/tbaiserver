@@ -1,4 +1,5 @@
 import { Form } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     type CommandFilters,
     type CommandLabels,
@@ -25,6 +26,12 @@ type SeriesPoint = {
     value: string;
 };
 
+type EstimateAreaOption = {
+    type: 'country' | 'province';
+    id: number | null;
+    label: string;
+};
+
 type Props = {
     title: string;
     scope: string;
@@ -44,13 +51,28 @@ type Props = {
         year: string;
         province: string;
         value: string;
+        unit: string;
         save: string;
         add: string;
         note: string;
+        estimateAdd: string;
+        estimateAreaType: string;
+        estimateArea: string;
+        estimateYear: string;
+        estimateRate: string;
+        estimateLower: string;
+        estimateUpper: string;
+        estimateCases: string;
+        estimateSource: string;
+        estimateMethod: string;
+        estimateReference: string;
     };
     canEdit: boolean;
     storeUrl: string | null;
+    estimateStoreUrl: string | null;
     yearOptions: number[];
+    estimateYearOptions: number[];
+    estimateAreas: EstimateAreaOption[];
     targetProvinces: CommandOption[];
     targets: TargetRow[];
     series: SeriesPoint[];
@@ -68,7 +90,10 @@ export default function CommandIncidence({
     incidenceLabels,
     canEdit,
     storeUrl,
+    estimateStoreUrl,
     yearOptions,
+    estimateYearOptions,
+    estimateAreas,
     targetProvinces,
     targets,
     series,
@@ -136,6 +161,15 @@ export default function CommandIncidence({
                     storeUrl={storeUrl}
                     yearOptions={yearOptions}
                     provinces={targetProvinces}
+                    labels={incidenceLabels}
+                />
+            ) : null}
+
+            {canEdit && estimateStoreUrl && estimateAreas.length > 0 ? (
+                <AddEstimate
+                    storeUrl={estimateStoreUrl}
+                    yearOptions={estimateYearOptions}
+                    areas={estimateAreas}
                     labels={incidenceLabels}
                 />
             ) : null}
@@ -232,7 +266,9 @@ function AddTarget({
                             <InputError message={errors.year} />
                         </label>
                         <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2">
-                            <span>{labels.value}</span>
+                            <span>
+                                {labels.value} ({labels.unit})
+                            </span>
                             <input
                                 name="value"
                                 type="number"
@@ -246,6 +282,205 @@ function AddTarget({
                         </label>
                         <div>
                             <Button type="submit" disabled={processing} data-test="incidence-save">
+                                {labels.save}
+                            </Button>
+                        </div>
+                    </>
+                )}
+            </Form>
+        </section>
+    );
+}
+
+function AddEstimate({
+    storeUrl,
+    yearOptions,
+    areas,
+    labels,
+}: {
+    storeUrl: string;
+    yearOptions: number[];
+    areas: EstimateAreaOption[];
+    labels: Props['incidenceLabels'];
+}) {
+    const [areaType, setAreaType] = useState('country');
+    const provinceAreas = areas.filter((area) => area.type === 'province');
+    const typeOptions = [
+        ...(areas.some((area) => area.type === 'country')
+            ? [{ value: 'country', label: areas.find((area) => area.type === 'country')?.label ?? '' }]
+            : []),
+        ...(areas.some((area) => area.type === 'province')
+            ? [{ value: 'province', label: labels.province }]
+            : []),
+    ];
+
+    return (
+        <section className="min-w-0">
+            <h2 className="mb-3 text-base font-medium">{labels.estimateAdd}</h2>
+            <Form
+                action={storeUrl}
+                method="post"
+                className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                disableWhileProcessing
+            >
+                {({ errors, processing }) => (
+                    <>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateAreaType}</span>
+                            <select
+                                name="area_type"
+                                required
+                                value={areaType}
+                                onChange={(event) => setAreaType(event.target.value)}
+                                aria-label={labels.estimateAreaType}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            >
+                                {typeOptions.map((type) => (
+                                    <option key={type.value} value={type.value}>
+                                        {type.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError message={errors.area_type} />
+                        </label>
+                        {areaType === 'country' ? (
+                            <label className="flex min-w-0 flex-col gap-1 text-sm">
+                                <span>{labels.estimateArea}</span>
+                                <input
+                                    type="text"
+                                    disabled
+                                    value={
+                                        typeOptions.find(
+                                            (type) => type.value === 'country',
+                                        )?.label ?? ''
+                                    }
+                                    aria-label={labels.estimateArea}
+                                    className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 opacity-60"
+                                />
+                            </label>
+                        ) : provinceAreas.length > 0 ? (
+                            <label className="flex min-w-0 flex-col gap-1 text-sm">
+                                <span>{labels.estimateArea}</span>
+                                <select
+                                    name="area_id"
+                                    required
+                                    defaultValue={provinceAreas[0]?.id ?? ''}
+                                    aria-label={labels.estimateArea}
+                                    className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                                >
+                                    {provinceAreas.map((area) => (
+                                        <option key={area.id} value={area.id ?? ''}>
+                                            {area.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <InputError message={errors.area_id} />
+                            </label>
+                        ) : null}
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateYear}</span>
+                            <select
+                                name="year"
+                                required
+                                defaultValue={String(yearOptions[0] ?? '')}
+                                aria-label={labels.estimateYear}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            >
+                                {yearOptions.map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError message={errors.year} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateRate}</span>
+                            <input
+                                name="rate_per_100k"
+                                type="number"
+                                min="0"
+                                step="any"
+                                required
+                                aria-label={labels.estimateRate}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.rate_per_100k} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateLower}</span>
+                            <input
+                                name="lower_bound"
+                                type="number"
+                                min="0"
+                                step="any"
+                                aria-label={labels.estimateLower}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.lower_bound} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateUpper}</span>
+                            <input
+                                name="upper_bound"
+                                type="number"
+                                min="0"
+                                step="any"
+                                aria-label={labels.estimateUpper}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.upper_bound} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateCases}</span>
+                            <input
+                                name="estimated_cases"
+                                type="number"
+                                min="0"
+                                step="any"
+                                aria-label={labels.estimateCases}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.estimated_cases} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateSource}</span>
+                            <input
+                                name="source"
+                                type="text"
+                                required
+                                aria-label={labels.estimateSource}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.source} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm">
+                            <span>{labels.estimateMethod}</span>
+                            <input
+                                name="method"
+                                type="text"
+                                required
+                                aria-label={labels.estimateMethod}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.method} />
+                        </label>
+                        <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2">
+                            <span>{labels.estimateReference}</span>
+                            <input
+                                name="reference_url"
+                                type="url"
+                                aria-label={labels.estimateReference}
+                                className="border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3"
+                            />
+                            <InputError message={errors.reference_url} />
+                        </label>
+                        <div>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                data-test="estimate-save"
+                            >
                                 {labels.save}
                             </Button>
                         </div>

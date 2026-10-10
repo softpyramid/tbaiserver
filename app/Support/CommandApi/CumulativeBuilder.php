@@ -4,6 +4,7 @@ namespace App\Support\CommandApi;
 
 use App\Enums\AreaType;
 use App\Models\User;
+use App\Support\IncidenceEstimateLookup;
 use App\Support\NotificationRate;
 
 final class CumulativeBuilder
@@ -57,6 +58,11 @@ final class CumulativeBuilder
             ],
             'has_returns' => $t['bmus'] > 0,
             'notification' => $this->notification($s),
+            'estimate' => IncidenceEstimateLookup::card(
+                $s->provinceId,
+                $s->cityId,
+                (int) substr($s->to, 0, 4),
+            ),
         ];
     }
 

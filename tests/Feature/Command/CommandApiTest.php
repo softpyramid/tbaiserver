@@ -250,10 +250,14 @@ test('map, drivers and incidence honour the contract', function () {
         ->and($drivers->json('data.categories.0.responses'))->toHaveCount(2);
 
     $incidence = $this->actingAs($users['admin'])->getJson('/api/command/incidence')->assertOk();
-    expect($incidence->json('meta.unit'))->toBeNull()
-        ->and($incidence->json('data.monthly'))->toHaveCount(10)
+    expect($incidence->json('meta.unit'))->toBe('per 100,000')
+        ->and($incidence->json('data.monthly'))->toBeNull()
         ->and($incidence->json('data.yearly'))->toHaveCount(5)
-        ->and($incidence->json('data.monthly.9.value'))->toBe(45);
+        ->and($incidence->json('data.yearly.0.year'))->toBe(2026)
+        ->and($incidence->json('data.yearly.0.estimate'))->toBeNull()
+        ->and($incidence->json('data.yearly.0.estimate_scope'))->toBeNull()
+        ->and($incidence->json('data.yearly.0.target'))->toBe(90)
+        ->and($incidence->json('data.estimate'))->toBeNull();
 
     $this->actingAs($users['sindh'])->getJson('/api/command/incidence')->assertOk()->assertJsonPath('meta.province.name', 'Sindh');
 });

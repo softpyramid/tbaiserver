@@ -134,12 +134,19 @@ class CommandApiController extends Controller
 
         abort_if($province === null, 404);
 
+        $data = $builder->build($province);
+        $values = array_filter(array_merge(
+            array_column($data['yearly'], 'estimate'),
+            array_column($data['yearly'], 'target'),
+        ));
+        $max = $values === [] ? 100 : ceil(max(100, max($values)) / 50) * 50;
+
         return $this->respond([
             'province' => ['id' => $province->id, 'name' => $province->name],
-            'unit' => null,
+            'unit' => __('entry.notification_per_100k'),
             'source' => null,
-            'y_axis' => ['min' => 0, 'max' => 100],
-        ], $builder->build($province));
+            'y_axis' => ['min' => 0, 'max' => (int) $max],
+        ], $data);
     }
 
     /**

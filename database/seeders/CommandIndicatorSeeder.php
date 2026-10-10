@@ -11,15 +11,13 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * District driver indicators, province incidence, and the invented AI
- * testing example rows. The four example records are fiction, not patients.
+ * District driver indicators, yearly provincial planning targets, and the
+ * invented AI testing example rows. The four example records are fiction, not
+ * patients.
  */
 class CommandIndicatorSeeder extends Seeder
 {
-    /** Sindh incidence by month, JAN to OCT 2026. */
-    private const INCIDENCE = [95, 90, 88, 82, 79, 71, 52, 50, 49, 45];
-
-    /** Yearly incidence path, 2026 to 2030. */
+    /** Yearly incidence target path, 2026 to 2030. Planning numbers, not estimates. */
     private const INCIDENCE_PATH = [90, 80, 70, 50, 25];
 
     public function run(): void
@@ -33,7 +31,7 @@ class CommandIndicatorSeeder extends Seeder
             ->mapWithKeys(fn (City $city): array => [DistrictMatch::key($city->name) => $city]);
 
         $this->districtIndicators($cities->all());
-        $this->incidence($sindh);
+        $this->targets($sindh);
         $this->fixtures($cities->all());
     }
 
@@ -74,23 +72,8 @@ class CommandIndicatorSeeder extends Seeder
         );
     }
 
-    private function incidence(Province $sindh): void
+    private function targets(Province $sindh): void
     {
-        $now = now()->toDateTimeString();
-        $rows = [];
-
-        foreach (self::INCIDENCE as $m => $value) {
-            $rows[] = [
-                'province_id' => $sindh->id,
-                'month' => sprintf('%04d-%02d', CommandFacilitySeeder::ANCHOR_YEAR, $m + 1),
-                'value' => $value,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        DB::table('incidence_monthly')->upsert($rows, ['province_id', 'month'], ['value', 'updated_at']);
-
         foreach (self::INCIDENCE_PATH as $offset => $value) {
             IncidenceTarget::query()->firstOrCreate(
                 ['province_id' => $sindh->id, 'year' => IncidenceTarget::MIN_YEAR + $offset, 'month' => null],

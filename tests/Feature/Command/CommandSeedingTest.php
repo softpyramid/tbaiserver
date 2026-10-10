@@ -45,7 +45,7 @@ test('command seeder reproduces the prototype programme headline exactly and is 
         ->and(DB::table('facilities')->where('sector', 'ppm')->count())->toBe(124)
         ->and(DB::table('cities')->join('provinces', 'provinces.id', '=', 'cities.province_id')->where('provinces.slug', 'sindh')->count())->toBe(29)
         ->and(DB::table('ai_test_fixtures')->count())->toBe(4)
-        ->and(DB::table('incidence_monthly')->count())->toBe(10)
+        ->and(DB::table('incidence_targets')->count())->toBe(5)
         ->and(DB::table('district_indicators')->count())->toBe(29)
         ->and(DB::table('sector_indicators')->count())->toBe(87);
 
@@ -62,7 +62,7 @@ test('command seeder never writes in production or any other environment', funct
 
     foreach ([
         'facilities', 'daily_returns', 'cities', 'treatment_outcomes', 'mdr_rr_cases', 'ai_test_counts',
-        'contact_tracing', 'hiv_testing', 'district_indicators', 'incidence_monthly', 'ai_test_fixtures', 'sector_indicators',
+        'contact_tracing', 'hiv_testing', 'district_indicators', 'incidence_targets', 'incidence_estimates', 'ai_test_fixtures', 'sector_indicators',
     ] as $table) {
         expect(DB::table($table)->count())->toBe(0, $table);
     }

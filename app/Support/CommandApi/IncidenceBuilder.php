@@ -5,51 +5,44 @@ namespace App\Support\CommandApi;
 use App\Models\IncidenceTarget;
 use App\Models\Province;
 use App\Support\EntryDate;
-use Illuminate\Support\Facades\DB;
+use App\Support\IncidenceEstimateLookup;
 
 final class IncidenceBuilder
 {
     /**
+     * Yearly estimates and planning targets for one province. Estimates come
+     * from incidence_estimates (the province row, else the national reference);
+     * targets come from incidence_targets. incidence_monthly is not read.
+     *
      * @return array<string, mixed>
      */
     public function build(Province $province): array
     {
-        $now = EntryDate::now();
-        $year = (int) $now->format('Y');
-        $monthly = DB::table('incidence_monthly')
-            ->where('province_id', $province->id)
-            ->where('month', 'like', $year.'-%')
-            ->pluck('value', 'month');
-        $months = [];
-
-        for ($m = 1; $m <= (int) $now->format('n'); $m++) {
-            $key = sprintf('%04d-%02d', $year, $m);
-            $value = $monthly->get($key);
-            $months[] = ['month' => $key, 'label' => Labels::month($key), 'value' => $value === null ? null : $this->number($value)];
-        }
-
+        $year = (int) EntryDate::now()->format('Y');
         $targets = IncidenceTarget::query()
             ->where('province_id', $province->id)
             ->whereNull('month')
-            ->orderBy('year')
-            ->get();
-        $latest = null;
+            ->get()
+            ->keyBy('year');
+        $yearly = [];
 
-        foreach ($months as $point) {
-            $latest = $point['value'] !== null ? $point['month'] : $latest;
+        foreach (range(IncidenceTarget::MIN_YEAR, IncidenceTarget::MAX_YEAR) as $estimateYear) {
+            $estimate = IncidenceEstimateLookup::forSelection($province->id, null, $estimateYear);
+            $target = $targets->get($estimateYear);
+
+            $yearly[] = [
+                'year' => $estimateYear,
+                'estimate' => $estimate === null ? null : $estimate['rate'],
+                'estimate_scope' => $estimate === null ? null : $estimate['scope'],
+                'target' => $target === null ? null : $this->number($target->value),
+            ];
         }
 
         return [
-            'monthly' => $months,
-            'yearly' => $targets->map(fn (IncidenceTarget $t): array => [
-                'year' => $t->year,
-                'value' => $this->number($t->value),
-                'kind' => 'target',
-            ])->values()->all(),
+            'yearly' => $yearly,
+            'estimate' => IncidenceEstimateLookup::forSelection($province->id, null, $year),
             'defaults' => [
-                'month' => $latest ?? ($months[count($months) - 1]['month'] ?? null),
                 'year' => max(IncidenceTarget::MIN_YEAR, min(IncidenceTarget::MAX_YEAR, $year)),
-                'monthly_chart' => 'bar',
             ],
         ];
     }

@@ -58,7 +58,20 @@ class CommandIncidence
         return [
             'canEdit' => $canEdit,
             'storeUrl' => $canEdit ? route('command.incidence.store') : null,
+            'estimateStoreUrl' => $canEdit ? route('command.incidence.estimates.store') : null,
             'yearOptions' => IncidenceTarget::years(),
+            'estimateYearOptions' => range(2020, 2035),
+            'estimateAreas' => $canEdit ? [
+                ['type' => 'country', 'id' => null, 'label' => __('entry.country')],
+                ...array_map(
+                    fn (array $province): array => [
+                        'type' => 'province',
+                        'id' => (int) $province['value'],
+                        'label' => $province['label'],
+                    ],
+                    $this->provinceOptions($user),
+                ),
+            ] : [],
             'targetProvinces' => $canEdit ? $this->provinceOptions($user) : [],
             'targets' => $targets,
             'series' => $series,
@@ -69,9 +82,21 @@ class CommandIncidence
                 'year' => __('entry.incidence_year'),
                 'province' => __('entry.province'),
                 'value' => __('entry.incidence_value'),
+                'unit' => __('entry.incidence_target_unit'),
                 'save' => __('entry.save'),
                 'add' => __('entry.incidence_add'),
                 'note' => __('entry.incidence_note'),
+                'estimateAdd' => __('entry.estimate_add'),
+                'estimateAreaType' => __('entry.estimate_area_type'),
+                'estimateArea' => __('entry.estimate_area'),
+                'estimateYear' => __('entry.incidence_year'),
+                'estimateRate' => __('entry.estimate_rate'),
+                'estimateLower' => __('entry.estimate_lower'),
+                'estimateUpper' => __('entry.estimate_upper'),
+                'estimateCases' => __('entry.estimate_cases'),
+                'estimateSource' => __('entry.estimate_source_label'),
+                'estimateMethod' => __('entry.estimate_method_label'),
+                'estimateReference' => __('entry.estimate_reference_label'),
             ],
         ];
     }

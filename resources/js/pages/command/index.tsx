@@ -56,6 +56,22 @@ type NotificationCard = {
     status: 'no_notification_data' | 'population_missing' | null;
 };
 
+type EstimateCard = {
+    label: string;
+    sub: string | null;
+    rate: number | null;
+    lower: number | null;
+    upper: number | null;
+    year: number | null;
+    area: string | null;
+    scope: 'own' | 'national_reference' | null;
+    source: string | null;
+    method: string | null;
+    reference_url: string | null;
+    status: 'no_estimate' | null;
+    message: string | null;
+};
+
 type Props = {
     attention?: Attention | null;
     title: string;
@@ -75,6 +91,7 @@ type Props = {
     months: MonthPoint[];
     hasReturns: boolean;
     notification?: NotificationCard | null;
+    estimate?: EstimateCard | null;
     notCollected: {
         heading: string;
         items: UnavailableItem[];
@@ -142,6 +159,7 @@ export default function CommandIndex({
     months,
     hasReturns,
     notification,
+    estimate,
     notCollected,
 }: Props) {
     const [mode, setMode] = useChartMode();
@@ -260,14 +278,84 @@ export default function CommandIndex({
                             </dt>
                             <dd className="font-medium">
                                 {notification.population === null
-                                    ? '—'
+                                    ? '-'
                                     : `${notification.population.toLocaleString()} · ${notification.population_year}`}
                             </dd>
                         </div>
                         <div data-test="notification-source">
                             <dt className="text-muted-foreground">Source</dt>
                             <dd className="font-medium">
-                                {notification.source ?? '—'}
+                                {notification.source ?? '-'}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+            ) : null}
+
+            {estimate ? (
+                <section
+                    className="min-w-0 rounded-lg border p-4"
+                    aria-label={estimate.label}
+                    data-test="estimate-card"
+                >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 className="text-sm font-medium">
+                                {estimate.label}
+                            </h2>
+                            <p className="text-xs text-muted-foreground">
+                                {estimate.sub}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <div
+                                className="text-2xl font-semibold"
+                                data-test="estimate-rate"
+                            >
+                                {estimate.status === 'no_estimate' ||
+                                estimate.rate === null
+                                    ? 'n/a'
+                                    : estimate.rate.toFixed(1)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                per 100,000 population
+                            </div>
+                            {estimate.status === 'no_estimate' ? (
+                                <div
+                                    className="mt-0.5 text-xs"
+                                    data-test="estimate-status"
+                                >
+                                    {estimate.message}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+                        <div data-test="estimate-interval">
+                            <dt className="text-muted-foreground">Interval</dt>
+                            <dd className="font-medium">
+                                {estimate.lower === null ||
+                                estimate.upper === null
+                                    ? '-'
+                                    : `${estimate.lower.toFixed(1)} to ${estimate.upper.toFixed(1)}`}
+                            </dd>
+                        </div>
+                        <div data-test="estimate-year">
+                            <dt className="text-muted-foreground">Year</dt>
+                            <dd className="font-medium">
+                                {estimate.year === null ? '-' : estimate.year}
+                            </dd>
+                        </div>
+                        <div data-test="estimate-source">
+                            <dt className="text-muted-foreground">Source</dt>
+                            <dd className="font-medium">
+                                {estimate.source ?? '-'}
+                            </dd>
+                        </div>
+                        <div data-test="estimate-method">
+                            <dt className="text-muted-foreground">Method</dt>
+                            <dd className="font-medium">
+                                {estimate.method ?? '-'}
                             </dd>
                         </div>
                     </dl>

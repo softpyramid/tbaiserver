@@ -51,6 +51,11 @@ class CommandCenterPage
             'cascade' => $this->cascade($summary),
             'months' => CommandTotals::runningMonths($rows, $selection['period']),
             'notification' => $this->notification($selection),
+            'estimate' => IncidenceEstimateLookup::card(
+                $selection['provinceId'],
+                $selection['cityId'],
+                (int) substr($selection['period']->to, 0, 4),
+            ),
             'hasReturns' => $rows !== [],
             'notCollected' => $this->notCollected(),
         ];

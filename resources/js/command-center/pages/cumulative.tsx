@@ -46,7 +46,16 @@ export function CumulativePage() {
     const scope = data.meta.scope_name ?? 'Sindh';
     const filters = (data.meta as { filters?: { district?: string | null } })
         .filters;
-    const { cascade, performance, months, table, notification } = data.data;
+    const { cascade, performance, months, table, notification, estimate } =
+        data.data;
+    const estimateScopeSub =
+        estimate == null
+            ? null
+            : estimate.scope === 'national_reference'
+              ? `(Pakistan national estimate, ${estimate.year})`
+              : `(${estimate.area}, ${estimate.year})`;
+    const decimal = (n: number) =>
+        Number.isInteger(n) ? String(n) : n.toFixed(1);
     const bars = cascade
         .filter((c) => c.value !== null)
         .map((c) => ({
@@ -230,12 +239,106 @@ export function CumulativePage() {
                         />
                     </Panel>
 
+                    {estimate ? (
+                        <Panel
+                            id="cc-estimate"
+                            title={`ESTIMATED TB INCIDENCE RATE · ${estimate.year}`}
+                            sub={estimateScopeSub}
+                            style={at(0, 700, 440, 260)}
+                        >
+                            <div
+                                style={{
+                                    textAlign: 'center',
+                                    paddingTop: 18,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        fontSize: 38,
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    {estimate.rate === null
+                                        ? 'n/a'
+                                        : decimal(estimate.rate)}
+                                </div>
+                                <div
+                                    style={{ fontSize: 13, opacity: 0.75 }}
+                                >
+                                    per 100,000 population
+                                </div>
+                            </div>
+                            <dl
+                                style={{
+                                    margin: '14px 0 0',
+                                    display: 'grid',
+                                    gap: '6px',
+                                    fontSize: 13,
+                                    color: '#10205a',
+                                }}
+                            >
+                                <div>
+                                    <dt
+                                        style={{
+                                            opacity: 0.75,
+                                            display: 'inline',
+                                        }}
+                                    >
+                                        Source:{' '}
+                                    </dt>
+                                    <dd
+                                        style={{
+                                            margin: 0,
+                                            display: 'inline',
+                                        }}
+                                    >
+                                        {estimate.source}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt
+                                        style={{
+                                            opacity: 0.75,
+                                            display: 'inline',
+                                        }}
+                                    >
+                                        Method:{' '}
+                                    </dt>
+                                    <dd
+                                        style={{
+                                            margin: 0,
+                                            display: 'inline',
+                                        }}
+                                    >
+                                        {estimate.method}
+                                    </dd>
+                                </div>
+                                {estimate.reference_url ? (
+                                    <div>
+                                        <a
+                                            href={estimate.reference_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            style={{ color: '#3b6cf0' }}
+                                        >
+                                            Reference
+                                        </a>
+                                    </div>
+                                ) : null}
+                            </dl>
+                        </Panel>
+                    ) : null}
+
                     {notification ? (
                         <Panel
                             id="cc-notification"
                             title={`${notification.label} · ${notification.period_label}`}
                             sub={notification.sub}
-                            style={at(0, 700, 1090, 260)}
+                            style={
+                                estimate
+                                    ? at(455, 700, 635, 260)
+                                    : at(0, 700, 1090, 260)
+                            }
                         >
                             <div
                                 style={{
@@ -338,7 +441,7 @@ export function CumulativePage() {
                                         </dt>
                                         <dd style={{ margin: 0, fontSize: 22 }}>
                                             {notification.population === null
-                                                ? '—'
+                                                ? '-'
                                                 : `${fmt(notification.population)} · ${notification.population_year}`}
                                         </dd>
                                     </div>

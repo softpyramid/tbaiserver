@@ -25,6 +25,7 @@ class StoreIncidenceTargetRequest extends FormRequest
             'province_id' => ['required', 'integer', 'exists:provinces,id'],
             'year' => ['required', 'integer', Rule::in(IncidenceTarget::years())],
             'value' => ['required', 'numeric', 'gte:0'],
+            'source' => ['nullable', 'string', 'max:255'],
             'month' => ['prohibited'],
         ];
     }

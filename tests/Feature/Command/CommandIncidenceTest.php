@@ -24,12 +24,15 @@ test('with no targets the empty state shows and no series is returned', function
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('command/incidence')
-            ->where('title', 'Incidence')
+            ->where('title', 'Estimated TB Incidence Rate')
             ->where('empty', 'No incidence targets have been entered.')
             ->where('series', [])
             ->where('targets', [])
             ->where('yearOptions', [2026, 2027, 2028, 2029, 2030])
             ->where('canEdit', true)
+            ->where('estimateStoreUrl', route('command.incidence.estimates.store'))
+            ->has('estimateAreas', 1)
+            ->where('estimateAreas.0.type', 'country')
             ->missing('months'));
 
     expect(Schema::hasColumn('incidence_targets', 'patient_id'))->toBeFalse()
@@ -191,6 +194,7 @@ test('command roles see incidence targets only inside their province scope', fun
         ->assertInertia(fn (Assert $page) => $page
             ->where('canEdit', false)
             ->where('storeUrl', null)
+            ->where('estimateStoreUrl', null)
             ->has('targets', 1)
             ->where('targets.0.province', 'Sindh Scope')
             ->where('targets.0.value', '90')

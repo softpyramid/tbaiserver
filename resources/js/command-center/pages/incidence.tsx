@@ -1,24 +1,34 @@
 import { useState } from 'react';
-import { HBarChart } from '../charts/h-bar-chart';
 import { LineAreaChart } from '../charts/line-area-chart';
 import type { Envelope, Incidence, IncidenceMeta } from '../types';
 import { at, Chip, Kpi, Kpis, LoadState, Panel } from '../ui';
 import { useApi } from '../use-api';
 
 const BLUE = '#4b7ff7';
+const TARGET = '#2fa36b';
 const NONE = 'n/a';
 
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
 const HEAD = { fontSize: 22, letterSpacing: '.5px' } as const;
+const NAVY = '#10205a';
 
-/** Page 9: incidence by month and by year, province level. */
+const decimal = (n: number) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(1);
+const fmtRate = (v: number) => `${decimal(v)} per 100,000`;
+
+type YearPoint = {
+    year: number;
+    estimate: number | null;
+    estimate_scope: 'own' | 'national_reference' | null;
+    target: number | null;
+};
+
+/** Page 9: estimated TB incidence rate vs yearly planning targets. */
 export function IncidencePage() {
     const state = useApi<Envelope<Incidence, IncidenceMeta>>(
         '/api/command/incidence',
     );
-    const [kind, setKind] = useState<'bar' | 'line' | null>(null);
-    const [month, setMonth] = useState<number | null>(null);
-    const [year, setYear] = useState(0);
+    const [sel, setSel] = useState<number | null>(null);
     const body = state.data?.data;
 
     if (!body) {
@@ -32,215 +42,222 @@ export function IncidencePage() {
     }
 
     const max = state.data?.meta.y_axis.max ?? 100;
-    const months = body.monthly.filter((m) => m.value !== null) as {
-        month: string;
-        label: string;
-        value: number;
-    }[];
-    const years = body.yearly.filter((y) => y.value !== null) as {
-        year: number;
-        value: number;
-    }[];
+    const estimate = body.estimate;
+    const points = body.yearly.filter(
+        (p) => p.estimate !== null,
+    ) as YearPoint[];
+    const hasAny =
+        points.length > 0 || body.yearly.some((p) => p.target !== null);
 
-    if (months.length === 0 && years.length === 0) {
+    if (!hasAny && !estimate) {
         return (
             <Panel
                 id="cc-inc-empty"
-                title="INCIDENCE"
+                title="ESTIMATED TB INCIDENCE RATE"
                 titleStyle={HEAD}
-                sub="No incidence figures yet."
+                sub="No incidence estimate entered."
                 style={at(340, 92, 540, 200)}
             >
                 <p className="cc-state" style={{ marginTop: 6 }}>
-                    Incidence appears here once the programme records it.
+                    Add an approved estimate and planning targets.
                 </p>
             </Panel>
         );
     }
 
-    const chart = kind ?? body.defaults.monthly_chart;
-    const defaultMonth = months.findIndex(
-        (x) => x.month === body.defaults.month,
+    const y = Math.min(
+        sel ?? (points.findIndex((p) => p.year === body.defaults.year) >= 0
+            ? points.findIndex((p) => p.year === body.defaults.year)
+            : points.length - 1),
+        points.length - 1,
     );
-    const m = Math.min(
-        month ?? (defaultMonth >= 0 ? defaultMonth : months.length - 1),
-        months.length - 1,
-    );
-    const y = Math.min(year, years.length - 1);
-    const mv = months.map((x) => x.value);
-    const yv = years.map((x) => x.value);
-    const mTips = months.map((x, i) => (
+    const selected = points[y];
+    const scopeSub =
+        estimate === null
+            ? null
+            : estimate.scope === 'national_reference'
+              ? `(Pakistan national estimate, ${estimate.year})`
+              : `(${estimate.area_label}, ${estimate.year})`;
+    const estValues = points.map((p) => p.estimate ?? 0);
+    const tgtValues = points.map((p) => p.target ?? p.estimate ?? 0);
+    const estTips = points.map((p, i) => (
         <>
-            {x.label}
+            {p.year}
             <br />
-            Incidence: <b>{x.value}</b>
+            Estimated incidence: <b>{fmtRate(p.estimate ?? 0)}</b>
+            <br />
+            {p.estimate_scope === 'national_reference'
+                ? 'Pakistan national estimate'
+                : 'Local estimate'}
             <br />
             {i ? (
                 <>
-                    Change vs {months[i - 1].label}:{' '}
-                    <b>{signed(x.value - months[i - 1].value)}</b>
-                </>
-            ) : (
-                'Baseline month'
-            )}
-        </>
-    ));
-    const yTips = years.map((x, i) => (
-        <>
-            {x.year}
-            <br />
-            Incidence: <b>{x.value}</b>
-            <br />
-            {i ? (
-                <>
-                    Change vs {years[i - 1].year}:{' '}
-                    <b>{signed(x.value - years[i - 1].value)}</b>
+                    Change vs {points[i - 1].year}:{' '}
+                    <b>{signed((p.estimate ?? 0) - (points[i - 1].estimate ?? 0))}</b>
                 </>
             ) : (
                 'Baseline year'
             )}
         </>
     ));
-    const highest = Math.max(...mv);
-    const highestLabel = months[mv.indexOf(highest)]?.label;
-    const round = (v: number) => String(Math.round(v));
+    const tgtTips = points.map((p) => (
+        <>
+            {p.year}
+            <br />
+            Target: <b>{p.target === null ? 'not set' : fmtRate(p.target)}</b>
+        </>
+    ));
+    const prevEst =
+        y > 0 ? (selected.estimate ?? 0) - (points[y - 1].estimate ?? 0) : null;
 
     return (
         <>
-            {months.length > 0 ? (
-                <Panel
-                    id="cc-inc-m"
-                    title="INCIDENCE: Monthly"
-                    titleStyle={HEAD}
-                    style={at(340, 92, 540, 696)}
-                >
-                    <div className="cc-cr" style={{ margin: '6px 0' }}>
-                        <Chip
-                            on={chart === 'bar'}
-                            onClick={() => setKind('bar')}
+            <Panel
+                id="cc-inc-est"
+                title="ESTIMATED TB INCIDENCE RATE"
+                titleStyle={HEAD}
+                style={at(340, 92, 540, 696)}
+            >
+                {estimate === null ? (
+                    <p className="cc-state" style={{ marginTop: 6 }}>
+                        No approved estimate entered
+                    </p>
+                ) : (
+                    <>
+                        <div
+                            style={{
+                                fontSize: 72,
+                                fontWeight: 700,
+                                color: NAVY,
+                                lineHeight: 1,
+                                marginTop: 26,
+                            }}
                         >
-                            ▤ Bar
-                        </Chip>
-                        <Chip
-                            on={chart === 'line'}
-                            onClick={() => setKind('line')}
+                            {decimal(estimate.rate)}
+                        </div>
+                        <div
+                            className="sub"
+                            style={{ marginTop: 8, fontSize: 16 }}
                         >
-                            〰 Line
-                        </Chip>
-                        <span className="sub" style={{ alignSelf: 'center' }}>
-                            click a {chart === 'bar' ? 'bar' : 'point'} to
-                            select a month
-                        </span>
-                    </div>
-                    {chart === 'bar' ? (
-                        <HBarChart
-                            items={months.map((x, i) => ({
-                                label: x.label,
-                                value: x.value,
-                                tip: mTips[i],
-                                text: `${x.label}: incidence ${x.value}`,
-                            }))}
-                            w={500}
-                            ml={62}
-                            mr={44}
-                            rh={40}
-                            max={max}
-                            color={BLUE}
-                            selected={m}
-                            onSelect={setMonth}
-                            animate
-                            format={String}
-                            axis={round}
-                            label="Incidence by month"
-                        />
-                    ) : (
-                        <LineAreaChart
-                            labels={months.map((x) => x.label)}
-                            series={[
-                                {
-                                    name: 'Incidence',
-                                    color: BLUE,
-                                    values: mv,
-                                    area: true,
-                                    tips: mTips,
-                                },
-                            ]}
-                            w={500}
-                            h={410}
-                            max={max}
-                            selected={m}
-                            onSelect={setMonth}
-                            axis={round}
-                            format={String}
-                            label="Incidence by month"
-                        />
-                    )}
-                    <Kpis columns={3} style={{ marginTop: 19 }}>
-                        <Kpi label="Selected month">{months[m].label}</Kpi>
-                        <Kpi label="Incidence">{months[m].value}</Kpi>
-                        <Kpi label="Change vs previous month">
-                            {m ? signed(mv[m] - mv[m - 1]) : NONE}
-                        </Kpi>
-                        <Kpi label="Change since JAN">
-                            {signed(mv[m] - mv[0])}
-                        </Kpi>
-                        <Kpi label={`Highest (${highestLabel})`}>{highest}</Kpi>
-                        <Kpi
-                            label={`Latest (${months[months.length - 1].label})`}
+                            per 100,000 population
+                        </div>
+                        {estimate.lower !== null && estimate.upper !== null ? (
+                            <div className="sub" style={{ marginTop: 12 }}>
+                                {decimal(estimate.lower)} to{' '}
+                                {decimal(estimate.upper)} per 100,000
+                            </div>
+                        ) : null}
+                        {scopeSub ? (
+                            <div
+                                className="sub"
+                                style={{ marginTop: 12, fontSize: 15 }}
+                            >
+                                {scopeSub}
+                            </div>
+                        ) : null}
+                        {estimate.note ? (
+                            <p className="cc-state" style={{ marginTop: 16 }}>
+                                {estimate.note}
+                            </p>
+                        ) : null}
+                        <div
+                            style={{
+                                marginTop: 26,
+                                borderTop: '1px solid rgba(16,32,90,.12)',
+                                paddingTop: 12,
+                                fontSize: 13,
+                                lineHeight: '20px',
+                                color: NAVY,
+                            }}
                         >
-                            {mv[mv.length - 1]}
-                        </Kpi>
-                    </Kpis>
-                </Panel>
-            ) : null}
+                            <div>Source: {estimate.source}</div>
+                            <div>Method: {estimate.method}</div>
+                            {estimate.reference_url ? (
+                                <div>
+                                    Reference:{' '}
+                                    <a
+                                        href={estimate.reference_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ color: BLUE }}
+                                    >
+                                        open
+                                    </a>
+                                </div>
+                            ) : null}
+                        </div>
+                    </>
+                )}
+            </Panel>
 
-            {years.length > 0 ? (
+            {points.length > 0 ? (
                 <Panel
                     id="cc-inc-y"
-                    title="INCIDENCE: Yearly (2026 to 2030)"
+                    title="ESTIMATE VS TARGET: Yearly (2026 to 2030)"
                     titleStyle={HEAD}
                     style={at(895, 92, 545, 696)}
                 >
-                    <div
-                        className="sub"
-                        style={{ margin: '6px 0 4px', lineHeight: '28px' }}
-                    >
-                        click a point to select a year
+                    <div className="cc-cr" style={{ margin: '6px 0' }}>
+                        <span className="sub" style={{ lineHeight: '28px' }}>
+                            <span style={{ color: BLUE }}>■</span> Estimated
+                            incidence&nbsp;&nbsp;
+                            <span style={{ color: TARGET }}>■</span> Target
+                        </span>
+                        <span className="sub" style={{ alignSelf: 'center' }}>
+                            click a point to select a year
+                        </span>
                     </div>
                     <LineAreaChart
-                        labels={years.map((x) => String(x.year))}
+                        labels={points.map((p) => String(p.year))}
                         series={[
                             {
-                                name: 'Incidence',
+                                name: 'Estimated incidence',
                                 color: BLUE,
-                                values: yv,
+                                values: estValues,
                                 area: true,
-                                tips: yTips,
+                                tips: estTips,
+                            },
+                            {
+                                name: 'Target',
+                                color: TARGET,
+                                values: tgtValues,
+                                tips: tgtTips,
                             },
                         ]}
                         w={510}
                         h={410}
                         max={max}
                         selected={y}
-                        onSelect={setYear}
-                        axis={round}
-                        format={String}
-                        label="Incidence by year"
+                        onSelect={setSel}
+                        axis={decimal}
+                        format={decimal}
+                        label="Estimated TB incidence rate by year"
                     />
                     <Kpis columns={3} style={{ marginTop: 19 }}>
-                        <Kpi label="Selected year">{years[y].year}</Kpi>
-                        <Kpi label="Incidence">{yv[y]}</Kpi>
+                        <Kpi label="Selected year">{selected.year}</Kpi>
+                        <Kpi label="Estimated incidence">
+                            {selected.estimate === null
+                                ? NONE
+                                : decimal(selected.estimate)}
+                        </Kpi>
+                        <Kpi label="Target">
+                            {selected.target === null
+                                ? NONE
+                                : decimal(selected.target)}
+                        </Kpi>
                         <Kpi label="Change vs previous year">
-                            {y ? signed(yv[y] - yv[y - 1]) : NONE}
+                            {prevEst === null ? NONE : signed(prevEst)}
                         </Kpi>
-                        <Kpi label="Reduction since 2026">
-                            {yv[0] > 0
-                                ? `${(100 - (yv[y] / yv[0]) * 100).toFixed(0)}%`
-                                : NONE}
+                        <Kpi label="Estimate scope">
+                            {selected.estimate_scope === 'national_reference'
+                                ? 'National'
+                                : 'Local'}
                         </Kpi>
-                        <Kpi label={String(years[0].year)}>{yv[0]}</Kpi>
-                        <Kpi label={String(years[years.length - 1].year)}>
-                            {yv[yv.length - 1]}
+                        <Kpi label="Gap to target">
+                            {selected.estimate === null ||
+                            selected.target === null
+                                ? NONE
+                                : signed(selected.estimate - selected.target)}
                         </Kpi>
                     </Kpis>
                 </Panel>

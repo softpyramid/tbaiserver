@@ -4,12 +4,14 @@ namespace App\Enums;
 
 enum AreaType: string
 {
+    case Country = 'country';
     case District = 'district';
     case Province = 'province';
 
     public function label(): string
     {
         return match ($this) {
+            self::Country => __('entry.country'),
             self::District => __('entry.column_district'),
             self::Province => __('entry.province'),
         };

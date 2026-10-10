@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AreaType;
 use App\Enums\Sector;
+use App\Http\Requests\StoreIncidenceEstimateRequest;
 use App\Http\Requests\StoreIncidenceTargetRequest;
 use App\Http\Requests\UpdateAlertRuleRequest;
 use App\Models\AlertRule;
 use App\Models\City;
 use App\Models\DailyReturn;
+use App\Models\IncidenceEstimate;
 use App\Models\IncidenceTarget;
 use App\Support\AdminAttention;
+use App\Support\AuditLogger;
 use App\Support\CommandCenterPage;
 use App\Support\DailyReturnDetail;
 use App\Support\DailyReturnListing;
@@ -112,8 +116,49 @@ class CommandCenterController extends Controller
             [
                 'month' => null,
                 'value' => $data['value'],
+                'source' => $data['source'] ?? null,
             ],
         );
+
+        return back();
+    }
+
+    public function storeIncidenceEstimate(StoreIncidenceEstimateRequest $request, AuditLogger $audit): RedirectResponse
+    {
+        $data = $request->validated();
+        $areaType = AreaType::from($data['area_type']);
+        $areaId = $areaType === AreaType::Country ? null : (int) $data['area_id'];
+
+        $estimate = IncidenceEstimate::query()
+            ->when($areaType === AreaType::Country, fn ($q) => $q->whereNull('area_id'), fn ($q) => $q->where('area_id', $areaId))
+            ->where('area_type', $areaType->value)
+            ->first();
+
+        if ($estimate === null) {
+            $estimate = new IncidenceEstimate;
+            $estimate->area_type = $areaType->value;
+            $estimate->area_id = $areaId;
+        }
+
+        $estimate->year = (int) $data['year'];
+        $estimate->rate_per_100k = $data['rate_per_100k'];
+        $estimate->lower_bound = $data['lower_bound'] ?? null;
+        $estimate->upper_bound = $data['upper_bound'] ?? null;
+        $estimate->estimated_cases = $data['estimated_cases'] ?? null;
+        $estimate->source = $data['source'];
+        $estimate->method = $data['method'];
+        $estimate->reference_url = $data['reference_url'] ?? null;
+        $estimate->entered_by = $request->user()?->id;
+        $estimate->save();
+
+        $audit->write($request->user(), 'incidence_estimates.saved', $estimate, [
+            'area_type' => $areaType->value,
+            'area_id' => $areaId,
+            'year' => $estimate->year,
+            'rate_per_100k' => $estimate->rate_per_100k,
+            'source' => $estimate->source,
+            'method' => $estimate->method,
+        ]);
 
         return back();
     }

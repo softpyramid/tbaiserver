@@ -14,8 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $year
  * @property int|null $month
  * @property string $value
+ * @property string|null $source
  */
-#[Fillable(['province_id', 'year', 'month', 'value'])]
+#[Fillable(['province_id', 'year', 'month', 'value', 'source'])]
 class IncidenceTarget extends Model
 {
     public const MIN_YEAR = 2026;

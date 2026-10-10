@@ -1,12 +1,16 @@
 <?php
 
 use App\Enums\AreaType;
+use App\Enums\PopulationStatus;
 use App\Enums\ProgrammeRole;
+use App\Enums\ScopeType;
 use App\Enums\Sector;
 use App\Models\CaseNotification;
 use App\Models\City;
+use App\Models\Country;
 use App\Models\Facility;
 use App\Models\PopulationDenominator;
+use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\User;
 use App\Support\NotificationRate;
@@ -192,6 +196,206 @@ test('the cumulative overview carries a district notification card from imported
             ->where('notification.population', 500000)
             ->where('notification.population_year', 2026)
             ->where('notification.rate', 8)
+            ->where('notification.status', null));
+});
+
+test('all and sindh divide 90 cases by the confirmed sindh population on both pages', function () {
+    CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-10 12:00:00', 'Asia/Karachi'));
+
+    $sindh = Province::factory()->create(['name' => 'Sindh', 'slug' => 'sindh']);
+    $city = City::factory()->create(['province_id' => $sindh->id, 'name' => 'Karachi West']);
+    $facility = Facility::factory()->create(['city_id' => $city->id]);
+
+    CaseNotification::factory()->create([
+        'facility_id' => $facility->id,
+        'month' => '2026-10',
+        'new_cases' => 70,
+        'relapse_cases' => 20,
+        'other_previously_treated' => 15,
+    ]);
+    PopulationDenominator::factory()->province($sindh->id)->create([
+        'year' => 2023,
+        'population' => 3000000,
+        'status' => PopulationStatus::Confirmed,
+        'source' => 'PBS Census 2023',
+    ]);
+
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $card = fn (Assert $page) => $page
+        ->where('notification.rate', 3)
+        ->where('notification.cases', 90)
+        ->where('notification.population', 3000000)
+        ->where('notification.population_year', 2023)
+        ->where('notification.source', 'PBS Census 2023')
+        ->where('notification.status', null);
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia($card);
+
+    $this->actingAs($admin)
+        ->get(route('command.index', ['province' => $sindh->id]))
+        ->assertOk()
+        ->assertInertia($card);
+
+    $this->actingAs($admin)
+        ->getJson(route('api.command.cumulative'))
+        ->assertOk()
+        ->assertJsonPath('data.notification.rate', 3.0)
+        ->assertJsonPath('data.notification.cases', 90)
+        ->assertJsonPath('data.notification.population', 3000000)
+        ->assertJsonPath('data.notification.population_year', 2023)
+        ->assertJsonPath('data.notification.status', null);
+
+    $viewer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $viewer->id,
+        'role' => ProgrammeRole::ProvincialViewer,
+        'scope_type' => ScopeType::Province,
+        'scope_id' => $sindh->id,
+    ]);
+
+    $this->actingAs($viewer)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia($card);
+});
+
+test('a placeholder district stays population not set when cases exist', function () {
+    CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-10 12:00:00', 'Asia/Karachi'));
+
+    $sindh = Province::factory()->create(['name' => 'Sindh', 'slug' => 'sindh']);
+    $city = City::factory()->create(['province_id' => $sindh->id, 'name' => 'Karachi West']);
+    $facility = Facility::factory()->create(['city_id' => $city->id]);
+
+    CaseNotification::factory()->create([
+        'facility_id' => $facility->id,
+        'month' => '2026-10',
+        'new_cases' => 40,
+        'relapse_cases' => 5,
+    ]);
+    PopulationDenominator::factory()->placeholder($city->id)->create(['year' => 2023]);
+    PopulationDenominator::factory()->province($sindh->id)->create([
+        'year' => 2023,
+        'population' => 3000000,
+        'status' => PopulationStatus::Confirmed,
+    ]);
+
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.index', ['district' => $city->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notification.rate', null)
+            ->where('notification.population', null)
+            ->where('notification.status', 'population_missing')
+            ->where('notification.cases', 45));
+
+    $this->actingAs($admin)
+        ->getJson(route('api.command.cumulative', ['district' => $city->id]))
+        ->assertOk()
+        ->assertJsonPath('data.notification.rate', null)
+        ->assertJsonPath('data.notification.status', 'population_missing')
+        ->assertJsonPath('data.notification.cases', 45);
+
+    $officer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $officer->id,
+        'role' => ProgrammeRole::CityOfficer,
+        'scope_type' => ScopeType::City,
+        'scope_id' => $city->id,
+    ]);
+
+    $this->actingAs($officer)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notification.status', 'population_missing')
+            ->where('notification.rate', null));
+});
+
+test('no case notifications say so instead of population not set', function () {
+    CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-10 12:00:00', 'Asia/Karachi'));
+
+    $sindh = Province::factory()->create(['name' => 'Sindh', 'slug' => 'sindh']);
+    $city = City::factory()->create(['province_id' => $sindh->id]);
+    PopulationDenominator::factory()->province($sindh->id)->create([
+        'year' => 2023,
+        'population' => 3000000,
+        'status' => PopulationStatus::Confirmed,
+    ]);
+    PopulationDenominator::factory()->placeholder($city->id)->create(['year' => 2023]);
+
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notification.status', 'no_notification_data')
+            ->where('notification.rate', null)
+            ->where('notification.population', 3000000));
+
+    $this->actingAs($admin)
+        ->get(route('command.index', ['district' => $city->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notification.status', 'no_notification_data')
+            ->where('notification.population', null));
+});
+
+test('all uses a national population row when one is confirmed', function () {
+    CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-10 12:00:00', 'Asia/Karachi'));
+
+    $country = Country::factory()->create(['name' => 'Pakistan', 'slug' => 'pakistan']);
+    $sindh = Province::factory()->create(['country_id' => $country->id, 'name' => 'Sindh', 'slug' => 'sindh']);
+    $city = City::factory()->create(['province_id' => $sindh->id]);
+    $facility = Facility::factory()->create(['city_id' => $city->id]);
+
+    CaseNotification::factory()->create([
+        'facility_id' => $facility->id,
+        'month' => '2026-10',
+        'new_cases' => 90,
+        'relapse_cases' => 0,
+    ]);
+    PopulationDenominator::factory()->province($sindh->id)->create([
+        'year' => 2023,
+        'population' => 3000000,
+        'status' => PopulationStatus::Confirmed,
+    ]);
+    PopulationDenominator::factory()->create([
+        'area_type' => AreaType::Country,
+        'area_id' => $country->id,
+        'year' => 2023,
+        'population' => 10000000,
+        'status' => PopulationStatus::Confirmed,
+        'source' => 'PBS Census 2023',
+    ]);
+
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notification.population', 10000000)
+            ->where('notification.rate', 0.9)
+            ->where('notification.cases', 90)
+            ->where('notification.status', null));
+
+    $this->actingAs($admin)
+        ->get(route('command.index', ['province' => $sindh->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notification.population', 3000000)
+            ->where('notification.rate', 3)
             ->where('notification.status', null));
 });
 

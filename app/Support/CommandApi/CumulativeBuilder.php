@@ -2,7 +2,6 @@
 
 namespace App\Support\CommandApi;
 
-use App\Enums\AreaType;
 use App\Models\User;
 use App\Support\IncidenceEstimateLookup;
 use App\Support\NotificationRate;
@@ -57,7 +56,7 @@ final class CumulativeBuilder
                 $this->row('ai_assisted_tests', '🤖', 'AI-assisted tests', 'TB-AI diagnostic utilization', $ai ? $t['ai_tests'] : null, null, 'not_collected'),
             ],
             'has_returns' => $t['bmus'] > 0,
-            'notification' => $this->notification($s),
+            'notification' => $this->notification($s, $user),
             'estimate' => IncidenceEstimateLookup::card(
                 $s->provinceId,
                 $s->cityId,
@@ -67,22 +66,13 @@ final class CumulativeBuilder
     }
 
     /**
-     * The notification card measures a single area, so it needs a province or
-     * district to divide by; the all-scope view has no one population.
+     * Same place and population rules as the /command card.
      *
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
-    private function notification(Selection $s): ?array
+    private function notification(Selection $s, User $user): array
     {
-        if ($s->cityId !== null) {
-            return NotificationRate::card(AreaType::District, $s->cityId, $s->to);
-        }
-
-        if ($s->provinceId !== null) {
-            return NotificationRate::card(AreaType::Province, $s->provinceId, $s->to);
-        }
-
-        return null;
+        return NotificationRate::forSelection($s->provinceId, $s->cityId, $s->to, $user);
     }
 
     /**

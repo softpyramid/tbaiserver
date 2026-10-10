@@ -25,6 +25,7 @@ class StoreIncidenceEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id' => ['nullable', 'integer', 'exists:incidence_estimates,id'],
             'area_type' => ['required', Rule::enum(AreaType::class)],
             'area_id' => ['nullable', 'integer', 'min:1'],
             'year' => ['required', 'integer', 'between:2000,2050'],

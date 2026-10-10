@@ -24,11 +24,13 @@ test('after seeding the national card shows the seeded rate, source and method',
         ->get(route('command.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
+            ->where('scope', 'All')
             ->where('estimate.label', 'Estimated TB Incidence Rate')
             ->where('estimate.rate', 292)
             ->where('estimate.year', 2026)
             ->where('estimate.scope', 'national_reference')
             ->where('estimate.sub', '(Pakistan national estimate, 2026)')
+            ->where('estimate.message', null)
             ->where('estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
             ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)')
             ->where('estimate.status', null));
@@ -82,6 +84,7 @@ test('sindh and district selections fall back to the national row with the right
         ->assertInertia(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
             ->where('estimate.scope', 'national_reference')
+            ->where('estimate.sub', 'National estimate (Pakistan), not a Sindh rate')
             ->where('estimate.message', 'National estimate (Pakistan), not a Sindh rate'));
 
     $this->actingAs($admin)
@@ -89,6 +92,7 @@ test('sindh and district selections fall back to the national row with the right
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
+            ->where('estimate.sub', 'National estimate (Pakistan), not a district rate')
             ->where('estimate.message', 'National estimate (Pakistan), not a district rate'));
 
     $this->actingAs($admin)
@@ -117,6 +121,109 @@ test('sindh and district selections fall back to the national row with the right
         ->assertInertia(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
             ->where('estimate.scope', 'national_reference'));
+});
+
+test('all scope keeps the pakistan label, and a scoped user without an own row is told it is not their rate', function () {
+    $this->seed(IncidenceEstimateSeeder::class);
+    $country = Country::query()->where('slug', 'pakistan')->firstOrFail();
+    $sindh = Province::factory()->create(['country_id' => $country->id, 'name' => 'Sindh']);
+    $karachi = City::factory()->create(['province_id' => $sindh->id, 'name' => 'Karachi West']);
+
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.index', ['from' => '2024-01-01', 'to' => '2024-12-31']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scope', 'All')
+            ->where('estimate.rate', 292)
+            ->where('estimate.year', 2026)
+            ->where('estimate.status', null)
+            ->where('estimate.sub', '(Pakistan national estimate, 2026)'));
+
+    $countryViewer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $countryViewer->id,
+        'role' => ProgrammeRole::CountryViewer,
+        'scope_type' => ScopeType::Country,
+        'scope_id' => $country->id,
+    ]);
+
+    $this->actingAs($countryViewer)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('estimate.rate', 292)
+            ->where('estimate.sub', '(Pakistan national estimate, 2026)')
+            ->where('estimate.message', null));
+
+    $provincial = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $provincial->id,
+        'role' => ProgrammeRole::ProvincialViewer,
+        'scope_type' => ScopeType::Province,
+        'scope_id' => $sindh->id,
+    ]);
+
+    $this->actingAs($provincial)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('estimate.rate', 292)
+            ->where('estimate.sub', 'National estimate (Pakistan), not a Sindh rate'));
+
+    $officer = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $officer->id,
+        'role' => ProgrammeRole::CityOfficer,
+        'scope_type' => ScopeType::City,
+        'scope_id' => $karachi->id,
+    ]);
+
+    $this->actingAs($officer)
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('estimate.rate', 292)
+            ->where('estimate.sub', 'National estimate (Pakistan), not a district rate'));
+});
+
+test('an admin can see and edit the seeded estimate, and reseeding does not overwrite it', function () {
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+    $this->seed(IncidenceEstimateSeeder::class);
+
+    $this->actingAs($admin)
+        ->get(route('command.incidence'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('estimates', 1)
+            ->where('estimates.0.area', 'Pakistan')
+            ->where('estimates.0.year', 2026)
+            ->where('estimates.0.rate', '292')
+            ->where('estimates.0.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
+            ->where('estimates.0.method', 'WHO estimated incidence (new and relapse cases)'));
+
+    $id = IncidenceEstimate::query()->where('area_type', 'country')->whereNull('area_id')->value('id');
+
+    $this->actingAs($admin)
+        ->post(route('command.incidence.estimates.store'), [
+            'id' => $id,
+            'area_type' => 'country',
+            'year' => 2024,
+            'rate_per_100k' => 292,
+            'source' => 'Named source',
+            'method' => 'A named method',
+        ])
+        ->assertRedirect();
+
+    $this->seed(IncidenceEstimateSeeder::class);
+
+    expect(IncidenceEstimate::query()->where('area_type', 'country')->whereNull('area_id')->count())->toBe(1)
+        ->and(IncidenceEstimate::query()->whereKey($id)->value('year'))->toBe(2024)
+        ->and(IncidenceEstimate::query()->whereKey($id)->value('source'))->toBe('Named source')
+        ->and(IncidenceEstimate::query()->whereKey($id)->value('method'))->toBe('A named method');
 });
 
 test('store validates source, method and area and only admins can save an estimate', function () {
@@ -215,11 +322,23 @@ test('the card on the command center cumulative payload matches the national row
 
     $response = $this->actingAs($users['admin'])->getJson('/api/command/cumulative')->assertOk();
 
-    $response->assertJsonPath('data.estimate.label', 'Estimated TB Incidence Rate')
+    $sindhDefault = $response;
+    $sindhDefault->assertJsonPath('data.estimate.label', 'Estimated TB Incidence Rate')
         ->assertJsonPath('data.estimate.scope', 'national_reference')
-        ->assertJsonPath('data.estimate.sub', '(Pakistan national estimate, 2026)');
+        ->assertJsonPath('data.estimate.status', null)
+        ->assertJsonPath('data.estimate.sub', 'National estimate (Pakistan), not a Sindh rate');
 
-    expect($response->json('data.estimate.rate'))->toEqual(292.0);
+    expect($sindhDefault->json('data.estimate.rate'))->toEqual(292.0);
+
+    $all = $this->actingAs($users['admin'])->getJson('/api/command/cumulative?province=all')->assertOk();
+    $all->assertJsonPath('meta.scope_name', 'All')
+        ->assertJsonPath('data.estimate.status', null)
+        ->assertJsonPath('data.estimate.sub', '(Pakistan national estimate, 2026)')
+        ->assertJsonPath('data.estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
+        ->assertJsonPath('data.estimate.method', 'WHO estimated incidence (new and relapse cases)');
+
+    expect($all->json('data.estimate.rate'))->toEqual(292.0)
+        ->and($all->getContent())->not->toContain('(null');
 });
 
 test('creating and editing daily returns leaves the estimate card unchanged', function () {

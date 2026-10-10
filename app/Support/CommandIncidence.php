@@ -2,8 +2,11 @@
 
 namespace App\Support;
 
+use App\Enums\AreaType;
 use App\Enums\Sector;
 use App\Models\City;
+use App\Models\Country;
+use App\Models\IncidenceEstimate;
 use App\Models\IncidenceTarget;
 use App\Models\Province;
 use App\Models\User;
@@ -75,6 +78,7 @@ class CommandIncidence
             'targetProvinces' => $canEdit ? $this->provinceOptions($user) : [],
             'targets' => $targets,
             'series' => $series,
+            'estimates' => $canEdit ? $this->estimates() : [],
             'empty' => $targets === [] ? __('entry.incidence_empty') : null,
             'incidenceLabels' => [
                 'chart' => __('entry.incidence_yearly'),
@@ -86,6 +90,7 @@ class CommandIncidence
                 'save' => __('entry.save'),
                 'add' => __('entry.incidence_add'),
                 'note' => __('entry.incidence_note'),
+                'estimateList' => __('entry.estimate_list'),
                 'estimateAdd' => __('entry.estimate_add'),
                 'estimateAreaType' => __('entry.estimate_area_type'),
                 'estimateArea' => __('entry.estimate_area'),
@@ -207,6 +212,70 @@ class CommandIncidence
         }
 
         return $options;
+    }
+
+    /**
+     * @return list<array{
+     *     id: int,
+     *     areaType: string,
+     *     areaId: int|null,
+     *     area: string,
+     *     year: int,
+     *     rate: string,
+     *     lower: string|null,
+     *     upper: string|null,
+     *     cases: int|null,
+     *     source: string,
+     *     method: string,
+     *     referenceUrl: string|null
+     * }>
+     */
+    private function estimates(): array
+    {
+        $country = (string) (Country::query()->value('name') ?: 'Pakistan');
+        $provinces = Province::query()->pluck('name', 'id');
+        $cities = City::query()->pluck('name', 'id');
+        $rows = [];
+
+        foreach (IncidenceEstimate::query()->orderBy('year')->orderBy('id')->get() as $estimate) {
+            $areaId = $estimate->area_id;
+            $rows[] = [
+                'id' => $estimate->id,
+                'areaType' => $estimate->area_type->value,
+                'areaId' => $areaId,
+                'area' => match ($estimate->area_type) {
+                    AreaType::Country => $country,
+                    AreaType::Province => (string) ($areaId === null ? '' : ($provinces[$areaId] ?? '')),
+                    AreaType::District => (string) ($areaId === null ? '' : ($cities[$areaId] ?? '')),
+                },
+                'year' => $estimate->year,
+                'rate' => $this->valueString($estimate->rate_per_100k),
+                'lower' => $estimate->lower_bound === null ? null : $this->valueString($estimate->lower_bound),
+                'upper' => $estimate->upper_bound === null ? null : $this->valueString($estimate->upper_bound),
+                'cases' => $estimate->estimated_cases,
+                'source' => $estimate->source,
+                'method' => $estimate->method,
+                'referenceUrl' => $estimate->reference_url,
+            ];
+        }
+
+        usort(
+            $rows,
+            function (array $left, array $right): int {
+                $rank = ['country' => 0, 'province' => 1, 'district' => 2];
+                $byArea = $rank[$left['areaType']] <=> $rank[$right['areaType']];
+
+                if ($byArea !== 0) {
+                    return $byArea;
+                }
+
+                $byName = strcasecmp($left['area'], $right['area']);
+
+                return $byName !== 0 ? $byName : $left['year'] <=> $right['year'];
+            },
+        );
+
+        return $rows;
     }
 
     private function valueString(mixed $value): string

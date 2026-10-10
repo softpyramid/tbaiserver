@@ -62,6 +62,7 @@ final class CumulativeBuilder
                 $s->provinceId,
                 $s->cityId,
                 (int) substr($s->to, 0, 4),
+                $user,
             ),
         ];
     }

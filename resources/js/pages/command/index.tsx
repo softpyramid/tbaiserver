@@ -331,15 +331,14 @@ export default function CommandIndex({
                         </div>
                     </div>
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-                        <div data-test="estimate-interval">
-                            <dt className="text-muted-foreground">Interval</dt>
-                            <dd className="font-medium">
-                                {estimate.lower === null ||
-                                estimate.upper === null
-                                    ? '-'
-                                    : `${estimate.lower.toFixed(1)} to ${estimate.upper.toFixed(1)}`}
-                            </dd>
-                        </div>
+                        {estimate.lower !== null && estimate.upper !== null ? (
+                            <div data-test="estimate-interval">
+                                <dt className="text-muted-foreground">Interval</dt>
+                                <dd className="font-medium">
+                                    {`${estimate.lower.toFixed(1)} to ${estimate.upper.toFixed(1)}`}
+                                </dd>
+                            </div>
+                        ) : null}
                         <div data-test="estimate-year">
                             <dt className="text-muted-foreground">Year</dt>
                             <dd className="font-medium">

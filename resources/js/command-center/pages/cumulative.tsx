@@ -48,12 +48,17 @@ export function CumulativePage() {
         .filters;
     const { cascade, performance, months, table, notification, estimate } =
         data.data;
-    const estimateScopeSub =
-        estimate == null
-            ? null
-            : estimate.scope === 'national_reference'
-              ? `(Pakistan national estimate, ${estimate.year})`
-              : `(${estimate.area}, ${estimate.year})`;
+    const estimateMissing =
+        estimate == null ||
+        estimate.status === 'no_estimate' ||
+        estimate.rate == null;
+    const estimateSub = estimateMissing
+        ? null
+        : estimate.sub || estimate.message || null;
+    const estimateInterval =
+        !estimateMissing &&
+        estimate.lower != null &&
+        estimate.upper != null;
     const decimal = (n: number) =>
         Number.isInteger(n) ? String(n) : n.toFixed(1);
     const bars = cascade
@@ -242,90 +247,113 @@ export function CumulativePage() {
                     {estimate ? (
                         <Panel
                             id="cc-estimate"
-                            title={`ESTIMATED TB INCIDENCE RATE · ${estimate.year}`}
-                            sub={estimateScopeSub}
+                            title={
+                                estimateMissing || estimate.year == null
+                                    ? 'ESTIMATED TB INCIDENCE RATE'
+                                    : `ESTIMATED TB INCIDENCE RATE · ${estimate.year}`
+                            }
+                            sub={estimateMissing ? undefined : estimateSub}
                             style={at(0, 700, 440, 260)}
                         >
-                            <div
-                                style={{
-                                    textAlign: 'center',
-                                    paddingTop: 18,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontSize: 38,
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    {estimate.rate === null
-                                        ? 'n/a'
-                                        : decimal(estimate.rate)}
-                                </div>
-                                <div
-                                    style={{ fontSize: 13, opacity: 0.75 }}
-                                >
-                                    per 100,000 population
-                                </div>
-                            </div>
-                            <dl
-                                style={{
-                                    margin: '14px 0 0',
-                                    display: 'grid',
-                                    gap: '6px',
-                                    fontSize: 13,
-                                    color: '#10205a',
-                                }}
-                            >
-                                <div>
-                                    <dt
+                            {estimateMissing ? (
+                                <p className="cc-state" style={{ marginTop: 12 }}>
+                                    No approved estimate entered
+                                </p>
+                            ) : (
+                                <>
+                                    <div
                                         style={{
-                                            opacity: 0.75,
-                                            display: 'inline',
+                                            textAlign: 'center',
+                                            paddingTop: 18,
                                         }}
                                     >
-                                        Source:{' '}
-                                    </dt>
-                                    <dd
-                                        style={{
-                                            margin: 0,
-                                            display: 'inline',
-                                        }}
-                                    >
-                                        {estimate.source}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt
-                                        style={{
-                                            opacity: 0.75,
-                                            display: 'inline',
-                                        }}
-                                    >
-                                        Method:{' '}
-                                    </dt>
-                                    <dd
-                                        style={{
-                                            margin: 0,
-                                            display: 'inline',
-                                        }}
-                                    >
-                                        {estimate.method}
-                                    </dd>
-                                </div>
-                                {estimate.reference_url ? (
-                                    <div>
-                                        <a
-                                            href={estimate.reference_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            style={{ color: '#3b6cf0' }}
+                                        <div
+                                            style={{
+                                                fontSize: 38,
+                                                fontWeight: 700,
+                                            }}
                                         >
-                                            Reference
-                                        </a>
+                                            {decimal(estimate.rate as number)}
+                                        </div>
+                                        <div
+                                            style={{ fontSize: 13, opacity: 0.75 }}
+                                        >
+                                            per 100,000 population
+                                        </div>
+                                        {estimateInterval ? (
+                                            <div
+                                                style={{
+                                                    fontSize: 13,
+                                                    opacity: 0.75,
+                                                    marginTop: 6,
+                                                }}
+                                            >
+                                                {decimal(estimate.lower as number)} to{' '}
+                                                {decimal(estimate.upper as number)} per
+                                                100,000
+                                            </div>
+                                        ) : null}
                                     </div>
-                                ) : null}
-                            </dl>
+                                    <dl
+                                        style={{
+                                            margin: '14px 0 0',
+                                            display: 'grid',
+                                            gap: '6px',
+                                            fontSize: 13,
+                                            color: '#10205a',
+                                        }}
+                                    >
+                                        <div>
+                                            <dt
+                                                style={{
+                                                    opacity: 0.75,
+                                                    display: 'inline',
+                                                }}
+                                            >
+                                                Source:{' '}
+                                            </dt>
+                                            <dd
+                                                style={{
+                                                    margin: 0,
+                                                    display: 'inline',
+                                                }}
+                                            >
+                                                {estimate.source}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt
+                                                style={{
+                                                    opacity: 0.75,
+                                                    display: 'inline',
+                                                }}
+                                            >
+                                                Method:{' '}
+                                            </dt>
+                                            <dd
+                                                style={{
+                                                    margin: 0,
+                                                    display: 'inline',
+                                                }}
+                                            >
+                                                {estimate.method}
+                                            </dd>
+                                        </div>
+                                        {estimate.reference_url ? (
+                                            <div>
+                                                <a
+                                                    href={estimate.reference_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ color: '#3b6cf0' }}
+                                                >
+                                                    Reference
+                                                </a>
+                                            </div>
+                                        ) : null}
+                                    </dl>
+                                </>
+                            )}
                         </Panel>
                     ) : null}
 

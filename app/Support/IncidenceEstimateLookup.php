@@ -3,10 +3,12 @@
 namespace App\Support;
 
 use App\Enums\AreaType;
+use App\Enums\ProgrammeRole;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\IncidenceEstimate;
 use App\Models\Province;
+use App\Models\User;
 
 /**
  * Resolves the estimated TB incidence rate for a selection. The card reads a
@@ -32,10 +34,12 @@ final class IncidenceEstimateLookup
      *     note: string|null
      * }|null
      */
-    public static function forSelection(?int $provinceId, ?int $cityId, int $year): ?array
+    public static function forSelection(?int $provinceId, ?int $cityId, int $year, ?User $user = null): ?array
     {
+        [$provinceId, $cityId] = self::impliedPlace($user, $provinceId, $cityId);
+
         if ($provinceId === null && $cityId === null) {
-            $row = self::row(AreaType::Country, null, $year);
+            $row = self::countryRow($year);
 
             return $row === null ? null : self::present($row, 'national_reference', null);
         }
@@ -52,15 +56,13 @@ final class IncidenceEstimateLookup
             $impliedProvinceId = (int) (City::query()->whereKey($cityId)->value('province_id') ?? $impliedProvinceId);
         }
 
-        if ($impliedProvinceId !== null) {
-            $row = self::row(AreaType::Province, $impliedProvinceId, $year);
+        $row = self::row(AreaType::Province, $impliedProvinceId, $year);
 
-            if ($row !== null) {
-                return self::present($row, 'own', null);
-            }
+        if ($row !== null) {
+            return self::present($row, 'own', null);
         }
 
-        $row = self::row(AreaType::Country, null, $year);
+        $row = self::countryRow($year);
 
         if ($row === null) {
             return null;
@@ -81,9 +83,9 @@ final class IncidenceEstimateLookup
      *
      * @return array<string, mixed>
      */
-    public static function card(?int $provinceId, ?int $cityId, int $year): array
+    public static function card(?int $provinceId, ?int $cityId, int $year, ?User $user = null): array
     {
-        $estimate = self::forSelection($provinceId, $cityId, $year);
+        $estimate = self::forSelection($provinceId, $cityId, $year, $user);
 
         if ($estimate === null) {
             return [
@@ -103,9 +105,10 @@ final class IncidenceEstimateLookup
             ];
         }
 
-        $sub = $estimate['scope'] === 'national_reference'
-            ? __('entry.estimate_sub_national', ['year' => $estimate['year']])
-            : __('entry.estimate_sub_area', ['area' => $estimate['area_label'], 'year' => $estimate['year']]);
+        $sub = $estimate['note']
+            ?? ($estimate['scope'] === 'national_reference'
+                ? __('entry.estimate_sub_national', ['year' => $estimate['year']])
+                : __('entry.estimate_sub_area', ['area' => $estimate['area_label'], 'year' => $estimate['year']]));
 
         return [
             'label' => __('entry.incidence_title'),
@@ -124,11 +127,73 @@ final class IncidenceEstimateLookup
         ];
     }
 
+    /**
+     * A viewer with no place filter still has a programme scope. Admin and
+     * country viewers stay on the national row. A single province or district
+     * assignment is that place, so the card can say it is not a local rate.
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    private static function impliedPlace(?User $user, ?int $provinceId, ?int $cityId): array
+    {
+        if ($provinceId !== null || $cityId !== null || $user === null || $user->isTbaiAdmin()) {
+            return [$provinceId, $cityId];
+        }
+
+        $assignments = $user->programmeAssignments()->get();
+
+        if ($assignments->contains(fn ($assignment): bool => $assignment->role === ProgrammeRole::CountryViewer)) {
+            return [null, null];
+        }
+
+        $city = $assignments->where('role', ProgrammeRole::CityOfficer)->values();
+        $onlyCity = $city->count() === 1 ? $city->first() : null;
+
+        if ($onlyCity !== null && $onlyCity->scope_id !== null) {
+            return [null, (int) $onlyCity->scope_id];
+        }
+
+        $province = $assignments->where('role', ProgrammeRole::ProvincialViewer)->values();
+        $onlyProvince = $province->count() === 1 ? $province->first() : null;
+
+        if ($onlyProvince !== null && $onlyProvince->scope_id !== null) {
+            return [(int) $onlyProvince->scope_id, null];
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * The Pakistan row. Prefer the newest year at or before the dashboard
+     * year, and otherwise the newest national row, so All still resolves
+     * when the seeded year is later than the selected range.
+     */
+    private static function countryRow(int $year): ?IncidenceEstimate
+    {
+        $match = self::row(AreaType::Country, null, $year);
+
+        if ($match !== null) {
+            return $match;
+        }
+
+        return IncidenceEstimate::query()
+            ->where('area_type', AreaType::Country->value)
+            ->whereNull('area_id')
+            ->orderByDesc('year')
+            ->first();
+    }
+
     private static function row(AreaType $type, ?int $areaId, int $year): ?IncidenceEstimate
     {
-        return IncidenceEstimate::query()
-            ->where('area_type', $type->value)
-            ->where('area_id', $areaId)
+        $query = IncidenceEstimate::query()->where('area_type', $type->value);
+
+        if ($areaId === null) {
+            $query->whereNull('area_id');
+        } else {
+            $query->where('area_id', $areaId);
+        }
+
+        return $query
             ->where('year', '<=', $year)
             ->orderByDesc('year')
             ->first();

@@ -75,9 +75,13 @@ export function IncidencePage() {
     const scopeSub =
         estimate === null
             ? null
-            : estimate.scope === 'national_reference'
-              ? `(Pakistan national estimate, ${estimate.year})`
-              : `(${estimate.area_label}, ${estimate.year})`;
+            : estimate.note
+              ? estimate.note
+              : estimate.scope === 'national_reference'
+                ? `(Pakistan national estimate, ${estimate.year})`
+                : estimate.area_label
+                  ? `(${estimate.area_label}, ${estimate.year})`
+                  : null;
     const estValues = points.map((p) => p.estimate ?? 0);
     const tgtValues = points.map((p) => p.target ?? p.estimate ?? 0);
     const estTips = points.map((p, i) => (
@@ -155,7 +159,7 @@ export function IncidencePage() {
                                 {scopeSub}
                             </div>
                         ) : null}
-                        {estimate.note ? (
+                        {estimate.note && estimate.note !== scopeSub ? (
                             <p className="cc-state" style={{ marginTop: 16 }}>
                                 {estimate.note}
                             </p>

@@ -126,28 +126,54 @@ class CommandCenterController extends Controller
     public function storeIncidenceEstimate(StoreIncidenceEstimateRequest $request, AuditLogger $audit): RedirectResponse
     {
         $data = $request->validated();
-        $areaType = AreaType::from($data['area_type']);
-        $areaId = $areaType === AreaType::Country ? null : (int) $data['area_id'];
-
-        $estimate = IncidenceEstimate::query()
-            ->when($areaType === AreaType::Country, fn ($q) => $q->whereNull('area_id'), fn ($q) => $q->where('area_id', $areaId))
-            ->where('area_type', $areaType->value)
-            ->first();
+        $existingId = isset($data['id']) ? (int) $data['id'] : null;
+        $estimate = $existingId === null ? null : IncidenceEstimate::query()->find($existingId);
 
         if ($estimate === null) {
-            $estimate = new IncidenceEstimate;
-            $estimate->area_type = $areaType->value;
-            $estimate->area_id = $areaId;
+            $areaType = AreaType::from($data['area_type']);
+            $areaId = $areaType === AreaType::Country ? null : (int) $data['area_id'];
+            $estimate = IncidenceEstimate::query()
+                ->when($areaType === AreaType::Country, fn ($q) => $q->whereNull('area_id'), fn ($q) => $q->where('area_id', $areaId))
+                ->where('area_type', $areaType->value)
+                ->first();
+
+            if ($estimate === null) {
+                $estimate = new IncidenceEstimate;
+                $estimate->area_type = $areaType;
+                $estimate->area_id = $areaId;
+            }
         }
 
-        $estimate->year = (int) $data['year'];
+        $areaType = $estimate->area_type;
+        $areaId = $estimate->area_id;
+        $year = (int) $data['year'];
+        $taken = IncidenceEstimate::query()
+            ->when($areaId === null, fn ($q) => $q->whereNull('area_id'), fn ($q) => $q->where('area_id', $areaId))
+            ->where('area_type', $areaType->value)
+            ->where('year', $year)
+            ->when($estimate->exists, fn ($q) => $q->whereKeyNot($estimate->id))
+            ->exists();
+
+        if ($taken) {
+            return back()->withErrors(['year' => __('entry.estimate_year_taken')])->withInput();
+        }
+
+        $estimate->year = $year;
         $estimate->rate_per_100k = $data['rate_per_100k'];
-        $estimate->lower_bound = $data['lower_bound'] ?? null;
-        $estimate->upper_bound = $data['upper_bound'] ?? null;
-        $estimate->estimated_cases = $data['estimated_cases'] ?? null;
+        if (array_key_exists('lower_bound', $data)) {
+            $estimate->lower_bound = $data['lower_bound'];
+        }
+        if (array_key_exists('upper_bound', $data)) {
+            $estimate->upper_bound = $data['upper_bound'];
+        }
+        if (array_key_exists('estimated_cases', $data)) {
+            $estimate->estimated_cases = $data['estimated_cases'];
+        }
         $estimate->source = $data['source'];
         $estimate->method = $data['method'];
-        $estimate->reference_url = $data['reference_url'] ?? null;
+        if (array_key_exists('reference_url', $data)) {
+            $estimate->reference_url = $data['reference_url'];
+        }
         $estimate->entered_by = $request->user()?->id;
         $estimate->save();
 

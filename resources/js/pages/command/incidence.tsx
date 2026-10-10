@@ -20,6 +20,21 @@ type TargetRow = {
     value: string;
 };
 
+type EstimateRow = {
+    id: number;
+    areaType: 'country' | 'province' | 'district';
+    areaId: number | null;
+    area: string;
+    year: number;
+    rate: string;
+    lower: string | null;
+    upper: string | null;
+    cases: number | null;
+    source: string;
+    method: string;
+    referenceUrl: string | null;
+};
+
 type SeriesPoint = {
     year: number;
     province: string;
@@ -55,6 +70,7 @@ type Props = {
         save: string;
         add: string;
         note: string;
+        estimateList: string;
         estimateAdd: string;
         estimateAreaType: string;
         estimateArea: string;
@@ -76,6 +92,7 @@ type Props = {
     estimateAreas: EstimateAreaOption[];
     targetProvinces: CommandOption[];
     targets: TargetRow[];
+    estimates: EstimateRow[];
     series: SeriesPoint[];
     empty: string | null;
 };
@@ -97,6 +114,7 @@ export default function CommandIncidence({
     estimateAreas,
     targetProvinces,
     targets,
+    estimates,
     series,
     empty,
 }: Props) {
@@ -162,6 +180,15 @@ export default function CommandIncidence({
                     storeUrl={storeUrl}
                     yearOptions={yearOptions}
                     provinces={targetProvinces}
+                    labels={incidenceLabels}
+                />
+            ) : null}
+
+            {canEdit && estimateStoreUrl && estimates.length > 0 ? (
+                <EstimateList
+                    storeUrl={estimateStoreUrl}
+                    rows={estimates}
+                    yearOptions={estimateYearOptions}
                     labels={incidenceLabels}
                 />
             ) : null}
@@ -289,6 +316,116 @@ function AddTarget({
                     </>
                 )}
             </Form>
+        </section>
+    );
+}
+
+function EstimateList({
+    storeUrl,
+    rows,
+    yearOptions,
+    labels,
+}: {
+    storeUrl: string;
+    rows: EstimateRow[];
+    yearOptions: number[];
+    labels: Props['incidenceLabels'];
+}) {
+    return (
+        <section className="min-w-0" data-test="estimate-list">
+            <h2 className="mb-1 text-base font-medium">{labels.estimateList}</h2>
+            <p className="mb-3 text-xs text-muted-foreground">{labels.estimateYearHint}</p>
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                    <thead>
+                        <tr className="border-b text-left">
+                            <th className="px-2 py-2 font-medium">{labels.estimateArea}</th>
+                            <th className="px-2 py-2 font-medium">{labels.estimateRate}</th>
+                            <th className="px-2 py-2 font-medium">{labels.estimateYear}</th>
+                            <th className="px-2 py-2 font-medium">{labels.estimateSource}</th>
+                            <th className="px-2 py-2 font-medium">{labels.estimateMethod}</th>
+                            <th className="px-2 py-2 font-medium">{labels.save}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row) => (
+                            <tr key={row.id} className="border-b" data-test={`estimate-row-${row.id}`}>
+                                <td className="px-2 py-2">{row.area}</td>
+                                <td className="px-2 py-2 tabular-nums">{row.rate}</td>
+                                <td className="px-2 py-2" colSpan={4}>
+                                    <Form
+                                        action={storeUrl}
+                                        method="post"
+                                        className="flex min-w-0 flex-wrap items-start gap-2"
+                                        disableWhileProcessing
+                                    >
+                                        {({ errors, processing }) => (
+                                            <>
+                                                <input type="hidden" name="id" value={row.id} />
+                                                <input type="hidden" name="area_type" value={row.areaType} />
+                                                {row.areaId !== null ? (
+                                                    <input type="hidden" name="area_id" value={row.areaId} />
+                                                ) : null}
+                                                <input type="hidden" name="rate_per_100k" value={row.rate} />
+                                                {row.lower !== null ? (
+                                                    <input type="hidden" name="lower_bound" value={row.lower} />
+                                                ) : null}
+                                                {row.upper !== null ? (
+                                                    <input type="hidden" name="upper_bound" value={row.upper} />
+                                                ) : null}
+                                                {row.cases !== null ? (
+                                                    <input type="hidden" name="estimated_cases" value={row.cases} />
+                                                ) : null}
+                                                {row.referenceUrl ? (
+                                                    <input type="hidden" name="reference_url" value={row.referenceUrl} />
+                                                ) : null}
+                                                <select
+                                                    name="year"
+                                                    required
+                                                    defaultValue={String(row.year)}
+                                                    aria-label={labels.estimateYear}
+                                                    className="border-input h-9 w-24 min-w-0 rounded-md border bg-transparent px-2"
+                                                >
+                                                    {(yearOptions.includes(row.year)
+                                                        ? yearOptions
+                                                        : [row.year, ...yearOptions]
+                                                    ).map((year) => (
+                                                        <option key={year} value={year}>
+                                                            {year}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <input
+                                                    name="source"
+                                                    type="text"
+                                                    required
+                                                    defaultValue={row.source}
+                                                    aria-label={labels.estimateSource}
+                                                    className="border-input h-9 min-w-40 flex-1 rounded-md border bg-transparent px-2"
+                                                />
+                                                <input
+                                                    name="method"
+                                                    type="text"
+                                                    required
+                                                    defaultValue={row.method}
+                                                    aria-label={labels.estimateMethod}
+                                                    className="border-input h-9 min-w-40 flex-1 rounded-md border bg-transparent px-2"
+                                                />
+                                                <Button type="submit" size="sm" disabled={processing}>
+                                                    {labels.save}
+                                                </Button>
+                                                <InputError message={errors.year} />
+                                                <InputError message={errors.source} />
+                                                <InputError message={errors.method} />
+                                            </>
+                                        )}
+                                    </Form>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </section>
     );
 }

@@ -55,6 +55,7 @@ class CommandCenterPage
                 $selection['provinceId'],
                 $selection['cityId'],
                 (int) substr($selection['period']->to, 0, 4),
+                $user,
             ),
             'hasReturns' => $rows !== [],
             'notCollected' => $this->notCollected(),

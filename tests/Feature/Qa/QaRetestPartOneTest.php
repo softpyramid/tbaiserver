@@ -61,7 +61,7 @@ function partOneLanding(array $cast): array
     $command = route('command.index');
 
     return [
-        'admin' => $command,
+        'admin' => route('facilities.index'),
         'member' => $register,
         'owner' => $register,
         'city' => $command,
@@ -291,7 +291,7 @@ test('exactly one phone tab is active on every page a facility role can reach', 
         ->assertInertia(fn (Assert $page) => $page->where('nav.activeTab', 'returns'));
 });
 
-test('admin lands on the command center with a needs attention strip', function () {
+test('admin sees a needs attention strip on the command center', function () {
     $cast = partOneCast();
     $admin = $cast['admin'];
 

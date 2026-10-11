@@ -34,7 +34,9 @@ class RedirectProgrammeTeamUrl
                     ? app(RoleHome::class)->url($user)
                     : route('login');
 
-                return redirect()->to($target, 301);
+                // 302, not 301: the target depends on who is signed in, and browsers
+                // cache a 301, so a shared device could replay another role's home.
+                return redirect()->to($target);
             }
         }
 

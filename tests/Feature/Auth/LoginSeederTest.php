@@ -45,7 +45,7 @@ test('login seeder creates verified accounts that can sign in', function () {
     $this->post(route('login.store'), [
         'email' => 'reviewer@example.com',
         'password' => 'server-secret',
-    ])->assertRedirect(route('command.index'));
+    ])->assertRedirect(route('facilities.index'));
 
     $this->assertAuthenticatedAs($reviewer);
 });

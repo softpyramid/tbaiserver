@@ -10,20 +10,26 @@ class RoleHome
     /**
      * Where this person should land after sign-in.
      *
-     * Technicians and the facility in-charge open today's register.
-     * City, provincial, and country viewers, and a TB-AI admin, open the
-     * command center. When command center landing is on, that home is the
-     * executive view. Anyone else opens their account page.
+     * A TB-AI admin opens the facilities list (light and paginated; the
+     * command center stays one click away in the sidebar). City, provincial,
+     * and country viewers open the command center; when command center
+     * landing is on, that home is the executive view. Technicians and the
+     * facility in-charge open today's register. Anyone else opens their
+     * account page.
+     *
+     * This is the single source for every "home": sign-in responses, the
+     * signed-in redirect away from guest pages such as /login, the shared
+     * homeUrl prop (logo and home links) and error pages.
      */
     public function url(User $user): string
     {
+        if ($user->isTbaiAdmin()) {
+            return route('facilities.index');
+        }
+
         $commandHome = config('tbai.command_center.landing')
             ? route('command.center')
             : route('command.index');
-
-        if ($user->isTbaiAdmin()) {
-            return $commandHome;
-        }
 
         if ($user->programmeAssignments()->exists()) {
             return $commandHome;

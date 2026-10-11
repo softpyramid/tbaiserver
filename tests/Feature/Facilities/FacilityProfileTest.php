@@ -40,7 +40,7 @@ test('a tb-ai admin can create a facility and open the facilities list', functio
         ->get(route('facilities.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('kinds.1.label', 'Hospital lab')
+            ->where('kinds.1.label', 'Hospital Labs/IDTF')
             ->where('facilitiesUrl', route('facilities.index')),
         );
 

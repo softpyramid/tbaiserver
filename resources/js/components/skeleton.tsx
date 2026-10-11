@@ -7,12 +7,8 @@ import { cn } from '@/lib/utils';
  * aria-hidden: pair them with a status message (PanelLoading or a
  * visually hidden "Loading..."). Pulsing stops for prefers-reduced-motion.
  *
- * Ready for Inertia deferred props on /command (notification, estimate,
- * months) once the performance work adds them on the server, for example:
- *
- *   <Deferred data="notification" fallback={<SkeletonCard lines={2} />}>
- *   <Deferred data="estimate" fallback={<SkeletonCard lines={2} />}>
- *   <Deferred data="months" fallback={<SkeletonChart />}>
+ * Used as the Inertia <Deferred> fallbacks on /command (notification,
+ * estimate, months) in resources/js/pages/command/index.tsx.
  */
 
 export function Skeleton({

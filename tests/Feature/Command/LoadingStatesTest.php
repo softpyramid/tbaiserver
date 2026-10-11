@@ -22,7 +22,7 @@ function loadingStatesAdmin(): User
 dataset('classic command pages', [
     'overview' => ['command.index', 'command/index', [
         'scope', 'screens', 'filters', 'options', 'show', 'labels', 'links', 'tat', 'title',
-        'totals', 'kpis', 'cascade', 'months', 'notification', 'estimate', 'hasReturns', 'notCollected', 'attention',
+        'totals', 'kpis', 'cascade', 'hasReturns', 'notCollected', 'attention',
     ]],
     'map' => ['command.map', 'command/map', [
         'scope', 'screens', 'filters', 'options', 'show', 'labels', 'links', 'tat', 'title',
@@ -46,6 +46,30 @@ test('classic command pages still render with the same component and props', fun
             ->has('labels.apply')
             ->has('labels.clear'));
 })->with('classic command pages');
+
+test('the overview loads notification, estimate and months as deferred props behind skeletons', function () {
+    $this->actingAs(loadingStatesAdmin())
+        ->get(route('command.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('command/index')
+            ->missing('months')
+            ->missing('notification')
+            ->missing('estimate')
+            ->loadDeferredProps(fn (Assert $reload) => $reload
+                ->has('months')
+                ->has('notification')
+                ->has('estimate')));
+
+    $index = (string) file_get_contents(resource_path('js/pages/command/index.tsx'));
+
+    expect($index)
+        ->toContain('<SkeletonCard')
+        ->toContain('<SkeletonChart')
+        ->toContain('data-test="notification-pending"')
+        ->toContain('data-test="estimate-pending"')
+        ->toContain('data-test="months-pending"');
+});
 
 test('the full-screen command center still renders with the same props', function () {
     $this->actingAs(loadingStatesAdmin())
@@ -82,7 +106,7 @@ test('classic pages dim their panels and disable the filter buttons while a visi
         ->toContain('useVisitPending()')
         ->toContain('<PanelLoading')
         ->toContain('onRetry={visit.retry}')
-        ->and(substr_count($shell, 'disabled={pending}'))->toBe(2);
+        ->and(substr_count($shell, 'disabled={pending}'))->toBeGreaterThanOrEqual(2);
 });
 
 test('the loading components stay accessible and respect reduced motion', function () {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LineAreaChart } from '../charts/line-area-chart';
+import { IncidenceSkeleton } from '../skeletons';
 import type { Envelope, Incidence, IncidenceMeta } from '../types';
 import { at, Chip, Kpi, Kpis, LoadState, Panel } from '../ui';
 import { useApi } from '../use-api';
@@ -37,6 +38,7 @@ export function IncidencePage() {
                 loading={state.loading}
                 error={state.error}
                 onRetry={state.reload}
+                skeleton={<IncidenceSkeleton />}
             />
         );
     }

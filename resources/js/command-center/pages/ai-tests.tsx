@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AiPatient, AiTests, Envelope } from '../types';
+import { AiTestsSkeleton } from '../skeletons';
 import { at, Chip, LoadState } from '../ui';
 import { useApi } from '../use-api';
 
@@ -80,6 +81,7 @@ export function AiTestsPage() {
                 loading={state.loading}
                 error={state.error}
                 onRetry={state.reload}
+                skeleton={<AiTestsSkeleton />}
             />
         );
     }

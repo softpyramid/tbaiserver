@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react';
+import { LOADING_TEXT, RETRY_TEXT } from '@/lib/loading';
 import { HBarChart } from '../charts/h-bar-chart';
 import { LineAreaChart } from '../charts/line-area-chart';
 import { fmt, missingText } from '../format';
+import { BmuSkeleton } from '../skeletons';
 import type { BmuDrilldown, Envelope } from '../types';
-import { at, Chip, Kpi, Kpis, Panel } from '../ui';
+import { at, Chip, errorText, Kpi, Kpis, Panel } from '../ui';
 import { useFocusTrap } from '../use-focus-trap';
 
 type Metric = 'suspects' | 'tested' | 'positive';
@@ -62,35 +64,39 @@ export function BmuDialog({ sectorName, state, onClose, onOpenMap }: Props) {
             </button>
 
             {!body ? (
-                <div
-                    className="cc-state"
-                    role={state.error ? 'alert' : 'status'}
-                >
-                    <h3
-                        id="cc-bmu-title"
-                        style={{
-                            fontSize: 24,
-                            fontWeight: 600,
-                            lineHeight: '34px',
-                        }}
+                <>
+                    <div
+                        className="cc-state"
+                        role={state.error ? 'alert' : 'status'}
+                        aria-live={state.error ? undefined : 'polite'}
                     >
-                        {sectorName} Registered · BMU-wise
-                    </h3>
-                    {state.error ? (
-                        <p>
-                            {state.error}{' '}
-                            <button
-                                type="button"
-                                className="cc-chip"
-                                onClick={state.reload}
-                            >
-                                Try again
-                            </button>
-                        </p>
-                    ) : (
-                        <p>Loading</p>
-                    )}
-                </div>
+                        <h3
+                            id="cc-bmu-title"
+                            style={{
+                                fontSize: 24,
+                                fontWeight: 600,
+                                lineHeight: '34px',
+                            }}
+                        >
+                            {sectorName} Registered · BMU-wise
+                        </h3>
+                        {state.error ? (
+                            <p>
+                                {errorText(state.error)}{' '}
+                                <button
+                                    type="button"
+                                    className="cc-chip"
+                                    onClick={state.reload}
+                                >
+                                    {RETRY_TEXT}
+                                </button>
+                            </p>
+                        ) : (
+                            <p className="cc-sr">{LOADING_TEXT}</p>
+                        )}
+                    </div>
+                    {state.error ? null : <BmuSkeleton />}
+                </>
             ) : (
                 <Drill
                     body={body}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCommand } from '../context';
 import { fmt } from '../format';
+import { SectorSkeleton } from '../skeletons';
 import type {
     BmuDrilldown,
     ColumnFormat,
@@ -71,7 +72,14 @@ export function SectorPage({ sector }: { sector: Sector }) {
     );
 
     if (!data) {
-        return <LoadState loading={loading} error={error} onRetry={reload} />;
+        return (
+            <LoadState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                skeleton={<SectorSkeleton />}
+            />
+        );
     }
 
     const { columns, rows, total, row_action: rowAction } = data.data;

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useCommand } from '../context';
+import { DriversSkeleton } from '../skeletons';
 import type { Drivers, Envelope } from '../types';
 import { at, LoadState } from '../ui';
 import { useApi } from '../use-api';
@@ -19,6 +20,7 @@ export function DriversPage() {
                 loading={state.loading}
                 error={state.error}
                 onRetry={state.reload}
+                skeleton={<DriversSkeleton />}
             />
         );
     }

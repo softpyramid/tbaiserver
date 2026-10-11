@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { LOADING_MAP_TEXT } from '@/lib/loading';
 import { useCommand } from '../context';
 import { fmt, missingText } from '../format';
 import {
@@ -21,6 +22,12 @@ import type {
     MapIndicator,
     MapSector,
 } from '../types';
+import {
+    LegendSkeleton,
+    MapSkeleton,
+    MapStatus,
+    TopRowsSkeleton,
+} from '../skeletons';
 import { Chip, LoadState } from '../ui';
 import { useApi } from '../use-api';
 import { usePhone } from '../use-phone';
@@ -83,6 +90,9 @@ const BOX = { x0: 420, y0: 112, x1: 930, y1: 640 };
 
 const MIN_FOR_SCHEMATIC = 20;
 
+/** District fill while values load. */
+const MAP_GREY = '#c9cfdd';
+
 export function MapPage() {
     const { mapIntent, setMapIntent } = useCommand();
     const phone = usePhone();
@@ -111,6 +121,8 @@ export function MapPage() {
                 loading={state.loading}
                 error={state.error}
                 onRetry={state.reload}
+                skeleton={<MapSkeleton />}
+                status={LOADING_MAP_TEXT}
             />
         );
     }
@@ -125,7 +137,10 @@ export function MapPage() {
             useGeo={useGeo}
             geo={geo.data}
             geoError={geo.error}
+            geoLoading={geo.loading}
             loading={state.loading}
+            error={state.error}
+            onRetry={state.reload}
             toggleMode={() =>
                 setMode((m) => (m === 'schematic' ? 'boundaries' : 'schematic'))
             }
@@ -143,7 +158,10 @@ type ViewProps = {
     useGeo: boolean;
     geo: GeoJson | null;
     geoError: string | null;
+    geoLoading: boolean;
     loading: boolean;
+    error: string | null;
+    onRetry: () => void;
     toggleMode: () => void;
     intent: ReturnType<typeof useCommand>['mapIntent'];
     setIntent: ReturnType<typeof useCommand>['setMapIntent'];
@@ -157,7 +175,10 @@ function MapView({
     useGeo,
     geo,
     geoError,
+    geoLoading,
     loading,
+    error,
+    onRetry,
     toggleMode,
     intent,
     setIntent,
@@ -286,6 +307,11 @@ function MapView({
     const sp = chosen?.trend12 ?? [];
     const sm = Math.max(...sp, 1);
 
+    // While new values load (or failed to), the old ones are not shown:
+    // districts turn grey and the legend and Top 5 become placeholders.
+    const waiting = loading || error !== null;
+    const outlinePending = useGeo && geoLoading && shapes.length === 0;
+
     return (
         <>
             <svg
@@ -367,7 +393,11 @@ function MapView({
                                     className="cc-cell"
                                     d={s.rings.map((r) => pathOf(r)).join('')}
                                     fill={
-                                        v === null ? '#9aa5c8' : colour(norm(v))
+                                        waiting
+                                            ? MAP_GREY
+                                            : v === null
+                                              ? '#9aa5c8'
+                                              : colour(norm(v))
                                     }
                                     stroke={
                                         on ? '#fff' : 'rgba(255,255,255,.5)'
@@ -395,7 +425,7 @@ function MapView({
                         })}
                     </g>
 
-                    {heatOn ? (
+                    {heatOn && !waiting ? (
                         <g
                             clipPath={`url(#${clipId})`}
                             filter={noBlur ? undefined : 'url(#cc-map-blur)'}
@@ -461,7 +491,7 @@ function MapView({
                         ) : null}
                     </g>
 
-                    {heatOn ? (
+                    {heatOn && !waiting ? (
                         <g>
                             {pulse.map((d) => {
                                 const [x, y] = seatXY(d);
@@ -491,6 +521,10 @@ function MapView({
                     ) : null}
                 </g>
             </svg>
+
+            {waiting || outlinePending ? (
+                <MapStatus error={error} onRetry={onRetry} />
+            ) : null}
 
             <p className="cc-map-note" style={{ left: 405, top: 656 }}>
                 {useGeo
@@ -551,18 +585,30 @@ function MapView({
                         </Chip>
                     ))}
                 </div>
-                <div
-                    className="cc-lgd"
-                    role="img"
-                    aria-label={`Scale from ${show(indicator, values.length ? mn : null)} to ${show(indicator, values.length ? mx : null)}`}
-                >
-                    <span>{show(indicator, values.length ? mn : null)}</span>
-                    <i />
-                    <span>{show(indicator, values.length ? mx : null)}</span>
-                </div>
+                {waiting ? (
+                    <LegendSkeleton />
+                ) : (
+                    <div
+                        className="cc-lgd"
+                        role="img"
+                        aria-label={`Scale from ${show(indicator, values.length ? mn : null)} to ${show(indicator, values.length ? mx : null)}`}
+                    >
+                        <span>
+                            {show(indicator, values.length ? mn : null)}
+                        </span>
+                        <i />
+                        <span>
+                            {show(indicator, values.length ? mx : null)}
+                        </span>
+                    </div>
+                )}
 
                 {chosen ? (
-                    <div className="cc-card" aria-live="polite">
+                    <div
+                        className="cc-card"
+                        aria-live="polite"
+                        style={waiting ? { opacity: 0.5 } : undefined}
+                    >
                         <b style={{ fontSize: 17 }}>{chosen.name}</b>{' '}
                         <span style={{ opacity: 0.7 }}>· {sectorLabel}</span>
                         <div className="cc-gr">
@@ -629,20 +675,24 @@ function MapView({
                     Top 5 · {indicator.label}
                     {indicator.lowest_is_worst ? ' (lowest)' : ''}
                 </div>
-                {top.map((d, k) => (
-                    <button
-                        type="button"
-                        key={d.city_id}
-                        className={`cc-tr${d.city_id === selected ? ' on' : ''}`}
-                        aria-pressed={d.city_id === selected}
-                        onClick={() => select(d.city_id)}
-                    >
-                        <span>
-                            {k + 1}. {d.name}
-                        </span>
-                        <b>{show(indicator, valueOf(d, indicator.key))}</b>
-                    </button>
-                ))}
+                {waiting ? (
+                    <TopRowsSkeleton />
+                ) : (
+                    top.map((d, k) => (
+                        <button
+                            type="button"
+                            key={d.city_id}
+                            className={`cc-tr${d.city_id === selected ? ' on' : ''}`}
+                            aria-pressed={d.city_id === selected}
+                            onClick={() => select(d.city_id)}
+                        >
+                            <span>
+                                {k + 1}. {d.name}
+                            </span>
+                            <b>{show(indicator, valueOf(d, indicator.key))}</b>
+                        </button>
+                    ))
+                )}
             </aside>
         </>
     );

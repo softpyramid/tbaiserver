@@ -10,6 +10,7 @@ use App\Models\Province;
 use App\Models\User;
 use App\Support\AdminTabs;
 use App\Support\AuditLogger;
+use App\Support\CommandCache;
 use App\Support\ResourceResponse;
 use App\Support\UploadedCsv;
 use Illuminate\Http\RedirectResponse;
@@ -332,6 +333,8 @@ class PopulationDenominatorAdminController extends Controller
                 }
             }
         });
+
+        CommandCache::bump();
 
         $audit->write($actor, 'population_denominators.imported', null, [
             'created' => $created,

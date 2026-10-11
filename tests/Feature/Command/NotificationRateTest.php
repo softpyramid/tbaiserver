@@ -188,15 +188,14 @@ test('the cumulative overview carries a district notification card from imported
     $this->actingAs($admin)
         ->get(route('command.index', ['district' => $city->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('command/index')
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.period', '2026-10')
             ->where('notification.cases', 40)
             ->where('notification.ytd_cases', 40)
             ->where('notification.population', 500000)
             ->where('notification.population_year', 2026)
             ->where('notification.rate', 8)
-            ->where('notification.status', null));
+            ->where('notification.status', null)));
 });
 
 test('all and sindh divide 90 cases by the confirmed sindh population on both pages', function () {
@@ -223,13 +222,13 @@ test('all and sindh divide 90 cases by the confirmed sindh population on both pa
     $admin = User::factory()->create();
     giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
 
-    $card = fn (Assert $page) => $page
+    $card = fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
         ->where('notification.rate', 3)
         ->where('notification.cases', 90)
         ->where('notification.population', 3000000)
         ->where('notification.population_year', 2023)
         ->where('notification.source', 'PBS Census 2023')
-        ->where('notification.status', null);
+        ->where('notification.status', null));
 
     $this->actingAs($admin)
         ->get(route('command.index'))
@@ -290,11 +289,11 @@ test('a placeholder district stays population not set when cases exist', functio
     $this->actingAs($admin)
         ->get(route('command.index', ['district' => $city->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.rate', null)
             ->where('notification.population', null)
             ->where('notification.status', 'population_missing')
-            ->where('notification.cases', 45));
+            ->where('notification.cases', 45)));
 
     $this->actingAs($admin)
         ->getJson(route('api.command.cumulative', ['district' => $city->id]))
@@ -314,9 +313,9 @@ test('a placeholder district stays population not set when cases exist', functio
     $this->actingAs($officer)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.status', 'population_missing')
-            ->where('notification.rate', null));
+            ->where('notification.rate', null)));
 });
 
 test('no case notifications say so instead of population not set', function () {
@@ -337,17 +336,17 @@ test('no case notifications say so instead of population not set', function () {
     $this->actingAs($admin)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.status', 'no_notification_data')
             ->where('notification.rate', null)
-            ->where('notification.population', 3000000));
+            ->where('notification.population', 3000000)));
 
     $this->actingAs($admin)
         ->get(route('command.index', ['district' => $city->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.status', 'no_notification_data')
-            ->where('notification.population', null));
+            ->where('notification.population', null)));
 });
 
 test('all uses a national population row when one is confirmed', function () {
@@ -384,19 +383,19 @@ test('all uses a national population row when one is confirmed', function () {
     $this->actingAs($admin)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.population', 10000000)
             ->where('notification.rate', 0.9)
             ->where('notification.cases', 90)
-            ->where('notification.status', null));
+            ->where('notification.status', null)));
 
     $this->actingAs($admin)
         ->get(route('command.index', ['province' => $sindh->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('notification.population', 3000000)
             ->where('notification.rate', 3)
-            ->where('notification.status', null));
+            ->where('notification.status', null)));
 });
 
 test('the map shows the notification rate indicator per district', function () {

@@ -143,6 +143,8 @@ function commandReturnRow(
         negative: $negative,
         startedTreatment: $started,
         followUp: $followUp,
-        medianTatDays: $tat,
+        tatWeighted: $tat !== null && $tested > 0 ? $tat * $tested : 0.0,
+        tatWeight: $tat !== null && $tested > 0 ? (float) $tested : 0.0,
+        returnCount: 1,
     );
 }

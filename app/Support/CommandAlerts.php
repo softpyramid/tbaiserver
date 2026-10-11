@@ -17,6 +17,9 @@ use Carbon\CarbonImmutable;
  */
 class CommandAlerts
 {
+    /** @var array<int, Facility> */
+    private array $facilitiesById = [];
+
     public function __construct(private CommandReturnQuery $returns) {}
 
     /**
@@ -37,6 +40,9 @@ class CommandAlerts
         $previousSelection = $selection;
         $previousSelection['period'] = $selection['period']->previous();
         $previousRows = $this->returns->rows($user, $previousSelection);
+        $this->facilitiesById = [];
+        $this->preload($currentRows);
+        $this->preload($previousRows);
         $alerts = [];
         $ruleRows = [];
 
@@ -240,6 +246,7 @@ class CommandAlerts
         $windowSelection = $selection;
         $windowSelection['period'] = $window;
         $rows = $this->returns->rows($user, $windowSelection);
+        $this->preload($rows);
         $months = $window->months();
         $byPlace = [];
 
@@ -364,7 +371,7 @@ class CommandAlerts
             ];
         }
 
-        $facility = Facility::query()->find($group['facilityId']);
+        $facility = $this->facilitiesById[$group['facilityId']] ?? null;
 
         if ($facility === null) {
             return null;
@@ -394,5 +401,30 @@ class CommandAlerts
         $formatted = number_format((float) $value, 3, '.', '');
 
         return rtrim(rtrim($formatted, '0'), '.');
+    }
+
+    /**
+     * @param  list<CommandReturnRow>  $rows
+     */
+    private function preload(array $rows): void
+    {
+        $missing = [];
+
+        foreach ($rows as $row) {
+            if (! isset($this->facilitiesById[$row->facilityId])) {
+                $missing[$row->facilityId] = true;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        Facility::query()
+            ->whereIn('id', array_keys($missing))
+            ->get()
+            ->each(function (Facility $facility): void {
+                $this->facilitiesById[$facility->id] = $facility;
+            });
     }
 }

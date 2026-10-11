@@ -2,7 +2,21 @@
 
 namespace App\Providers;
 
+use App\Models\AlertRule;
+use App\Models\CaseNotification;
+use App\Models\City;
+use App\Models\DailyReturn;
+use App\Models\Facility;
+use App\Models\IncidenceEstimate;
+use App\Models\IncidenceTarget;
+use App\Models\PopulationDenominator;
+use App\Models\ProgrammeAssignment;
 use App\Models\User;
+use App\Observers\CommandCacheObserver;
+use App\Support\CommandApi\CommandData;
+use App\Support\CommandCache;
+use App\Support\CommandReturnQuery;
+use App\Support\DataScope;
 use App\Support\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Logout;
@@ -26,7 +40,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(DataScope::class);
+        $this->app->scoped(CommandData::class);
+        $this->app->scoped(CommandReturnQuery::class);
     }
 
     /**
@@ -38,6 +54,71 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureGates();
         $this->configureImpersonation();
+        $this->configureCommandCache();
+        $this->app->terminating(fn () => $this->app->forgetScopedInstances());
+    }
+
+    /**
+     * Drop cached command figures when the underlying rows change.
+     */
+    protected function configureCommandCache(): void
+    {
+        $observer = CommandCacheObserver::class;
+
+        DailyReturn::observe($observer);
+        CaseNotification::observe($observer);
+        PopulationDenominator::observe($observer);
+        IncidenceEstimate::observe($observer);
+        IncidenceTarget::observe($observer);
+        Facility::observe($observer);
+        City::observe($observer);
+        AlertRule::observe($observer);
+        ProgrammeAssignment::observe($observer);
+
+        DB::listen(function ($query): void {
+            static $busting = false;
+
+            if ($busting) {
+                return;
+            }
+
+            $sql = strtolower($query->sql);
+
+            if (! preg_match('/\b(insert|update|delete|replace)\b/', $sql)) {
+                return;
+            }
+
+            $watched = [
+                'daily_returns',
+                'case_notifications',
+                'population_denominators',
+                'incidence_estimates',
+                'incidence_targets',
+                'facilities',
+                'cities',
+                'alert_rules',
+                'programme_assignments',
+                'sector_indicators',
+                'district_indicators',
+                'treatment_outcomes',
+                'mdr_rr_cases',
+                'ai_test_counts',
+                'contact_tracing',
+                'hiv_testing',
+            ];
+
+            foreach ($watched as $table) {
+                if (! str_contains($sql, $table)) {
+                    continue;
+                }
+
+                $busting = true;
+                CommandCache::bump();
+                $busting = false;
+
+                return;
+            }
+        });
     }
 
     /**
@@ -47,7 +128,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('administer', fn (User $user): bool => $user->isTbaiAdmin());
 
-        Gate::define('viewCommandCenter', fn (User $user): bool => $user->programmeAssignments()->exists());
+        Gate::define('viewCommandCenter', fn (User $user): bool => $user->programmeAssignments->isNotEmpty());
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Deferred, Link } from '@inertiajs/react';
 import {
     type CascadeBar,
     CommandCharts,
@@ -88,7 +88,7 @@ type Props = {
     links: CommandLink[];
     kpis: Kpi[];
     cascade: CascadeBar[];
-    months: MonthPoint[];
+    months?: MonthPoint[];
     hasReturns: boolean;
     notification?: NotificationCard | null;
     estimate?: EstimateCard | null;
@@ -205,161 +205,192 @@ export default function CommandIndex({
                 ))}
             </ul>
 
-            {notification ? (
-                <section
-                    className="min-w-0 rounded-lg border p-4"
-                    aria-label={notification.label}
-                    data-test="notification-card"
-                >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h2 className="text-sm font-medium">
-                                {notification.label}
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                                {notification.sub}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                {notification.period_label}
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <div
-                                className="text-2xl font-semibold"
-                                data-test="notification-rate"
-                            >
-                                {notification.rate === null
-                                    ? notification.status ===
-                                      'no_notification_data'
-                                        ? 'n/a'
-                                        : 'n/a'
-                                    : `${notification.rate.toFixed(1)}`}
+            <Deferred
+                data="notification"
+                fallback={
+                    <div
+                        className="h-24 animate-pulse rounded-lg bg-muted"
+                        data-test="notification-pending"
+                    />
+                }
+            >
+                {notification ? (
+                    <section
+                        className="min-w-0 rounded-lg border p-4"
+                        aria-label={notification.label}
+                        data-test="notification-card"
+                    >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 className="text-sm font-medium">
+                                    {notification.label}
+                                </h2>
+                                <p className="text-xs text-muted-foreground">
+                                    {notification.sub}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {notification.period_label}
+                                </p>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                                per 100,000 population
-                            </div>
-                            {notification.rate === null ? (
+                            <div className="text-right">
                                 <div
-                                    className="mt-0.5 text-xs"
-                                    data-test="notification-status"
+                                    className="text-2xl font-semibold"
+                                    data-test="notification-rate"
                                 >
-                                    {notification.status ===
-                                    'no_notification_data'
-                                        ? 'No notification data'
-                                        : 'Population not set'}
+                                    {notification.rate === null
+                                        ? notification.status ===
+                                          'no_notification_data'
+                                            ? 'n/a'
+                                            : 'n/a'
+                                        : `${notification.rate.toFixed(1)}`}
                                 </div>
-                            ) : null}
-                        </div>
-                    </div>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-                        <div data-test="notification-cases">
-                            <dt className="text-muted-foreground">
-                                Cases notified
-                            </dt>
-                            <dd className="font-medium">
-                                {notification.cases === null
-                                    ? 'n/a'
-                                    : notification.cases.toLocaleString()}
-                            </dd>
-                        </div>
-                        <div data-test="notification-ytd">
-                            <dt className="text-muted-foreground">
-                                Year to date
-                            </dt>
-                            <dd className="font-medium">
-                                {notification.ytd_cases === null
-                                    ? 'n/a'
-                                    : notification.ytd_cases.toLocaleString()}
-                            </dd>
-                        </div>
-                        <div data-test="notification-population">
-                            <dt className="text-muted-foreground">
-                                Population
-                            </dt>
-                            <dd className="font-medium">
-                                {notification.population === null
-                                    ? '-'
-                                    : `${notification.population.toLocaleString()} · ${notification.population_year}`}
-                            </dd>
-                        </div>
-                        <div data-test="notification-source">
-                            <dt className="text-muted-foreground">Source</dt>
-                            <dd className="font-medium">
-                                {notification.source ?? '-'}
-                            </dd>
-                        </div>
-                    </dl>
-                </section>
-            ) : null}
-
-            {estimate ? (
-                <section
-                    className="min-w-0 rounded-lg border p-4"
-                    aria-label={estimate.label}
-                    data-test="estimate-card"
-                >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h2 className="text-sm font-medium">
-                                {estimate.label}
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                                {estimate.sub}
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <div
-                                className="text-2xl font-semibold"
-                                data-test="estimate-rate"
-                            >
-                                {estimate.status === 'no_estimate' ||
-                                estimate.rate === null
-                                    ? 'n/a'
-                                    : estimate.rate.toFixed(1)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                                per 100,000 population
-                            </div>
-                            {estimate.status === 'no_estimate' ? (
-                                <div
-                                    className="mt-0.5 text-xs"
-                                    data-test="estimate-status"
-                                >
-                                    {estimate.message}
+                                <div className="text-xs text-muted-foreground">
+                                    per 100,000 population
                                 </div>
-                            ) : null}
+                                {notification.rate === null ? (
+                                    <div
+                                        className="mt-0.5 text-xs"
+                                        data-test="notification-status"
+                                    >
+                                        {notification.status ===
+                                        'no_notification_data'
+                                            ? 'No notification data'
+                                            : 'Population not set'}
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
-                    </div>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-                        {estimate.lower !== null && estimate.upper !== null ? (
-                            <div data-test="estimate-interval">
-                                <dt className="text-muted-foreground">Interval</dt>
+                        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+                            <div data-test="notification-cases">
+                                <dt className="text-muted-foreground">
+                                    Cases notified
+                                </dt>
                                 <dd className="font-medium">
-                                    {`${estimate.lower.toFixed(1)} to ${estimate.upper.toFixed(1)}`}
+                                    {notification.cases === null
+                                        ? 'n/a'
+                                        : notification.cases.toLocaleString()}
                                 </dd>
                             </div>
-                        ) : null}
-                        <div data-test="estimate-year">
-                            <dt className="text-muted-foreground">Year</dt>
-                            <dd className="font-medium">
-                                {estimate.year === null ? '-' : estimate.year}
-                            </dd>
+                            <div data-test="notification-ytd">
+                                <dt className="text-muted-foreground">
+                                    Year to date
+                                </dt>
+                                <dd className="font-medium">
+                                    {notification.ytd_cases === null
+                                        ? 'n/a'
+                                        : notification.ytd_cases.toLocaleString()}
+                                </dd>
+                            </div>
+                            <div data-test="notification-population">
+                                <dt className="text-muted-foreground">
+                                    Population
+                                </dt>
+                                <dd className="font-medium">
+                                    {notification.population === null
+                                        ? '-'
+                                        : `${notification.population.toLocaleString()} · ${notification.population_year}`}
+                                </dd>
+                            </div>
+                            <div data-test="notification-source">
+                                <dt className="text-muted-foreground">
+                                    Source
+                                </dt>
+                                <dd className="font-medium">
+                                    {notification.source ?? '-'}
+                                </dd>
+                            </div>
+                        </dl>
+                    </section>
+                ) : null}
+            </Deferred>
+
+            <Deferred
+                data="estimate"
+                fallback={
+                    <div
+                        className="h-24 animate-pulse rounded-lg bg-muted"
+                        data-test="estimate-pending"
+                    />
+                }
+            >
+                {estimate ? (
+                    <section
+                        className="min-w-0 rounded-lg border p-4"
+                        aria-label={estimate.label}
+                        data-test="estimate-card"
+                    >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 className="text-sm font-medium">
+                                    {estimate.label}
+                                </h2>
+                                <p className="text-xs text-muted-foreground">
+                                    {estimate.sub}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <div
+                                    className="text-2xl font-semibold"
+                                    data-test="estimate-rate"
+                                >
+                                    {estimate.status === 'no_estimate' ||
+                                    estimate.rate === null
+                                        ? 'n/a'
+                                        : estimate.rate.toFixed(1)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    per 100,000 population
+                                </div>
+                                {estimate.status === 'no_estimate' ? (
+                                    <div
+                                        className="mt-0.5 text-xs"
+                                        data-test="estimate-status"
+                                    >
+                                        {estimate.message}
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
-                        <div data-test="estimate-source">
-                            <dt className="text-muted-foreground">Source</dt>
-                            <dd className="font-medium">
-                                {estimate.source ?? '-'}
-                            </dd>
-                        </div>
-                        <div data-test="estimate-method">
-                            <dt className="text-muted-foreground">Method</dt>
-                            <dd className="font-medium">
-                                {estimate.method ?? '-'}
-                            </dd>
-                        </div>
-                    </dl>
-                </section>
-            ) : null}
+                        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+                            {estimate.lower !== null &&
+                            estimate.upper !== null ? (
+                                <div data-test="estimate-interval">
+                                    <dt className="text-muted-foreground">
+                                        Interval
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {`${estimate.lower.toFixed(1)} to ${estimate.upper.toFixed(1)}`}
+                                    </dd>
+                                </div>
+                            ) : null}
+                            <div data-test="estimate-year">
+                                <dt className="text-muted-foreground">Year</dt>
+                                <dd className="font-medium">
+                                    {estimate.year === null
+                                        ? '-'
+                                        : estimate.year}
+                                </dd>
+                            </div>
+                            <div data-test="estimate-source">
+                                <dt className="text-muted-foreground">
+                                    Source
+                                </dt>
+                                <dd className="font-medium">
+                                    {estimate.source ?? '-'}
+                                </dd>
+                            </div>
+                            <div data-test="estimate-method">
+                                <dt className="text-muted-foreground">
+                                    Method
+                                </dt>
+                                <dd className="font-medium">
+                                    {estimate.method ?? '-'}
+                                </dd>
+                            </div>
+                        </dl>
+                    </section>
+                ) : null}
+            </Deferred>
 
             <section
                 className="flex min-w-0 flex-col gap-3"
@@ -389,12 +420,22 @@ export default function CommandIndex({
             )}
 
             <ViewToggle mode={mode} labels={labels} onChange={setMode} />
-            <CommandCharts
-                mode={mode}
-                cascade={cascade}
-                months={months}
-                labels={labels}
-            />
+            <Deferred
+                data="months"
+                fallback={
+                    <div
+                        className="h-40 animate-pulse rounded-lg bg-muted"
+                        data-test="months-pending"
+                    />
+                }
+            >
+                <CommandCharts
+                    mode={mode}
+                    cascade={cascade}
+                    months={months ?? []}
+                    labels={labels}
+                />
+            </Deferred>
         </CommandShell>
     );
 }

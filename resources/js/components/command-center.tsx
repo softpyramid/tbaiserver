@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 export type CommandOption = {
     value: string;
     label: string;
+    province_id?: string;
 };
 
 export type CommandFilters = {
@@ -25,6 +26,24 @@ export type CommandFilters = {
     province: string;
     district: string;
     sector: string;
+    defaults: {
+        from: string;
+        to: string;
+    };
+    active: {
+        from: boolean;
+        to: boolean;
+        province: boolean;
+        district: boolean;
+        sector: boolean;
+    };
+    notice: string | null;
+    presets: Array<{
+        key: string;
+        label: string;
+        from: string;
+        to: string;
+    }>;
 };
 
 export type CommandShow = {
@@ -117,19 +136,87 @@ type FilterOptions = {
 
 const tones = ['bg-primary', 'bg-primary/75', 'bg-primary/55', 'bg-primary/35'];
 
+const filterKeys = ['from', 'to', 'province', 'district', 'sector'] as const;
+
+export const commandPartial = [
+    'scope',
+    'screens',
+    'filters',
+    'options',
+    'show',
+    'labels',
+    'links',
+    'tat',
+    'title',
+    'totals',
+    'kpis',
+    'cascade',
+    'months',
+    'notification',
+    'estimate',
+    'hasReturns',
+    'notCollected',
+    'notice',
+    'columns',
+    'rows',
+    'sort',
+    'direction',
+    'sectorTitle',
+    'backUrl',
+    'crumbs',
+    'facilities',
+    'boundaries',
+    'attribution',
+    'geometryUrl',
+    'indicator',
+    'indicatorLabel',
+    'indicators',
+    'districts',
+    'hiddenMatches',
+    'hiddenNote',
+    'top',
+    'selectedId',
+    'trendHeading',
+    'topHeading',
+    'chooseDistrict',
+    'listHeading',
+    'indicatorField',
+    'badge',
+    'canEdit',
+    'rules',
+    'alerts',
+    'metricOptions',
+    'comparatorOptions',
+    'alertLabels',
+    'categories',
+    'pending',
+    'driverLabels',
+    'storeUrl',
+    'estimateStoreUrl',
+    'yearOptions',
+    'estimateYearOptions',
+    'estimateAreas',
+    'targetProvinces',
+    'targets',
+    'series',
+    'estimates',
+    'empty',
+    'incidenceLabels',
+];
+
 function pathOf(url: string): string {
     return url.split('?')[0] ?? url;
 }
 
-function queryFrom(
+export function queryFrom(
     filters: CommandFilters,
     extra: Record<string, string> = {},
 ): Record<string, string> {
     const query: Record<string, string> = {};
 
-    for (const [key, value] of Object.entries(filters)) {
-        if (value !== '') {
-            query[key] = value;
+    for (const key of filterKeys) {
+        if (filters[key] !== '') {
+            query[key] = filters[key];
         }
     }
 
@@ -165,7 +252,9 @@ export function CommandShell({
     banner?: ReactNode;
     children: ReactNode;
 }) {
+    const [filtersPending, setFiltersPending] = useState(false);
     const areaTabs = usePage().props.nav.commandTabs;
+    const formKey = `${filters.from}|${filters.to}|${filters.province}|${filters.district}|${filters.sector}`;
 
     return (
         <PageShell
@@ -179,13 +268,22 @@ export function CommandShell({
             {banner}
             {tabs}
             <FilterBar
+                key={formKey}
                 filters={filters}
                 options={options}
                 show={show}
                 labels={labels}
                 preserved={preserved}
+                onPending={setFiltersPending}
             />
-            {children}
+            <div
+                className={cn(
+                    filtersPending && 'pointer-events-none opacity-60',
+                )}
+                aria-busy={filtersPending || undefined}
+            >
+                {children}
+            </div>
 
             <div className="flex flex-wrap gap-4 text-sm">
                 {links.map((link) => (
@@ -304,31 +402,80 @@ function FilterBar({
     show,
     labels,
     preserved = {},
+    onPending,
 }: {
     filters: CommandFilters;
     options: FilterOptions;
     show: CommandShow;
     labels: CommandLabels;
     preserved?: Record<string, string>;
+    onPending: (pending: boolean) => void;
 }) {
     const page = usePage();
     const path = pathOf(page.url);
-    const formKey = `${filters.from}|${filters.to}|${filters.province}|${filters.district}|${filters.sector}`;
+    const [from, setFrom] = useState(filters.from);
+    const [to, setTo] = useState(filters.to);
+    const [province, setProvince] = useState(filters.province);
+    const [district, setDistrict] = useState(filters.district);
+    const [sector, setSector] = useState(filters.sector);
+    const [pending, setPending] = useState(false);
+
+    function visit(query: Record<string, string>) {
+        router.get(
+            path,
+            { ...query, ...kept(preserved) },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: commandPartial,
+                onStart: () => {
+                    setPending(true);
+                    onPending(true);
+                },
+                onFinish: () => {
+                    setPending(false);
+                    onPending(false);
+                },
+            },
+        );
+    }
 
     function onFilter(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const query: Record<string, string> = {};
-
-        data.forEach((value, key) => {
-            if (typeof value === 'string' && value !== '') {
-                query[key] = value;
-            }
-        });
-
-        router.get(path, query, { preserveState: true, preserveScroll: true });
+        visit(
+            filled({
+                from,
+                to,
+                province,
+                district,
+                sector,
+            }),
+        );
     }
 
+    function onProvince(value: string) {
+        setProvince(value);
+
+        const chosen = options.districts.find(
+            (option) => option.value === district,
+        );
+
+        if (
+            value !== '' &&
+            chosen?.province_id !== undefined &&
+            chosen.province_id !== value
+        ) {
+            setDistrict('');
+        }
+    }
+
+    const districts =
+        province === ''
+            ? options.districts
+            : options.districts.filter(
+                  (option) =>
+                      option.value === '' || option.province_id === province,
+              );
     const activeCount = activeFilterCount(filters, show);
 
     return (
@@ -350,55 +497,98 @@ function FilterBar({
                 </span>
             </summary>
             <form
-                key={formKey}
                 className="grid grid-cols-1 gap-3 border-t p-3 sm:grid-cols-2"
                 onSubmit={onFilter}
             >
+                {filters.notice ? (
+                    <p
+                        className="text-sm text-muted-foreground sm:col-span-2"
+                        data-test="filter-notice"
+                    >
+                        {filters.notice}
+                    </p>
+                ) : null}
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
+                    {filters.presets.map((preset) => (
+                        <Button
+                            key={preset.key}
+                            type="button"
+                            variant="outline"
+                            disabled={pending}
+                            data-test={`period-${preset.key}`}
+                            onClick={() => {
+                                setFrom(preset.from);
+                                setTo(preset.to);
+                                visit(
+                                    filled({
+                                        from: preset.from,
+                                        to: preset.to,
+                                        province,
+                                        district,
+                                        sector,
+                                    }),
+                                );
+                            }}
+                        >
+                            {preset.label}
+                        </Button>
+                    ))}
+                </div>
                 <DateField
                     name="from"
                     label={labels.from}
-                    value={filters.from}
+                    value={from}
+                    onChange={setFrom}
                 />
-                <DateField name="to" label={labels.to} value={filters.to} />
+                <DateField
+                    name="to"
+                    label={labels.to}
+                    value={to}
+                    onChange={setTo}
+                />
                 <PlaceField
                     name="province"
                     label={labels.province}
-                    value={filters.province}
+                    value={province}
                     options={options.provinces}
                     shown={show.province}
+                    onChange={onProvince}
                 />
                 <PlaceField
                     name="district"
                     label={labels.district}
-                    value={filters.district}
-                    options={options.districts}
+                    value={district}
+                    options={districts}
                     shown={show.district}
+                    onChange={setDistrict}
                 />
                 <PlaceField
                     name="sector"
                     label={labels.sector}
-                    value={filters.sector}
+                    value={sector}
                     options={options.sectors}
                     shown={show.sector}
+                    onChange={setSector}
                 />
-                {Object.entries(preserved).map(([name, value]) =>
-                    value === '' ? null : (
-                        <input
-                            key={name}
-                            type="hidden"
-                            name={name}
-                            value={value}
-                        />
-                    ),
-                )}
                 <div className="flex items-end gap-2">
-                    <Button type="submit">{labels.apply}</Button>
+                    <Button type="submit" disabled={pending}>
+                        {labels.apply}
+                    </Button>
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() =>
-                            router.get(path, {}, { preserveScroll: true })
-                        }
+                        disabled={pending}
+                        onClick={() => {
+                            setFrom(filters.defaults.from);
+                            setTo(filters.defaults.to);
+                            setProvince('');
+                            setDistrict('');
+                            setSector('');
+                            visit({
+                                from: filters.defaults.from,
+                                to: filters.defaults.to,
+                            });
+                        }}
                     >
                         {labels.clear}
                     </Button>
@@ -408,26 +598,50 @@ function FilterBar({
     );
 }
 
+function filled(values: Record<string, string>): Record<string, string> {
+    const query: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(values)) {
+        if (value !== '') {
+            query[key] = value;
+        }
+    }
+
+    return query;
+}
+
+function kept(preserved: Record<string, string>): Record<string, string> {
+    const query: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(preserved)) {
+        if (value !== '') {
+            query[key] = value;
+        }
+    }
+
+    return query;
+}
+
 function activeFilterCount(filters: CommandFilters, show: CommandShow): number {
     let count = 0;
 
-    if (filters.from !== '') {
+    if (filters.active.from) {
         count += 1;
     }
 
-    if (filters.to !== '') {
+    if (filters.active.to) {
         count += 1;
     }
 
-    if (show.province && filters.province !== '') {
+    if (show.province && filters.active.province) {
         count += 1;
     }
 
-    if (show.district && filters.district !== '') {
+    if (show.district && filters.active.district) {
         count += 1;
     }
 
-    if (show.sector && filters.sector !== '') {
+    if (show.sector && filters.active.sector) {
         count += 1;
     }
 
@@ -438,10 +652,12 @@ function DateField({
     name,
     label,
     value,
+    onChange,
 }: {
     name: string;
     label: string;
     value: string;
+    onChange: (value: string) => void;
 }) {
     return (
         <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -449,8 +665,9 @@ function DateField({
             <Input
                 name={name}
                 type="date"
-                defaultValue={value}
+                value={value}
                 aria-label={label}
+                onChange={(event) => onChange(event.target.value)}
             />
         </label>
     );
@@ -462,12 +679,14 @@ function PlaceField({
     value,
     options,
     shown,
+    onChange,
 }: {
     name: string;
     label: string;
     value: string;
     options: CommandOption[];
     shown: boolean;
+    onChange: (value: string) => void;
 }) {
     if (!shown) {
         if (value === '') {
@@ -482,9 +701,10 @@ function PlaceField({
             <span>{label}</span>
             <select
                 name={name}
-                defaultValue={value}
+                value={value}
                 aria-label={label}
                 className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-base md:text-sm"
+                onChange={(event) => onChange(event.target.value)}
             >
                 {options.map((option) => (
                     <option key={option.value} value={option.value}>

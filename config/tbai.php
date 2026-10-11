@@ -119,6 +119,7 @@ return [
             'testing_gaps' => ['improve referral completion', 'expand diagnostic access'],
             'resource_allocation' => ['prioritise high-burden BMUs', 'allocate GeneXpert and staff'],
         ],
+        'default_period' => env('TBAI_COMMAND_DEFAULT_PERIOD', 'ytd'),
     ],
 
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',

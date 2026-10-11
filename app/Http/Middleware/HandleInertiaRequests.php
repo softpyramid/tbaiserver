@@ -14,6 +14,7 @@ use App\Support\RoleHome;
 use App\Support\SidebarNavigation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -101,11 +102,11 @@ class HandleInertiaRequests extends Middleware
                 ]
                 : null,
             'nav' => $this->navigation($request, $user, $facilityTeam),
-            'i18n' => [
+            'i18n' => Inertia::once(fn (): array => [
                 'locale' => app()->getLocale(),
                 'dir' => in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr',
                 'entry' => trans('entry'),
-            ],
+            ]),
             'screeningUrl' => config('tbai.features.screening') && $user !== null && $facilityTeam !== null && $user->belongsToTeam($facilityTeam)
                 ? route('screening.create', ['current_team' => $facilityTeam->slug])
                 : null,

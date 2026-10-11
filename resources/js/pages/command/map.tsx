@@ -8,6 +8,8 @@ import {
     CommandShell,
     type CommandScreenLink,
     type CommandShow,
+    commandPartial,
+    queryFrom,
     SegmentedTabs,
 } from '@/components/command-center';
 import { DistrictHeatMap } from '@/components/district-heat-map';
@@ -114,17 +116,10 @@ export default function CommandMap({
         districts.find((district) => district.id === pickedId) ?? null;
 
     function onIndicator(value: string) {
-        const query: Record<string, string> = { indicator: value };
-
-        for (const [key, item] of Object.entries(filters)) {
-            if (item !== '') {
-                query[key] = item;
-            }
-        }
-
-        router.get(pathOf(page.url), query, {
+        router.get(pathOf(page.url), queryFrom(filters, { indicator: value }), {
             preserveState: true,
             preserveScroll: true,
+            only: commandPartial,
         });
     }
 

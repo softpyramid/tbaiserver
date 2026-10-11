@@ -7,6 +7,7 @@ use App\Enums\FacilityStatus;
 use App\Models\AccessRequest;
 use App\Models\Facility;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 class AdminAttention
@@ -58,9 +59,12 @@ class AdminAttention
     public static function facilitiesWithoutReturnToday(): Builder
     {
         $today = EntryDate::now()->toDateString();
+        $tomorrow = CarbonImmutable::parse($today, EntryDate::timezone())->addDay()->toDateString();
 
         return Facility::query()
             ->where('status', FacilityStatus::Active)
-            ->whereDoesntHave('dailyReturns', fn (Builder $returns) => $returns->whereDate('reported_on', $today));
+            ->whereDoesntHave('dailyReturns', fn (Builder $returns) => $returns
+                ->where('reported_on', '>=', $today)
+                ->where('reported_on', '<', $tomorrow));
     }
 }

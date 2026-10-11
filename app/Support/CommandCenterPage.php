@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Models\Province;
 use App\Models\User;
 use App\Support\CommandApi\PositivityChange;
+use Closure;
 use Illuminate\Http\Request;
 
 /**
@@ -30,34 +31,54 @@ class CommandCenterPage
     public function cumulative(Request $request, User $user): array
     {
         $selection = $this->selection($request, $user, null, null);
-        $rows = $this->rows($user, $selection);
-        $summary = CommandTotals::summarize($rows);
-        $previousSelection = $selection;
-        $previousSelection['period'] = $selection['period']->previous();
-        $previousSummary = CommandTotals::summarize($this->rows($user, $previousSelection));
 
-        return [
-            ...$this->frame($user, $selection, 'cumulative', showSector: true, showPlace: true),
-            'title' => __('entry.cumulative_title'),
-            'totals' => $this->totals($summary),
-            'kpis' => $this->kpis($summary, PositivityChange::label(
-                $summary['positive'],
-                $summary['tested'],
-                $previousSummary['positive'],
-                $previousSummary['tested'],
-            )),
-            'cascade' => $this->cascade($summary),
-            'months' => CommandTotals::runningMonths($rows, $selection['period']),
-            'notification' => $this->notification($selection, $user),
-            'estimate' => IncidenceEstimateLookup::card(
-                $selection['provinceId'],
-                $selection['cityId'],
-                (int) substr($selection['period']->to, 0, 4),
-                $user,
-            ),
-            'hasReturns' => $rows !== [],
-            'notCollected' => $this->notCollected(),
-        ];
+        return $this->remember('page.cumulative', $request, $user, $selection, function () use ($user, $selection): array {
+            $rows = $this->rows($user, $selection);
+            $summary = CommandTotals::summarize($rows);
+            $previousSelection = $selection;
+            $previousSelection['period'] = $selection['period']->previous();
+            $previousSummary = CommandTotals::summarize($this->rows($user, $previousSelection));
+
+            return [
+                ...$this->frame($user, $selection, 'cumulative', showSector: true, showPlace: true),
+                'title' => __('entry.cumulative_title'),
+                'totals' => $this->totals($summary),
+                'kpis' => $this->kpis($summary, PositivityChange::label(
+                    $summary['positive'],
+                    $summary['tested'],
+                    $previousSummary['positive'],
+                    $previousSummary['tested'],
+                )),
+                'cascade' => $this->cascade($summary),
+                'hasReturns' => $rows !== [],
+                'notCollected' => $this->notCollected(),
+            ];
+        });
+    }
+
+    /**
+     * Notification, estimate and month series. Loaded after the first paint.
+     *
+     * @return array<string, mixed>
+     */
+    public function cumulativeDeferred(Request $request, User $user): array
+    {
+        $selection = $this->selection($request, $user, null, null);
+
+        return $this->remember('page.cumulative.deferred', $request, $user, $selection, function () use ($user, $selection): array {
+            $rows = $this->rows($user, $selection);
+
+            return [
+                'months' => CommandTotals::runningMonths($rows, $selection['period']),
+                'notification' => $this->notification($selection, $user),
+                'estimate' => IncidenceEstimateLookup::card(
+                    $selection['provinceId'],
+                    $selection['cityId'],
+                    (int) substr($selection['period']->to, 0, 4),
+                    $user,
+                ),
+            ];
+        });
     }
 
     /**
@@ -86,33 +107,36 @@ class CommandCenterPage
     public function sector(Request $request, User $user, Sector $sector): array
     {
         $selection = $this->selection($request, $user, $sector, null);
-        $rows = $this->rows($user, $selection);
-        [$sort, $direction] = ResourceResponse::sort(
-            $request,
-            [
-                'district',
-                'suspects',
-                'tested',
-                'positive',
-                'positivity',
-                'started_treatment',
-                'treatment_gap',
-                'provisional_tat',
-                'active_facilities',
-            ],
-            'district',
-        );
-        $districts = $this->sortDistricts(CommandTotals::byDistrict($rows), $sort, $direction);
 
-        return [
-            ...$this->frame($user, $selection, $sector->value, showSector: false, showPlace: true),
-            'title' => $this->sectorTitle($sector),
-            'columns' => $this->districtColumns(),
-            'rows' => array_map(fn (array $district): array => $this->districtRow($district, $sector, $selection), $districts),
-            'sort' => $sort,
-            'direction' => $direction,
-            'hasReturns' => $rows !== [],
-        ];
+        return $this->remember('page.sector', $request, $user, $selection, function () use ($request, $user, $sector, $selection): array {
+            $rows = $this->rows($user, $selection);
+            [$sort, $direction] = ResourceResponse::sort(
+                $request,
+                [
+                    'district',
+                    'suspects',
+                    'tested',
+                    'positive',
+                    'positivity',
+                    'started_treatment',
+                    'treatment_gap',
+                    'provisional_tat',
+                    'active_facilities',
+                ],
+                'district',
+            );
+            $districts = $this->sortDistricts(CommandTotals::byDistrict($rows), $sort, $direction);
+
+            return [
+                ...$this->frame($user, $selection, $sector->value, showSector: false, showPlace: true),
+                'title' => $this->sectorTitle($sector),
+                'columns' => $this->districtColumns(),
+                'rows' => array_map(fn (array $district): array => $this->districtRow($district, $sector, $selection), $districts),
+                'sort' => $sort,
+                'direction' => $direction,
+                'hasReturns' => $rows !== [],
+            ];
+        });
     }
 
     /**
@@ -121,47 +145,50 @@ class CommandCenterPage
     public function district(Request $request, User $user, Sector $sector, City $city): array
     {
         $selection = $this->selection($request, $user, $sector, $city->id);
-        $rows = $this->rows($user, $selection);
-        $facilities = [];
 
-        foreach (CommandTotals::byFacility($rows) as $group) {
-            $summary = CommandTotals::summarize($group['rows']);
-            $facilities[] = [
-                'id' => (string) $group['facility_id'],
-                'name' => $group['name'],
-                'cascade' => $this->cascade($summary),
-                'months' => CommandTotals::runningMonths($group['rows'], $selection['period']),
+        return $this->remember('page.district', $request, $user, $selection, function () use ($user, $sector, $city, $selection): array {
+            $rows = $this->rows($user, $selection);
+            $facilities = [];
+
+            foreach (CommandTotals::byFacility($rows) as $group) {
+                $summary = CommandTotals::summarize($group['rows']);
+                $facilities[] = [
+                    'id' => (string) $group['facility_id'],
+                    'name' => $group['name'],
+                    'cascade' => $this->cascade($summary),
+                    'months' => CommandTotals::runningMonths($group['rows'], $selection['period']),
+                ];
+            }
+
+            return [
+                ...$this->frame($user, $selection, $sector->value, showSector: false, showPlace: false),
+                'title' => $city->name,
+                'sectorTitle' => $this->sectorTitle($sector),
+                'backUrl' => route('command.sectors.show', [
+                    'sector' => $sector->value,
+                    ...$this->placeQuery($selection),
+                ]),
+                'crumbs' => [
+                    [
+                        'title' => __('entry.nav_group_command'),
+                        'href' => route('command.index', $this->placeQuery($selection)),
+                    ],
+                    [
+                        'title' => $sector->label(),
+                        'href' => route('command.sectors.show', [
+                            'sector' => $sector->value,
+                            ...$this->placeQuery($selection),
+                        ]),
+                    ],
+                    [
+                        'title' => $city->name,
+                        'href' => null,
+                    ],
+                ],
+                'facilities' => $facilities,
+                'hasReturns' => $rows !== [],
             ];
-        }
-
-        return [
-            ...$this->frame($user, $selection, $sector->value, showSector: false, showPlace: false),
-            'title' => $city->name,
-            'sectorTitle' => $this->sectorTitle($sector),
-            'backUrl' => route('command.sectors.show', [
-                'sector' => $sector->value,
-                ...$this->placeQuery($selection),
-            ]),
-            'crumbs' => [
-                [
-                    'title' => __('entry.nav_group_command'),
-                    'href' => route('command.index', $this->placeQuery($selection)),
-                ],
-                [
-                    'title' => $sector->label(),
-                    'href' => route('command.sectors.show', [
-                        'sector' => $sector->value,
-                        ...$this->placeQuery($selection),
-                    ]),
-                ],
-                [
-                    'title' => $city->name,
-                    'href' => null,
-                ],
-            ],
-            'facilities' => $facilities,
-            'hasReturns' => $rows !== [],
-        ];
+        });
     }
 
     /**
@@ -170,16 +197,19 @@ class CommandCenterPage
     public function map(Request $request, User $user): array
     {
         $selection = $this->selection($request, $user, null, null);
-        $rows = $this->rows($user, $selection);
-        $trendPeriod = CommandPeriod::trailingMonths($selection['period']->to, 12);
-        $trendSelection = $selection;
-        $trendSelection['period'] = $trendPeriod;
 
-        return [
-            ...$this->frame($user, $selection, 'map', showSector: true, showPlace: true),
-            'title' => __('entry.command_map'),
-            ...$this->mapData->present($request, $user, $selection, $rows, $this->rows($user, $trendSelection), $trendPeriod),
-        ];
+        return $this->remember('page.map', $request, $user, $selection, function () use ($request, $user, $selection): array {
+            $rows = $this->rows($user, $selection);
+            $trendPeriod = CommandPeriod::trailingMonths($selection['period']->to, 12);
+            $trendSelection = $selection;
+            $trendSelection['period'] = $trendPeriod;
+
+            return [
+                ...$this->frame($user, $selection, 'map', showSector: true, showPlace: true),
+                'title' => __('entry.command_map'),
+                ...$this->mapData->present($request, $user, $selection, $rows, $this->rows($user, $trendSelection), $trendPeriod),
+            ];
+        });
     }
 
     /**
@@ -189,11 +219,13 @@ class CommandCenterPage
     {
         $selection = $this->selection($request, $user, null, null);
 
-        return [
-            ...$this->frame($user, $selection, 'alerts', showSector: true, showPlace: true),
-            'title' => __('entry.command_alerts'),
-            ...$this->alerts->present($user, $selection),
-        ];
+        return $this->remember('page.alerts', $request, $user, $selection, function () use ($user, $selection): array {
+            return [
+                ...$this->frame($user, $selection, 'alerts', showSector: true, showPlace: true),
+                'title' => __('entry.command_alerts'),
+                ...$this->alerts->present($user, $selection),
+            ];
+        });
     }
 
     /**
@@ -242,16 +274,10 @@ class CommandCenterPage
         return [
             'scope' => $this->scopeLine($user, $selection, $showSector),
             'screens' => $this->screens($selection, $current),
-            'filters' => [
-                'from' => $selection['period']->from,
-                'to' => $selection['period']->to,
-                'province' => $selection['provinceId'] === null ? '' : (string) $selection['provinceId'],
-                'district' => $selection['cityId'] === null ? '' : (string) $selection['cityId'],
-                'sector' => $selection['sector'] === null ? '' : $selection['sector']->value,
-            ],
+            'filters' => $this->filterProps($selection),
             'options' => [
                 'provinces' => $this->provinceOptions($user),
-                'districts' => $this->districtOptions($user, $selection['provinceId']),
+                'districts' => $this->districtOptions($user),
                 'sectors' => $this->sectorOptions(),
             ],
             'show' => [
@@ -282,6 +308,100 @@ class CommandCenterPage
                 'note' => ProvisionalReportedTat::HELPER,
                 'definition' => ProvisionalReportedTat::LABEL,
             ],
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     period: CommandPeriod,
+     *     provinceId: int|null,
+     *     cityId: int|null,
+     *     sector: Sector|null,
+     *     facilityId: int|null
+     * }  $selection
+     * @return array<string, mixed>
+     */
+    private function filterProps(array $selection): array
+    {
+        $default = CommandPeriod::default();
+        $presets = CommandPeriod::presets();
+        $from = $selection['period']->from;
+        $to = $selection['period']->to;
+        $province = $selection['provinceId'] === null ? '' : (string) $selection['provinceId'];
+        $district = $selection['cityId'] === null ? '' : (string) $selection['cityId'];
+        $sector = $selection['sector'] === null ? '' : $selection['sector']->value;
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'province' => $province,
+            'district' => $district,
+            'sector' => $sector,
+            'defaults' => [
+                'from' => $default->from,
+                'to' => $default->to,
+            ],
+            'active' => [
+                'from' => $from !== $default->from,
+                'to' => $to !== $default->to,
+                'province' => request()->integer('province') > 0 && $province !== '',
+                'district' => request()->integer('district') > 0 && $district !== '',
+                'sector' => request()->string('sector')->toString() !== '' && $sector !== '',
+            ],
+            'notice' => $this->returns->notice(),
+            'presets' => [
+                ['key' => 'month', 'label' => __('entry.period_this_month'), 'from' => $presets['month']->from, 'to' => $presets['month']->to],
+                ['key' => 'quarter', 'label' => __('entry.period_last_3_months'), 'from' => $presets['quarter']->from, 'to' => $presets['quarter']->to],
+                ['key' => 'ytd', 'label' => __('entry.period_year_to_date'), 'from' => $presets['ytd']->from, 'to' => $presets['ytd']->to],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     period: CommandPeriod,
+     *     provinceId: int|null,
+     *     cityId: int|null,
+     *     sector: Sector|null,
+     *     facilityId: int|null
+     * }  $selection
+     * @param  Closure(): array<string, mixed>  $build
+     * @return array<string, mixed>
+     */
+    private function remember(string $endpoint, Request $request, User $user, array $selection, Closure $build): array
+    {
+        $cached = CommandCache::remember($endpoint, $user, $this->cacheSelection($request, $selection), $build);
+
+        return is_array($cached) ? $cached : [];
+    }
+
+    /**
+     * @param  array{
+     *     period: CommandPeriod,
+     *     provinceId: int|null,
+     *     cityId: int|null,
+     *     sector: Sector|null,
+     *     facilityId: int|null
+     * }  $selection
+     * @return array<string, mixed>
+     */
+    private function cacheSelection(Request $request, array $selection): array
+    {
+        return [
+            'from' => $selection['period']->from,
+            'to' => $selection['period']->to,
+            'province' => $selection['provinceId'],
+            'district' => $selection['cityId'],
+            'sector' => $selection['sector']?->value,
+            'facility' => $selection['facilityId'],
+            'sort' => $request->string('sort')->toString(),
+            'direction' => $request->string('direction')->toString(),
+            'map_sector' => $request->string('sector')->toString(),
+            'indicator' => $request->string('indicator')->toString(),
+            'requested_province' => $request->integer('province') ?: null,
+            'requested_district' => $request->integer('district') ?: null,
+            'requested_sector' => $request->string('sector')->toString(),
+            'requested_facility' => $request->integer('facility') ?: null,
         ];
     }
 
@@ -508,8 +628,34 @@ class CommandCenterPage
     }
 
     /**
-     * @param  list<array<string, mixed>>  $districts
-     * @return list<array<string, mixed>>
+     * @param  list<array{
+     *     city_id: int,
+     *     district: string,
+     *     suspects: int,
+     *     tested: int,
+     *     positive: int,
+     *     negative: int,
+     *     started_treatment: int,
+     *     follow_up: int,
+     *     positivity: float|null,
+     *     treatment_gap: int,
+     *     active_facilities: int,
+     *     provisional_tat: float|null
+     * }>  $districts
+     * @return list<array{
+     *     city_id: int,
+     *     district: string,
+     *     suspects: int,
+     *     tested: int,
+     *     positive: int,
+     *     negative: int,
+     *     started_treatment: int,
+     *     follow_up: int,
+     *     positivity: float|null,
+     *     treatment_gap: int,
+     *     active_facilities: int,
+     *     provisional_tat: float|null
+     * }>
      */
     private function sortDistricts(array $districts, string $sort, string $direction): array
     {
@@ -734,21 +880,18 @@ class CommandCenterPage
     }
 
     /**
-     * @return list<array{value: string, label: string}>
+     * @return list<array{value: string, label: string, province_id?: string}>
      */
-    private function districtOptions(User $user, ?int $provinceId): array
+    private function districtOptions(User $user): array
     {
         $cities = City::query()->orderBy('name');
         $this->scope->constrainCities($cities, $user);
 
-        if ($provinceId !== null) {
-            $cities->where('province_id', $provinceId);
-        }
-
-        $options = $cities->get(['id', 'name'])
+        $options = $cities->get(['id', 'name', 'province_id'])
             ->map(fn (City $city): array => [
                 'value' => (string) $city->id,
                 'label' => $city->name,
+                'province_id' => (string) $city->province_id,
             ])
             ->all();
 

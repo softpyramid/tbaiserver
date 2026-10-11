@@ -25,15 +25,16 @@ test('after seeding the national card shows the seeded rate, source and method',
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('scope', 'All')
-            ->where('estimate.label', 'Estimated TB Incidence Rate')
-            ->where('estimate.rate', 292)
-            ->where('estimate.year', 2026)
-            ->where('estimate.scope', 'national_reference')
-            ->where('estimate.sub', '(Pakistan national estimate, 2026)')
-            ->where('estimate.message', null)
-            ->where('estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
-            ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)')
-            ->where('estimate.status', null));
+            ->loadDeferredProps(fn (Assert $page) => $page
+                ->where('estimate.label', 'Estimated TB Incidence Rate')
+                ->where('estimate.rate', 292)
+                ->where('estimate.year', 2026)
+                ->where('estimate.scope', 'national_reference')
+                ->where('estimate.sub', '(Pakistan national estimate, 2026)')
+                ->where('estimate.message', null)
+                ->where('estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
+                ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)')
+                ->where('estimate.status', null)));
 });
 
 test('an admin can change the estimate source and year and reseeding the seeder does not revert it', function () {
@@ -56,12 +57,12 @@ test('an admin can change the estimate source and year and reseeding the seeder 
     $this->actingAs($admin)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
             ->where('estimate.year', 2024)
             ->where('estimate.source', 'Named source')
             ->where('estimate.method', 'A named method')
-            ->where('estimate.sub', '(Pakistan national estimate, 2024)'));
+            ->where('estimate.sub', '(Pakistan national estimate, 2024)')));
 
     expect(IncidenceEstimate::query()->where('area_type', 'country')->whereNull('area_id')->count())
         ->toBe(1)
@@ -81,19 +82,19 @@ test('sindh and district selections fall back to the national row with the right
     $this->actingAs($admin)
         ->get(route('command.index', ['province' => $sindh->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
             ->where('estimate.scope', 'national_reference')
             ->where('estimate.sub', 'National estimate (Pakistan), not a Sindh rate')
-            ->where('estimate.message', 'National estimate (Pakistan), not a Sindh rate'));
+            ->where('estimate.message', 'National estimate (Pakistan), not a Sindh rate')));
 
     $this->actingAs($admin)
         ->get(route('command.index', ['province' => $sindh->id, 'district' => $karachi->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
             ->where('estimate.sub', 'National estimate (Pakistan), not a district rate')
-            ->where('estimate.message', 'National estimate (Pakistan), not a district rate'));
+            ->where('estimate.message', 'National estimate (Pakistan), not a district rate')));
 
     $this->actingAs($admin)
         ->post(route('command.incidence.estimates.store'), [
@@ -109,18 +110,18 @@ test('sindh and district selections fall back to the national row with the right
     $this->actingAs($admin)
         ->get(route('command.index', ['province' => $sindh->id]))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 300)
             ->where('estimate.scope', 'own')
             ->where('estimate.sub', '(Sindh, 2026)')
-            ->where('estimate.message', null));
+            ->where('estimate.message', null)));
 
     $this->actingAs($admin)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
-            ->where('estimate.scope', 'national_reference'));
+            ->where('estimate.scope', 'national_reference')));
 });
 
 test('all scope keeps the pakistan label, and a scoped user without an own row is told it is not their rate', function () {
@@ -137,10 +138,11 @@ test('all scope keeps the pakistan label, and a scoped user without an own row i
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('scope', 'All')
-            ->where('estimate.rate', 292)
-            ->where('estimate.year', 2026)
-            ->where('estimate.status', null)
-            ->where('estimate.sub', '(Pakistan national estimate, 2026)'));
+            ->loadDeferredProps(fn (Assert $page) => $page
+                ->where('estimate.rate', 292)
+                ->where('estimate.year', 2026)
+                ->where('estimate.status', null)
+                ->where('estimate.sub', '(Pakistan national estimate, 2026)')));
 
     $countryViewer = User::factory()->create();
     ProgrammeAssignment::factory()->create([
@@ -153,10 +155,10 @@ test('all scope keeps the pakistan label, and a scoped user without an own row i
     $this->actingAs($countryViewer)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
             ->where('estimate.sub', '(Pakistan national estimate, 2026)')
-            ->where('estimate.message', null));
+            ->where('estimate.message', null)));
 
     $provincial = User::factory()->create();
     ProgrammeAssignment::factory()->create([
@@ -169,9 +171,9 @@ test('all scope keeps the pakistan label, and a scoped user without an own row i
     $this->actingAs($provincial)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
-            ->where('estimate.sub', 'National estimate (Pakistan), not a Sindh rate'));
+            ->where('estimate.sub', 'National estimate (Pakistan), not a Sindh rate')));
 
     $officer = User::factory()->create();
     ProgrammeAssignment::factory()->create([
@@ -184,9 +186,9 @@ test('all scope keeps the pakistan label, and a scoped user without an own row i
     $this->actingAs($officer)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.rate', 292)
-            ->where('estimate.sub', 'National estimate (Pakistan), not a district rate'));
+            ->where('estimate.sub', 'National estimate (Pakistan), not a district rate')));
 });
 
 test('an admin can see and edit the seeded estimate, and reseeding does not overwrite it', function () {
@@ -293,10 +295,10 @@ test('with no estimate rows the card says no approved estimate entered', functio
     $this->actingAs($admin)
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.status', 'no_estimate')
             ->where('estimate.rate', null)
-            ->where('estimate.message', 'No approved estimate entered'));
+            ->where('estimate.message', 'No approved estimate entered')));
 });
 
 test('the incidence api returns yearly estimates with scope and never a monthly key', function () {
@@ -358,9 +360,10 @@ test('creating and editing daily returns leaves the estimate card unchanged', fu
         ->get(route('command.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('estimate.rate', 292)
-            ->where('estimate.scope', 'national_reference')
-            ->where('hasReturns', true));
+            ->where('hasReturns', true)
+            ->loadDeferredProps(fn (Assert $page) => $page
+                ->where('estimate.rate', 292)
+                ->where('estimate.scope', 'national_reference')));
 });
 
 test('the word incidence never appears in positivity or notification labels, map or sector json', function () {
@@ -370,8 +373,8 @@ test('the word incidence never appears in positivity or notification labels, map
     $this->actingAs($users['admin'])
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('notification.label', 'TB Case Notification Rate'));
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
+            ->where('notification.label', 'TB Case Notification Rate')));
 
     $response = $this->actingAs($users['admin'])->getJson('/api/command/cumulative')->assertOk();
     $positivity = collect($response->json('data.cascade'))
@@ -399,9 +402,9 @@ test('the seeded national estimate cites the WHO source and method', function ()
     $this->actingAs($users['admin'])
         ->get(route('command.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('estimate.source', 'WHO estimate for Pakistan (per WHO guidelines), 292 per 100,000')
-            ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)'));
+            ->where('estimate.method', 'WHO estimated incidence (new and relapse cases)')));
 
     $body = $this->actingAs($users['admin'])->getJson('/api/command/incidence')->assertOk()->content();
 

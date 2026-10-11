@@ -1,17 +1,41 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Fragment,
+    lazy,
+    Suspense,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
+import { getJson } from './api';
 import { CommandContext, type MapIntent, type SortState } from './context';
 import { PlaceholderPage } from './pages/placeholder';
-import { AiTestsPage } from './pages/ai-tests';
-import { DriversPage } from './pages/drivers';
 import { IncidencePage } from './pages/incidence';
-import { IntelligencePage } from './pages/intelligence';
-import { MapPage } from './pages/map';
 import { SectorPage } from './pages/sector';
 import { CumulativePage } from './pages/cumulative';
 import { TipProvider } from './tooltip';
 import type { Envelope, Frame, MapSector, Screen, Sector } from './types';
 import { at, LoadState } from './ui';
 import { useApi } from './use-api';
+
+const IntelligencePage = lazy(() =>
+    import('./pages/intelligence').then((module) => ({
+        default: module.IntelligencePage,
+    })),
+);
+const DriversPage = lazy(() =>
+    import('./pages/drivers').then((module) => ({
+        default: module.DriversPage,
+    })),
+);
+const MapPage = lazy(() =>
+    import('./pages/map').then((module) => ({ default: module.MapPage })),
+);
+const AiTestsPage = lazy(() =>
+    import('./pages/ai-tests').then((module) => ({
+        default: module.AiTestsPage,
+    })),
+);
 
 /** Pill geometry on the stage: [left, top, width, height], from the prototype. */
 const NAV_BOX: Record<number, [number, number, number, number]> = {
@@ -29,8 +53,37 @@ const NAV_BOX: Record<number, [number, number, number, number]> = {
 const STAGE_W = 1456;
 const STAGE_H = 819;
 
+function PageFallback() {
+    return <LoadState loading error={null} onRetry={() => undefined} />;
+}
+
 function numberFromHash(): number {
     return Number.parseInt(window.location.hash.slice(1), 10) || 1;
+}
+
+function pageUrl(number: number, sector: MapSector): string | null {
+    switch (number) {
+        case 1:
+            return '/api/command/cumulative';
+        case 2:
+            return '/api/command/intelligence';
+        case 3:
+            return '/api/command/sectors/public';
+        case 4:
+            return '/api/command/sectors/private';
+        case 5:
+            return '/api/command/sectors/ppm';
+        case 6:
+            return '/api/command/drivers';
+        case 7:
+            return `/api/command/map?sector=${sector}`;
+        case 8:
+            return '/api/command/ai-tests';
+        case 9:
+            return '/api/command/incidence';
+        default:
+            return null;
+    }
 }
 
 function useStageFit() {
@@ -86,6 +139,14 @@ export function CommandShell({
         indicator: null,
         heat: true,
     });
+
+    useEffect(() => {
+        const url = pageUrl(wanted, mapIntent.sector);
+
+        if (url !== null) {
+            void getJson(url);
+        }
+    }, [wanted, mapIntent.sector]);
 
     const screens = useMemo<Screen[]>(
         () => frame.data?.data.screens ?? [],
@@ -294,15 +355,23 @@ export function CommandShell({
                                     sector={current.key as Sector}
                                 />
                             ) : current?.key === 'intelligence' ? (
-                                <IntelligencePage key={current.key} />
+                                <Suspense fallback={<PageFallback />}>
+                                    <IntelligencePage key={current.key} />
+                                </Suspense>
                             ) : current?.key === 'drivers' ? (
-                                <DriversPage key={current.key} />
+                                <Suspense fallback={<PageFallback />}>
+                                    <DriversPage key={current.key} />
+                                </Suspense>
                             ) : current?.key === 'incidence' ? (
                                 <IncidencePage key={current.key} />
                             ) : current?.key === 'ai_tests' ? (
-                                <AiTestsPage key={current.key} />
+                                <Suspense fallback={<PageFallback />}>
+                                    <AiTestsPage key={current.key} />
+                                </Suspense>
                             ) : current?.key === 'map' ? (
-                                <MapPage key={current.key} />
+                                <Suspense fallback={<PageFallback />}>
+                                    <MapPage key={current.key} />
+                                </Suspense>
                             ) : switchedOff ? (
                                 <PlaceholderPage
                                     key={`off-${wanted}`}

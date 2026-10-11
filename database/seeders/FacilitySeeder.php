@@ -12,6 +12,7 @@ use App\Models\Facility;
 use App\Models\Taluka;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\CommandCache;
 use Carbon\CarbonImmutable;
 use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use DateTimeInterface;
@@ -84,6 +85,7 @@ class FacilitySeeder extends Seeder
         }
 
         $this->seedDailyReturns($sites, $incharge);
+        CommandCache::bump();
 
         $this->command?->info('Test facilities ready: '.count($sites).' sites. Sindh, plus test sites in Lahore and Peshawar.');
         $this->command?->line('  In-charge: '.$incharge->email.' owns Karachi West BMU.');

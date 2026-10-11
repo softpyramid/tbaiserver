@@ -7,6 +7,7 @@ use App\Models\Facility;
 use App\Models\User;
 use App\Support\DataScope;
 use App\Support\DistrictMatch;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Query\Expression;
@@ -18,6 +19,11 @@ use Illuminate\Support\Facades\DB;
  */
 final class CommandData
 {
+    /** @var array<string, list<array<string, mixed>>> */
+    private array $memo = [];
+
+    private ?int $memoRequest = null;
+
     public function __construct(private DataScope $scope) {}
 
     /**
@@ -61,11 +67,17 @@ final class CommandData
      */
     public function returns(Selection $s, User $user, array $by = []): array
     {
+        $key = $this->memoKey('returns', $s, $user, $by);
+
+        if (array_key_exists($key, $this->memo)) {
+            return $this->memo[$key];
+        }
+
         $query = DB::table('daily_returns as r')
             ->join('facilities as f', 'f.id', '=', 'r.facility_id')
             ->whereIn('r.facility_id', $this->facilities($s, $user)->select('facilities.id'))
             ->where('r.reported_on', '>=', $s->from)
-            ->where('r.reported_on', '<=', $s->to);
+            ->where('r.reported_on', '<', CarbonImmutable::parse($s->to)->addDay()->toDateString());
 
         foreach ($by as $key) {
             [$select, $group] = $this->returnGroup($key);
@@ -81,7 +93,7 @@ final class CommandData
             ." COUNT(DISTINCT CASE WHEN f.status = 'active' AND f.kind = 'bmu' THEN r.facility_id END) as active_bmus",
         ));
 
-        return $this->rows($query);
+        return $this->memo[$key] = $this->rows($query);
     }
 
     /**
@@ -93,6 +105,12 @@ final class CommandData
      */
     public function monthly(string $table, array $columns, Selection $s, User $user, array $by = []): array
     {
+        $key = $this->memoKey('monthly:'.$table.':'.implode(',', $columns), $s, $user, $by);
+
+        if (array_key_exists($key, $this->memo)) {
+            return $this->memo[$key];
+        }
+
         $query = DB::table($table.' as t')
             ->join('facilities as f', 'f.id', '=', 't.facility_id')
             ->whereIn('t.facility_id', $this->facilities($s, $user)->select('facilities.id'))
@@ -114,7 +132,7 @@ final class CommandData
 
         $query->addSelect(new Expression('COUNT(*) as record_count'));
 
-        return $this->rows($query);
+        return $this->memo[$key] = $this->rows($query);
     }
 
     /**
@@ -284,6 +302,30 @@ final class CommandData
             'tb_patients' => 'COALESCE(SUM(t.tb_patients),0) as tb_patients',
             default => throw new \InvalidArgumentException("Unknown column {$column}."),
         };
+    }
+
+    /**
+     * @param  list<string>  $by
+     */
+    private function memoKey(string $kind, Selection $s, User $user, array $by): string
+    {
+        $requestId = spl_object_id(request());
+
+        if ($this->memoRequest !== $requestId) {
+            $this->memo = [];
+            $this->memoRequest = $requestId;
+        }
+
+        return implode('|', [
+            $kind,
+            (string) $user->getKey(),
+            $s->from,
+            $s->to,
+            (string) $s->provinceId,
+            (string) $s->cityId,
+            $s->sector === null ? '' : $s->sector->value,
+            implode(',', $by),
+        ]);
     }
 
     /**

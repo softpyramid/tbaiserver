@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\City;
 use App\Models\IncidenceTarget;
 use App\Models\Province;
+use App\Support\CommandCache;
 use App\Support\DistrictMatch;
 use Database\Seeders\Support\CommandPrototypeData as Proto;
 use Illuminate\Database\Seeder;
@@ -33,6 +34,7 @@ class CommandIndicatorSeeder extends Seeder
         $this->districtIndicators($cities->all());
         $this->targets($sindh);
         $this->fixtures($cities->all());
+        CommandCache::bump();
     }
 
     /**

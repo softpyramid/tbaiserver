@@ -20,6 +20,7 @@ use App\Support\DailyReturnListing;
 use App\Support\DataScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,9 +38,22 @@ class CommandCenterController extends Controller
         $user = $request->user();
         abort_unless($user !== null, 403);
 
+        $payload = $page->cumulative($request, $user);
+        $deferred = null;
+        $load = function () use (&$deferred, $page, $request, $user): array {
+            return $deferred ??= $page->cumulativeDeferred($request, $user);
+        };
+
         return Inertia::render('command/index', [
-            ...$page->cumulative($request, $user),
-            'attention' => app(AdminAttention::class)->for($user),
+            ...$payload,
+            'months' => Inertia::defer(fn () => $load()['months']),
+            'notification' => Inertia::defer(fn () => $load()['notification']),
+            'estimate' => Inertia::defer(fn () => $load()['estimate']),
+            'attention' => Cache::remember(
+                'cc:attention:'.app()->getLocale().':'.$user->id,
+                60,
+                fn () => app(AdminAttention::class)->for($user),
+            ),
         ]);
     }
 

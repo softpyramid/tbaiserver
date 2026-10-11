@@ -55,9 +55,6 @@ test('cumulative data is summed live and year to date is the default range', fun
             ->where('kpis.4.value', '25%')
             ->where('kpis.6.label', 'Positives without a treatment start')
             ->where('kpis.6.value', '2')
-            ->where('months.0.suspects', 10)
-            ->where('months.1.suspects', 10)
-            ->where('months.9.suspects', 15)
             ->where('cascade.0.value', 15)
             ->where('cascade.1.value', 12)
             ->where('cascade.2.value', 3)
@@ -67,7 +64,11 @@ test('cumulative data is summed live and year to date is the default range', fun
                 ['value' => 'public', 'label' => 'Public'],
                 ['value' => 'private', 'label' => 'Private'],
                 ['value' => 'ppm', 'label' => 'PPM'],
-            ]));
+            ])
+            ->loadDeferredProps(fn (Assert $page) => $page
+                ->where('months.0.suspects', 10)
+                ->where('months.1.suspects', 10)
+                ->where('months.9.suspects', 15)));
 });
 
 test('a zero tested range does not divide positivity', function () {
@@ -87,16 +88,17 @@ test('a zero tested range does not divide positivity', function () {
             ->where('totals.treatment_gap', -2)
             ->where('totals.active_facilities', 1)
             ->where('kpis.4.value', 'Positivity appears after tested is above zero.')
-            ->where('months', [
-                [
-                    'key' => '2026-02',
-                    'label' => 'Feb 2026',
-                    'suspects' => 4,
-                    'tested' => 0,
-                    'positive' => 0,
-                    'started_treatment' => 2,
-                ],
-            ]));
+            ->loadDeferredProps(fn (Assert $page) => $page
+                ->where('months', [
+                    [
+                        'key' => '2026-02',
+                        'label' => 'Feb 2026',
+                        'suspects' => 4,
+                        'tested' => 0,
+                        'positive' => 0,
+                        'started_treatment' => 2,
+                    ],
+                ])));
 });
 
 test('not collected measures are labelled and have no numeric value', function () {

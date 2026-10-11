@@ -18,14 +18,47 @@ final class CommandPeriod
 
     public static function yearToDate(?CarbonImmutable $today = null): self
     {
-        $day = ($today ?? EntryDate::now())->timezone(EntryDate::timezone())->startOfDay();
+        $day = self::today($today);
 
         return new self($day->startOfYear()->toDateString(), $day->toDateString());
     }
 
+    private static function today(?CarbonImmutable $today): CarbonImmutable
+    {
+        return ($today ?? EntryDate::now())->timezone(EntryDate::timezone())->startOfDay();
+    }
+
+    public static function default(?CarbonImmutable $today = null): self
+    {
+        return match (config('tbai.command.default_period')) {
+            'month' => self::monthToDate($today),
+            'quarter' => self::trailingMonths(self::today($today)->toDateString(), 3),
+            default => self::yearToDate($today),
+        };
+    }
+
+    public static function monthToDate(?CarbonImmutable $today = null): self
+    {
+        $day = self::today($today);
+
+        return new self($day->startOfMonth()->toDateString(), $day->toDateString());
+    }
+
+    /**
+     * @return array{month: self, quarter: self, ytd: self}
+     */
+    public static function presets(?CarbonImmutable $today = null): array
+    {
+        return [
+            'month' => self::monthToDate($today),
+            'quarter' => self::trailingMonths(self::today($today)->toDateString(), 3),
+            'ytd' => self::yearToDate($today),
+        ];
+    }
+
     public static function fromRequest(Request $request): self
     {
-        $default = self::yearToDate();
+        $default = self::default();
         $from = self::day($request, 'from') ?? $default->from;
         $to = self::day($request, 'to') ?? $default->to;
 
@@ -70,6 +103,14 @@ final class CommandPeriod
         $previousFrom = $previousTo->subDays($span);
 
         return new self($previousFrom->toDateString(), $previousTo->toDateString());
+    }
+
+    /**
+     * The day after `to`, so a date or datetime value can be compared with a plain less-than.
+     */
+    public function endExclusive(): string
+    {
+        return CarbonImmutable::parse($this->to, EntryDate::timezone())->addDay()->toDateString();
     }
 
     /**

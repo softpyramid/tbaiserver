@@ -2,8 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\DailyReturn;
-
 /**
  * Live sums over daily returns. Nothing here is stored.
  */
@@ -33,6 +31,8 @@ final class CommandTotals
         $started = 0;
         $followUp = 0;
         $facilityIds = [];
+        $tatWeighted = 0.0;
+        $tatWeight = 0.0;
 
         foreach ($rows as $row) {
             $suspects += $row->suspects;
@@ -42,6 +42,8 @@ final class CommandTotals
             $started += $row->startedTreatment;
             $followUp += $row->followUp;
             $facilityIds[$row->facilityId] = true;
+            $tatWeighted += $row->tatWeighted;
+            $tatWeight += $row->tatWeight;
         }
 
         return [
@@ -54,7 +56,7 @@ final class CommandTotals
             'positivity' => self::positivity($positive, $tested),
             'treatment_gap' => self::treatmentGap($positive, $started),
             'active_facilities' => count($facilityIds),
-            'provisional_tat' => ProvisionalReportedTat::average(self::tatModels($rows)),
+            'provisional_tat' => $tatWeight > 0 ? $tatWeighted / $tatWeight : null,
         ];
     }
 
@@ -263,20 +265,5 @@ final class CommandTotals
         );
 
         return $facilities;
-    }
-
-    /**
-     * @param  list<CommandReturnRow>  $rows
-     * @return list<DailyReturn>
-     */
-    private static function tatModels(array $rows): array
-    {
-        return array_map(
-            fn (CommandReturnRow $row): DailyReturn => new DailyReturn([
-                'median_tat_days' => $row->medianTatDays,
-                'tested' => $row->tested,
-            ]),
-            $rows,
-        );
     }
 }

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\City;
 use App\Models\Province;
+use App\Support\CommandCache;
 use App\Support\DistrictMatch;
 use Database\Seeders\Support\CommandPrototypeData as Proto;
 use Illuminate\Database\Seeder;
@@ -73,5 +74,7 @@ class CommandSectorIndicatorSeeder extends Seeder
                 ['suspects', 'tested', 'positive', 'started_treatment', 'positivity', 'success_pct', 'ltfu_pct', 'tat_days', 'mdr_rr', 'ai_tests', 'bmus', 'updated_at'],
             );
         }
+
+        CommandCache::bump();
     }
 }

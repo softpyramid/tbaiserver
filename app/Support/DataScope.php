@@ -11,9 +11,15 @@ use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class DataScope
 {
+    /** @var array<int, Collection<int, ProgrammeAssignment>> */
+    private array $assignmentCache = [];
+
+    private ?int $requestObjectId = null;
+
     /**
      * Limit a facility query to the viewer's programme scope, or to their own facilities.
      *
@@ -25,7 +31,7 @@ class DataScope
             return;
         }
 
-        $assignments = $user->programmeAssignments()->get();
+        $assignments = $this->assignments($user);
 
         if ($assignments->isEmpty()) {
             $teamIds = $user->teams()->pluck('teams.id');
@@ -56,7 +62,7 @@ class DataScope
             return;
         }
 
-        $assignments = $user->programmeAssignments()->get();
+        $assignments = $this->assignments($user);
 
         if ($assignments->isEmpty()) {
             $facilityCityIds = Facility::query()
@@ -112,8 +118,7 @@ class DataScope
             return __('entry.scope_all');
         }
 
-        $labels = $user->programmeAssignments()
-            ->get()
+        $labels = $this->assignments($user)
             ->map(fn (ProgrammeAssignment $assignment): string => $this->assignmentLabel($assignment))
             ->filter(fn (string $label): bool => $label !== '')
             ->unique()
@@ -182,6 +187,23 @@ class DataScope
         }
 
         return __('entry.all_facilities');
+    }
+
+    /**
+     * @return Collection<int, ProgrammeAssignment>
+     */
+    private function assignments(User $user): Collection
+    {
+        $requestId = spl_object_id(request());
+
+        if ($this->requestObjectId !== $requestId) {
+            $this->assignmentCache = [];
+            $this->requestObjectId = $requestId;
+        }
+
+        $userId = (int) $user->getKey();
+
+        return $this->assignmentCache[$userId] ??= $user->programmeAssignments;
     }
 
     /**

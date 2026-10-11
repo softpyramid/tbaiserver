@@ -3,7 +3,8 @@
 namespace App\Support;
 
 /**
- * One daily return, already limited to the viewer's scope and filters.
+ * Facility totals for one month inside the viewer's scope and filters.
+ * Counts are sums. Turnaround is the weighted sum, not a single median.
  */
 final readonly class CommandReturnRow
 {
@@ -19,6 +20,8 @@ final readonly class CommandReturnRow
         public int $negative,
         public int $startedTreatment,
         public int $followUp,
-        public ?float $medianTatDays,
+        public float $tatWeighted,
+        public float $tatWeight,
+        public int $returnCount,
     ) {}
 }

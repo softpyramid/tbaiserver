@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\ReloadRequest;
 
 /**
  * Fixed fixture. These figures are the contract for the SQL rewrite and the cache.
@@ -26,18 +27,42 @@ test('command figures match across a cold cache and a warm cache for each scope'
     $hyderabad = City::factory()->create(['province_id' => $sindh->id, 'name' => 'Hyderabad', 'slug' => 'hyderabad']);
     $thatta = City::factory()->create(['province_id' => $sindh->id, 'name' => 'Thatta', 'slug' => 'thatta']);
 
-    $westPublic = commandFacility($west, Sector::Public, 'West Public');
-    $westPrivate = commandFacility($west, Sector::Private, 'West Private');
-    $hyderabadPublic = commandFacility($hyderabad, Sector::Public, 'Hyderabad Public');
-    $thattaPrivate = commandFacility($thatta, Sector::Private, 'Thatta Private');
+    $facility = function (City $city, Sector $sector, string $name): Facility {
+        $created = Facility::factory()->create([
+            'city_id' => $city->id,
+            'sector' => $sector,
+        ]);
+        $created->team->update(['name' => $name]);
 
-    commandReturn($westPublic, '2026-01-31', suspects: 10, tested: 8, positive: 2, negative: 6, started: 1, followUp: 1, tat: 1.5);
-    commandReturn($westPublic, '2026-02-01', suspects: 6, tested: 4, positive: 1, negative: 3, started: 1, followUp: 0, tat: 2.5);
-    commandReturn($westPrivate, '2026-02-28', suspects: 4, tested: 0, positive: 0, negative: 0, started: 0, followUp: 2, tat: 9);
-    commandReturn($westPrivate, '2026-03-02', suspects: 5, tested: 5, positive: 2, negative: 3, started: 1, followUp: 1, tat: null);
-    commandReturn($hyderabadPublic, '2026-03-15', suspects: 12, tested: 10, positive: 3, negative: 7, started: 2, followUp: 1, tat: 4);
-    commandReturn($thattaPrivate, '2026-01-10', suspects: 8, tested: 6, positive: 1, negative: 5, started: 1, followUp: 0, tat: 3);
-    commandReturn($thattaPrivate, '2026-04-01', suspects: 9, tested: 7, positive: 2, negative: 5, started: 2, followUp: 1, tat: 1);
+        return $created;
+    };
+
+    $store = function (Facility $site, string $date, int $suspects, int $tested, int $positive, int $negative, int $started, int $followUp, ?float $tat) {
+        DailyReturn::factory()->create([
+            'facility_id' => $site->id,
+            'reported_on' => $date,
+            'suspects' => $suspects,
+            'tested' => $tested,
+            'positive' => $positive,
+            'negative' => $negative,
+            'started_treatment' => $started,
+            'follow_up' => $followUp,
+            'median_tat_days' => $tat,
+        ]);
+    };
+
+    $westPublic = $facility($west, Sector::Public, 'West Public');
+    $westPrivate = $facility($west, Sector::Private, 'West Private');
+    $hyderabadPublic = $facility($hyderabad, Sector::Public, 'Hyderabad Public');
+    $thattaPrivate = $facility($thatta, Sector::Private, 'Thatta Private');
+
+    $store($westPublic, '2026-01-31', 10, 8, 2, 6, 1, 1, 1.5);
+    $store($westPublic, '2026-02-01', 6, 4, 1, 3, 1, 0, 2.5);
+    $store($westPrivate, '2026-02-28', 4, 0, 0, 0, 0, 2, 9);
+    $store($westPrivate, '2026-03-02', 5, 5, 2, 3, 1, 1, null);
+    $store($hyderabadPublic, '2026-03-15', 12, 10, 3, 7, 2, 1, 4);
+    $store($thattaPrivate, '2026-01-10', 8, 6, 1, 5, 1, 0, 3);
+    $store($thattaPrivate, '2026-04-01', 9, 7, 2, 5, 2, 1, 1);
 
     $admin = User::factory()->create(['email' => 'admin-equality@tbai.test']);
     ProgrammeAssignment::factory()->create([
@@ -103,7 +128,7 @@ test('command figures match across a cold cache and a warm cache for each scope'
         ->and($snapshot['sindh']['/command'])->not->toEqual($snapshot['karachi_west']['/command'])
         ->and($snapshot['admin']['/api/command/cumulative'])->not->toEqual($snapshot['karachi_west']['/api/command/cumulative']);
 
-    expect($snapshot)->toMatchSnapshot();
+    expect(commandSort($snapshot))->toMatchSnapshot();
 });
 
 /**
@@ -126,8 +151,32 @@ function commandPayload(TestResponse $response): array
     }
 
     $page = json_decode(json_encode($response->viewData('page')), true);
+    $props = is_array($page['props'] ?? null) ? $page['props'] : [];
+    $deferred = [];
 
-    return commandFigureProps(is_array($page['props'] ?? null) ? $page['props'] : []);
+    foreach ($page['deferredProps'] ?? [] as $group) {
+        if (is_array($group)) {
+            array_push($deferred, ...$group);
+        }
+    }
+
+    if ($deferred !== []) {
+        $reload = (new ReloadRequest(
+            (string) ($page['url'] ?? '/command'),
+            (string) ($page['component'] ?? 'command/index'),
+            (string) ($page['version'] ?? ''),
+            implode(',', $deferred),
+        ))();
+        $extra = $reload->headers->get('content-type') && str_contains((string) $reload->headers->get('content-type'), 'json')
+            ? $reload->json('props')
+            : (json_decode(json_encode($reload->viewData('page')), true)['props'] ?? null);
+
+        if (is_array($extra)) {
+            $props = array_merge($props, $extra);
+        }
+    }
+
+    return commandFigureProps($props);
 }
 
 /**
@@ -142,9 +191,9 @@ function commandFigureProps(array $props): array
         'kpis',
         'cascade',
         'months',
-        'hasReturns',
         'notification',
         'estimate',
+        'hasReturns',
         'rows',
         'facilities',
         'districts',
@@ -157,5 +206,32 @@ function commandFigureProps(array $props): array
         'selectedId',
     ];
 
-    return array_intersect_key($props, array_flip($keys));
+    $out = [];
+
+    foreach ($keys as $key) {
+        if (array_key_exists($key, $props)) {
+            $out[$key] = $props[$key];
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * @param  array<string, mixed>  $value
+ * @return array<string, mixed>
+ */
+function commandSort(array $value): array
+{
+    foreach ($value as $key => $item) {
+        if (is_array($item)) {
+            $value[$key] = commandSort($item);
+        }
+    }
+
+    if (! array_is_list($value)) {
+        ksort($value);
+    }
+
+    return $value;
 }

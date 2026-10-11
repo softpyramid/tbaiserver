@@ -71,8 +71,8 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 
     public function isTbaiAdmin(): bool
     {
-        return $this->programmeAssignments()
-            ->where('role', ProgrammeRole::TbaiAdmin)
-            ->exists();
+        return $this->programmeAssignments->contains(
+            fn (ProgrammeAssignment $assignment): bool => $assignment->role === ProgrammeRole::TbaiAdmin,
+        );
     }
 }

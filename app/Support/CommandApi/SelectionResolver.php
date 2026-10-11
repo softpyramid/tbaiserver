@@ -64,7 +64,7 @@ final class SelectionResolver
             return new ScopeLocks('admin', null, null);
         }
 
-        $assignments = $user->programmeAssignments()->get();
+        $assignments = $user->programmeAssignments;
 
         if ($assignments->contains(fn ($a) => $a->role === ProgrammeRole::CountryViewer)) {
             return new ScopeLocks('country', null, null);

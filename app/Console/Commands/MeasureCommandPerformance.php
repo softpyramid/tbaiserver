@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\DailyReturn;
 use App\Models\Facility;
 use App\Models\User;
+use App\Support\CommandCache;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
@@ -61,6 +62,8 @@ class MeasureCommandPerformance extends Command
             }
         });
 
+        CommandCache::bump();
+
         $paths = [
             '/command',
             '/command/map',
@@ -93,20 +96,31 @@ class MeasureCommandPerformance extends Command
                     $counts[] = $queryCount;
                 }
 
+                $warmTimes = array_slice($times, 1);
+                $warmCounts = array_slice($counts, 1);
+
                 $rows[] = [
                     'path' => $path,
                     'role' => $label,
                     'seconds' => $this->median($times),
                     'queries' => $this->median($counts),
+                    'cold_seconds' => $times[0],
+                    'cold_queries' => $counts[0],
+                    'warm_seconds' => $this->median($warmTimes),
+                    'warm_queries' => $this->median($warmCounts),
                     'status' => $status,
                 ];
 
                 $this->line(sprintf(
-                    '%s %s  %.3f s  %s queries  HTTP %d',
+                    '%s %s  median %.3f s / %s q  cold %.3f s / %d q  warm %.3f s / %s q  HTTP %d',
                     $path,
                     $label,
                     $this->median($times),
                     $this->formatMedian($this->median($counts)),
+                    $times[0],
+                    $counts[0],
+                    $this->median($warmTimes),
+                    $this->formatMedian($this->median($warmCounts)),
                     $status,
                 ));
             }
@@ -190,7 +204,7 @@ class MeasureCommandPerformance extends Command
     }
 
     /**
-     * @param  list<array{path: string, role: string, seconds: float, queries: float, status: int}>  $rows
+     * @param  list<array{path: string, role: string, seconds: float, queries: float, cold_seconds: float, cold_queries: int, warm_seconds: float, warm_queries: float, status: int}>  $rows
      */
     private function markdown(array $rows, string $label): string
     {
@@ -200,17 +214,22 @@ class MeasureCommandPerformance extends Command
             'Measured with `php artisan tbai:perf` on '.now()->timezone('Asia/Karachi')->toDateTimeString().' Asia/Karachi.',
             'Environment: local. Cache store: '.config('cache.default').'. Database: '.config('database.default').'.',
             'Prototype seed: '.Facility::query()->where('status', 'active')->count().' active facilities, '.DailyReturn::query()->count().' daily returns.',
-            'Each cell is the median of 5 in-process runs (query count from DB::listen, including middleware).',
+            'Five in-process runs per request (query count from DB::listen, including middleware).',
+            'Cold is run 1. Warm is the median of runs 2 to 5. Median is all five runs, matching the before report.',
             '',
-            '| Request | Role | Median seconds | Median queries | HTTP |',
-            '| --- | --- | ---: | ---: | ---: |',
+            '| Request | Role | Cold s | Cold queries | Warm s | Warm queries | Median s | Median queries | HTTP |',
+            '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
         ];
 
         foreach ($rows as $row) {
             $lines[] = sprintf(
-                '| `%s` | %s | %s | %s | %d |',
+                '| `%s` | %s | %s | %d | %s | %s | %s | %s | %d |',
                 $row['path'],
                 $row['role'],
+                number_format($row['cold_seconds'], 3, '.', ''),
+                $row['cold_queries'],
+                number_format($row['warm_seconds'], 3, '.', ''),
+                $this->formatMedian($row['warm_queries']),
                 number_format($row['seconds'], 3, '.', ''),
                 $this->formatMedian($row['queries']),
                 $row['status'],

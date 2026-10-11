@@ -17,7 +17,9 @@ use App\Support\CommandApi\MapBuilder;
 use App\Support\CommandApi\SectorBuilder;
 use App\Support\CommandApi\Selection;
 use App\Support\CommandApi\SelectionResolver;
+use App\Support\CommandCache;
 use App\Support\DataScope;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,14 +36,14 @@ class CommandApiController extends Controller
         $user = $this->user($request);
         $s = $this->resolver->resolve($request, $user);
 
-        return $this->respond(['scope_name' => $s->scopeName], $frame->build($s, $user));
+        return $this->respond(['scope_name' => $s->scopeName], $this->cached('frame', $request, $user, $s, fn () => $frame->build($s, $user)));
     }
 
     public function cumulative(Request $request, CumulativeBuilder $builder): JsonResponse
     {
         $user = $this->user($request);
         $s = $this->resolver->resolve($request, $user);
-        $data = $builder->build($s, $user);
+        $data = $this->cached('cumulative', $request, $user, $s, fn () => $builder->build($s, $user));
         $hasReturns = $data['has_returns'];
         unset($data['has_returns']);
 
@@ -53,7 +55,7 @@ class CommandApiController extends Controller
         $user = $this->user($request);
         $s = $this->resolver->resolve($request, $user);
 
-        return $this->respond($this->meta($s), $builder->build($s, $user));
+        return $this->respond($this->meta($s), $this->cached('intelligence', $request, $user, $s, fn () => $builder->build($s, $user)));
     }
 
     public function sector(Request $request, string $sector, SectorBuilder $builder): JsonResponse
@@ -68,7 +70,7 @@ class CommandApiController extends Controller
             'sector' => $sector,
             'filters' => $s->filters(false),
             'sort' => ['key' => $sort, 'direction' => $direction],
-        ], $builder->table($s, $user, $sort, $direction));
+        ], $this->cached('sector', $request, $user, $s, fn () => $builder->table($s, $user, $sort, $direction)));
     }
 
     public function bmus(Request $request, string $sector, City $city, SectorBuilder $builder, DataScope $scope): JsonResponse
@@ -81,7 +83,7 @@ class CommandApiController extends Controller
         return $this->respond([
             'sector' => $sector,
             'filters' => ['from' => $s->from, 'to' => $s->to],
-        ], $builder->bmus($s, $user, $city));
+        ], $this->cached('bmus', $request, $user, $s, fn () => $builder->bmus($s, $user, $city)));
     }
 
     public function map(Request $request, MapBuilder $builder): JsonResponse
@@ -95,7 +97,7 @@ class CommandApiController extends Controller
             'sector' => $s->sector->value ?? 'all',
             'indicator' => $indicator,
             'filters' => $s->filters(false),
-        ], $builder->build($s, $user, $indicator, $selected));
+        ], $this->cached('map', $request, $user, $s, fn () => $builder->build($s, $user, $indicator, $selected)));
     }
 
     public function drivers(Request $request, DriversBuilder $builder): JsonResponse
@@ -103,7 +105,7 @@ class CommandApiController extends Controller
         $user = $this->user($request);
         $s = $this->resolver->resolve($request, $user);
 
-        return $this->respond(['filters' => $s->filters()], $builder->build($s, $user));
+        return $this->respond(['filters' => $s->filters()], $this->cached('drivers', $request, $user, $s, fn () => $builder->build($s, $user)));
     }
 
     public function aiTests(Request $request, AiTestsBuilder $builder): JsonResponse
@@ -113,7 +115,7 @@ class CommandApiController extends Controller
 
         return $this->respond([
             'filters' => ['sector' => 'all', 'province' => $s->filters()['province'], 'district' => $s->filters()['district']],
-        ], $builder->build($s, $user));
+        ], $this->cached('ai-tests', $request, $user, $s, fn () => $builder->build($s, $user)));
     }
 
     public function incidence(Request $request, IncidenceBuilder $builder, DataScope $scope): JsonResponse
@@ -134,7 +136,9 @@ class CommandApiController extends Controller
 
         abort_if($province === null, 404);
 
-        $data = $builder->build($province);
+        $data = $this->cached('incidence', $request, $user, $s, fn () => $builder->build($province), [
+            'resolved_province' => $province->id,
+        ]);
         $values = array_filter(array_merge(
             array_column($data['yearly'], 'estimate'),
             array_column($data['yearly'], 'target'),
@@ -177,5 +181,31 @@ class CommandApiController extends Controller
         abort_unless($user instanceof User, 401);
 
         return $user;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
+     */
+    private function cached(string $endpoint, Request $request, User $user, Selection $s, Closure $build, array $extra = []): array
+    {
+        $value = CommandCache::remember($endpoint, $user, [
+            'from' => $s->from,
+            'to' => $s->to,
+            'province' => $s->provinceId,
+            'district' => $s->cityId,
+            'sector' => $s->sector === null ? null : $s->sector->value,
+            'sort' => $request->string('sort')->toString(),
+            'direction' => $request->string('direction')->toString(),
+            'map_sector' => $request->string('sector')->toString(),
+            'indicator' => $request->string('indicator')->toString(),
+            'selected' => $request->integer('selected') ?: null,
+        ] + $extra, $build);
+
+        if (! is_array($value)) {
+            throw new \RuntimeException('The command cache did not return a payload.');
+        }
+
+        return $value;
     }
 }

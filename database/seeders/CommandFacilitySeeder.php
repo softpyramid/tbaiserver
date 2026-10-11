@@ -10,6 +10,7 @@ use App\Models\Facility;
 use App\Models\Province;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\CommandCache;
 use App\Support\DistrictMatch;
 use Database\Seeders\Support\CommandPrototypeData as Proto;
 use Illuminate\Database\Seeder;
@@ -113,6 +114,7 @@ class CommandFacilitySeeder extends Seeder
             }
         }
 
+        CommandCache::bump();
     }
 
     /** The first sites of a public cell are BMUs, as many as the All table counts; any further site is a district hospital. */

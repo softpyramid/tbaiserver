@@ -41,6 +41,7 @@ void createInertiaApp({
     },
     progress: {
         color: '#29269b',
+        delay: 150,
     },
 });
 

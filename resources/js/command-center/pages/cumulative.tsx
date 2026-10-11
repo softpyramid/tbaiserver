@@ -3,6 +3,7 @@ import { HBarChart } from '../charts/h-bar-chart';
 import { LineAreaChart } from '../charts/line-area-chart';
 import { RingGauge } from '../charts/ring-gauge';
 import { fmt, formatValue, missingText } from '../format';
+import { CumulativeSkeleton } from '../skeletons';
 import type { Cumulative, Envelope } from '../types';
 import { at, Chip, Kpi, Kpis, LoadState, Panel } from '../ui';
 import { useApi } from '../use-api';
@@ -40,7 +41,14 @@ export function CumulativePage() {
     const [view, setView] = useState<'g' | 't'>('g');
 
     if (!data) {
-        return <LoadState loading={loading} error={error} onRetry={reload} />;
+        return (
+            <LoadState
+                loading={loading}
+                error={error}
+                onRetry={reload}
+                skeleton={<CumulativeSkeleton />}
+            />
+        );
     }
 
     const scope = data.meta.scope_name ?? 'Sindh';

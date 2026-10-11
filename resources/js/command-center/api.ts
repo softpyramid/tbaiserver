@@ -7,6 +7,9 @@ export class ApiError extends Error {
     }
 }
 
+/** Message for any failure that is not a 401, 403 or 404. */
+export const GENERIC_LOAD_ERROR = 'The data could not be loaded.';
+
 const cache = new Map<string, Promise<unknown>>();
 
 /** GET JSON from the command center API with the signed-in session. */
@@ -36,7 +39,7 @@ export function getJson<T>(url: string): Promise<T> {
                     ? 'You do not have access to this page.'
                     : response.status === 404
                       ? 'This page is not available.'
-                      : 'The data could not be loaded.',
+                      : GENERIC_LOAD_ERROR,
             );
         }
 

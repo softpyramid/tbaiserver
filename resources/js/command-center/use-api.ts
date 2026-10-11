@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError, clearApiCache, getJson } from './api';
+import { LOAD_ERROR_TEXT, PENDING_TIMEOUT_MS } from '@/lib/loading';
+import { ApiError, clearApiCache, GENERIC_LOAD_ERROR, getJson } from './api';
 
 type State<T> = { data: T | null; error: string | null; loading: boolean };
 
-/** Load one API URL; `reload` clears the cache and tries again. */
+/**
+ * Load one API URL; `reload` clears the cache and tries again. A request
+ * still pending after PENDING_TIMEOUT_MS reads as an error (so Retry shows),
+ * but a late answer still replaces it.
+ */
 export function useApi<T>(url: string | null) {
     const [attempt, setAttempt] = useState(0);
     const [state, setState] = useState<State<T> & { url: string | null }>({
@@ -19,6 +24,16 @@ export function useApi<T>(url: string | null) {
         }
 
         let live = true;
+        const timer = window.setTimeout(() => {
+            if (live) {
+                setState({
+                    url,
+                    data: null,
+                    error: LOAD_ERROR_TEXT,
+                    loading: false,
+                });
+            }
+        }, PENDING_TIMEOUT_MS);
 
         getJson<T>(url)
             .then(
@@ -35,13 +50,15 @@ export function useApi<T>(url: string | null) {
                         error:
                             error instanceof ApiError
                                 ? error.message
-                                : 'The data could not be loaded.',
+                                : GENERIC_LOAD_ERROR,
                         loading: false,
                     }),
-            );
+            )
+            .finally(() => window.clearTimeout(timer));
 
         return () => {
             live = false;
+            window.clearTimeout(timer);
         };
     }, [url, attempt]);
 

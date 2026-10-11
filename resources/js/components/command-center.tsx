@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { Fragment, FormEvent, type ReactNode, useState } from 'react';
 import PageShell from '@/components/page-shell';
+import { PanelLoading } from '@/components/panel-loading';
 import { Button } from '@/components/ui/button';
 import {
     Breadcrumb,
@@ -12,6 +13,7 @@ import {
     BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Input } from '@/components/ui/input';
+import { useVisitPending } from '@/hooks/use-visit-pending';
 import { cn } from '@/lib/utils';
 
 export type CommandOption = {
@@ -255,6 +257,7 @@ export function CommandShell({
     const [filtersPending, setFiltersPending] = useState(false);
     const areaTabs = usePage().props.nav.commandTabs;
     const formKey = `${filters.from}|${filters.to}|${filters.province}|${filters.district}|${filters.sector}`;
+    const visit = useVisitPending();
 
     return (
         <PageShell
@@ -276,14 +279,14 @@ export function CommandShell({
                 preserved={preserved}
                 onPending={setFiltersPending}
             />
-            <div
-                className={cn(
-                    filtersPending && 'pointer-events-none opacity-60',
-                )}
-                aria-busy={filtersPending || undefined}
+            <PanelLoading
+                pending={filtersPending || visit.pending}
+                error={visit.phase === 'failed'}
+                onRetry={visit.retry}
+                className="flex min-w-0 flex-col gap-6"
             >
                 {children}
-            </div>
+            </PanelLoading>
 
             <div className="flex flex-wrap gap-4 text-sm">
                 {links.map((link) => (

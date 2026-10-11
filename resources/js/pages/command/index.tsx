@@ -13,6 +13,7 @@ import {
     useChartMode,
     ViewToggle,
 } from '@/components/command-center';
+import { SkeletonCard, SkeletonChart } from '@/components/skeleton';
 
 type Kpi = {
     key: string;
@@ -209,9 +210,13 @@ export default function CommandIndex({
                 data="notification"
                 fallback={
                     <div
-                        className="h-24 animate-pulse rounded-lg bg-muted"
+                        className="h-24 overflow-hidden"
                         data-test="notification-pending"
-                    />
+                        role="status"
+                        aria-label="Loading..."
+                    >
+                        <SkeletonCard lines={1} className="h-full" />
+                    </div>
                 }
             >
                 {notification ? (
@@ -308,9 +313,13 @@ export default function CommandIndex({
                 data="estimate"
                 fallback={
                     <div
-                        className="h-24 animate-pulse rounded-lg bg-muted"
+                        className="h-24 overflow-hidden"
                         data-test="estimate-pending"
-                    />
+                        role="status"
+                        aria-label="Loading..."
+                    >
+                        <SkeletonCard lines={1} className="h-full" />
+                    </div>
                 }
             >
                 {estimate ? (
@@ -424,9 +433,13 @@ export default function CommandIndex({
                 data="months"
                 fallback={
                     <div
-                        className="h-40 animate-pulse rounded-lg bg-muted"
+                        className="h-40 overflow-hidden"
                         data-test="months-pending"
-                    />
+                        role="status"
+                        aria-label="Loading..."
+                    >
+                        <SkeletonChart height={160} />
+                    </div>
                 }
             >
                 <CommandCharts

@@ -2,6 +2,7 @@ import { HBarChart } from '../charts/h-bar-chart';
 import { useCommand } from '../context';
 import { cpt, fmt } from '../format';
 import type { AlertLine, Envelope, Intelligence, MapSector } from '../types';
+import { IntelligenceSkeleton } from '../skeletons';
 import { at, LoadState, Panel } from '../ui';
 import { useApi } from '../use-api';
 
@@ -75,6 +76,7 @@ export function IntelligencePage() {
                 loading={state.loading}
                 error={state.error}
                 onRetry={state.reload}
+                skeleton={<IntelligenceSkeleton />}
             />
         );
     }

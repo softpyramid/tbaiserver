@@ -159,12 +159,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                                     {tbai.developmentNotice}
                                 </p>
                             )}
-                            {tbai.partnerLine && (
-                                <SoftPyramidCredit
-                                    variant="partner"
-                                    className="mt-4 text-sm text-[#F8FAFC]"
-                                />
-                            )}
+                            <SoftPyramidCredit
+                                variant="partner"
+                                className="mt-4 text-sm text-[#F8FAFC]"
+                            />
                         </div>
                         <div className="text-sm leading-7">
                             <nav aria-label="Legal" className="mb-3 flex gap-4">

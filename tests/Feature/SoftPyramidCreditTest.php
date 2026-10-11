@@ -58,7 +58,6 @@ test('each placement renders the credit', function (string $path) {
     'auth layout' => 'js/layouts/auth/auth-simple-layout.tsx',
     'app sidebar' => 'js/components/app-sidebar.tsx',
     'command center shell' => 'js/command-center/shell.tsx',
-    'about page' => 'js/pages/about.tsx',
     'marketing footer' => 'js/components/marketing-shell.tsx',
 ]);
 
@@ -71,12 +70,31 @@ test('the command center credit stays out of the header', function () {
         ->and(file_get_contents(resource_path('css/command-center.css')))->toContain('.cc-root .cc-credit {');
 });
 
-test('the marketing partner line stays off while its flag is off', function () {
-    config(['tbai.show_partner_line' => false]);
+test('the public footer always shows the technology partner credit', function () {
+    $shell = file_get_contents(resource_path('js/components/marketing-shell.tsx'));
 
-    $this->get(route('home'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('tbai.showPartnerLine', false)
-            ->where('tbai.partnerLine', null));
+    expect($shell)
+        ->toContain('<SoftPyramidCredit')
+        ->toContain('variant="partner"')
+        ->not->toContain('tbai.partnerLine &&');
 });
+
+test('the about page shows the partner credit once, through the public footer', function () {
+    $about = file_get_contents(resource_path('js/pages/about.tsx'));
+
+    expect($about)
+        ->toContain('<MarketingShell>')
+        ->not->toContain('SoftPyramidCredit');
+});
+
+test('the public footer credit does not depend on the partner line flag', function (bool $flag) {
+    config(['tbai.show_partner_line' => $flag]);
+
+    $this->get(route('about'))->assertOk()->assertInertia(fn ($page) => $page
+        ->component('about')
+        ->where('i18n.entry.credit_partner', 'Technology partner: :company')
+        ->where('i18n.entry.credit_company', 'Soft Pyramid LLC'));
+})->with([
+    'flag off' => [false],
+    'flag on' => [true],
+]);

@@ -88,6 +88,8 @@ class CommandAlerts
                 'save' => __('entry.save'),
                 'alerts' => __('entry.alert_list_heading'),
                 'rules' => __('entry.alert_rules_heading'),
+                'severityAll' => __('entry.alert_severity_all'),
+                'severityFilter' => __('entry.alert_severity_filter'),
             ],
         ];
     }

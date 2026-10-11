@@ -170,3 +170,22 @@ test('an admin can edit an alert rule and another command role cannot', function
         ->patch(route('command.alerts.update', $rule), $payload)
         ->assertForbidden();
 });
+
+test('the alerts page sends the severity labels and keeps the stored severities and the thresholds notice', function () {
+    $this->app['env'] = 'local';
+    $this->seed(AlertRuleSeeder::class);
+    $this->app['env'] = 'testing';
+
+    $admin = User::factory()->create();
+    giveProgrammeRole($admin, ProgrammeRole::TbaiAdmin);
+
+    $this->actingAs($admin)
+        ->get(route('command.alerts'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('command/alerts')
+            ->where('badge', 'Thresholds pending the TB programme')
+            ->where('alertLabels.severityAll', 'All')
+            ->where('alertLabels.severityFilter', 'Filter alerts by severity')
+            ->where('rules', fn ($rules) => collect($rules)->pluck('severity')->all() === AlertRule::query()->orderBy('id')->pluck('severity')->all()));
+});

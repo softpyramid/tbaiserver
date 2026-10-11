@@ -317,6 +317,8 @@ return [
     'alert_not_triggered' => 'Not triggered',
     'alert_rules_heading' => 'Rules',
     'alert_list_heading' => 'Alerts',
+    'alert_severity_all' => 'All',
+    'alert_severity_filter' => 'Filter alerts by severity',
     'save' => 'Save',
     'returns_on_file' => 'Returns on file',
     'detail_title' => 'Daily return',

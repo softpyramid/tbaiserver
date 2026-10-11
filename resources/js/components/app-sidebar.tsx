@@ -22,6 +22,7 @@ import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain, type NavGroup } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { SoftPyramidCredit } from '@/components/softpyramid-credit';
 import { TeamSwitcher } from '@/components/team-switcher';
 import {
     Sidebar,
@@ -116,6 +117,10 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
+                <SoftPyramidCredit
+                    compact
+                    className="px-2 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
+                />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

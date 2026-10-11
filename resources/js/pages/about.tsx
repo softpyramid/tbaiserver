@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { MarketingShell } from '@/components/marketing-shell';
+import { SoftPyramidCredit } from '@/components/softpyramid-credit';
 
 export default function About() {
     return (
@@ -20,6 +21,10 @@ export default function About() {
                         It does not diagnose patients and it does not store
                         patient names, phone numbers, or national IDs.
                     </p>
+                    <SoftPyramidCredit
+                        variant="partner"
+                        className="text-sm text-inherit"
+                    />
                 </div>
             </main>
         </MarketingShell>

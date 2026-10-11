@@ -521,4 +521,8 @@ return [
     'impersonation_blocked' => 'You are viewing as another person. Their password, email and two-factor settings cannot be changed while you do. Stop viewing as them first.',
     'column_details' => 'Details',
     'audit_viewing_as' => 'done while viewing as another person (started by user #:id)',
+    'credit_developed_by' => 'Developed by :company',
+    'credit_partner' => 'Technology partner: :company',
+    'credit_company' => 'Soft Pyramid LLC',
+    'credit_new_tab' => '(opens in a new tab)',
 ];

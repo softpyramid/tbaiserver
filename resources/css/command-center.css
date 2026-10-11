@@ -800,10 +800,39 @@
     display: block;
 }
 
+/* Developer credit: bottom-left under the nav pills, the one strip of the
+   stage that no screen uses (pill 9 ends at 805, panels start at x 350). */
+.cc-root .cc-credit {
+    position: absolute;
+    left: 38px;
+    bottom: 1px;
+    max-width: 300px;
+    font-size: 11px;
+    line-height: 13px;
+    color: #10205a;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.cc-root .cc-credit:hover,
+.cc-root .cc-credit:focus-within {
+    opacity: 0.9;
+}
+
+.cc-root .cc-credit a {
+    color: inherit;
+}
+
+.cc-root .cc-credit a:focus-visible {
+    outline-width: 2px;
+    outline-offset: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .cc-nav,
     .cc-chip,
-    .cc-pager {
+    .cc-pager,
+    .cc-root .cc-credit {
         transition: none;
     }
 
@@ -1024,6 +1053,17 @@
 
     .cc-pager {
         display: none;
+    }
+
+    .cc-root .cc-credit {
+        position: relative;
+        z-index: 2;
+        left: auto;
+        bottom: auto;
+        max-width: none;
+        padding: 16px 10px 0;
+        text-align: center;
+        opacity: 0.6;
     }
 
     .cc-chip {

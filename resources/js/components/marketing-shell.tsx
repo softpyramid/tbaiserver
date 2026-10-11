@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { Menu, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { SoftPyramidCredit } from '@/components/softpyramid-credit';
 import { home, login, privacy, terms } from '@/routes';
 import { create as requestAccess } from '@/routes/access-requests';
 import type { RouteDefinition } from '@/wayfinder';
@@ -159,9 +160,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                                 </p>
                             )}
                             {tbai.partnerLine && (
-                                <p className="mt-4 text-sm text-[#F8FAFC]">
-                                    {tbai.partnerLine}
-                                </p>
+                                <SoftPyramidCredit
+                                    variant="partner"
+                                    className="mt-4 text-sm text-[#F8FAFC]"
+                                />
                             )}
                         </div>
                         <div className="text-sm leading-7">

@@ -264,7 +264,7 @@ test('command center landing sends programme roles to the executive view only wh
             'staging' => true,
             'production' => false,
         ])
-        ->and($home->url($admin))->toBe(route('command.index'))
+        ->and($home->url($admin))->toBe(route('facilities.index'))
         ->and($home->url($countryViewer))->toBe(route('command.index'))
         ->and($home->url($provincial))->toBe(route('command.index'))
         ->and($home->url($officer))->toBe(route('command.index'))
@@ -272,7 +272,7 @@ test('command center landing sends programme roles to the executive view only wh
 
     Config::set('tbai.command_center.landing', true);
 
-    expect($home->url($admin))->toBe(route('command.center'))
+    expect($home->url($admin))->toBe(route('facilities.index'))
         ->and($home->url($countryViewer))->toBe(route('command.center'))
         ->and($home->url($provincial))->toBe(route('command.center'))
         ->and($home->url($officer))->toBe(route('command.center'))

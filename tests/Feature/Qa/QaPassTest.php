@@ -80,7 +80,7 @@ test('each role lands on its home and the empty dashboard is gone', function () 
 
     $this->actingAs($admin)
         ->get(route('dashboard'))
-        ->assertRedirect(route('command.index'));
+        ->assertRedirect(route('facilities.index'));
 });
 
 test('viewers can open daily returns for their area', function () {

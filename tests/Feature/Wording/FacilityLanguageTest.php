@@ -119,9 +119,9 @@ test('viewers and the tb-ai admin land without a facility slug', function () {
     $this->post(route('login.store'), [
         'email' => $admin->email,
         'password' => 'password',
-    ])->assertRedirect(route('command.index'));
+    ])->assertRedirect(route('facilities.index'));
 
-    expect(parse_url(route('command.index'), PHP_URL_PATH))->toBe('/command');
+    expect(parse_url(route('facilities.index'), PHP_URL_PATH))->toBe('/admin/facilities');
 });
 
 test('a viewer sees a scope label and no facility switcher', function () {
@@ -161,7 +161,7 @@ test('old programme team urls redirect to the role home', function () {
 
     $this->actingAs($viewer)
         ->get('/country-viewers-team/dashboard')
-        ->assertStatus(301)
+        ->assertStatus(302)
         ->assertRedirect(route('command.index'));
 });
 

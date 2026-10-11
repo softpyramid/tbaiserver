@@ -33,6 +33,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'feature' => EnsureFeatureEnabled::class,
         ]);
 
+        // Signed-in people who open a guest page (/login, /register, ...) go
+        // straight to their role home, the same place sign-in sends them.
+        $middleware->redirectUsersTo(fn (Request $request): string => $request->user() instanceof User
+            ? app(RoleHome::class)->url($request->user())
+            : route('home'));
+
         $middleware->web(append: [
             HandleAppearance::class,
             EnsureAccountIsActive::class,

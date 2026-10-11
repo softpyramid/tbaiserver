@@ -7,6 +7,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import { SoftPyramidCredit } from '@/components/softpyramid-credit';
 import { getJson } from './api';
 import { CommandContext, type MapIntent, type SortState } from './context';
 import { PlaceholderPage } from './pages/placeholder';
@@ -402,6 +403,8 @@ export function CommandShell({
                                 />
                             ))}
                         </div>
+
+                        <SoftPyramidCredit compact className="cc-credit" />
                     </TipProvider>
                 </CommandContext.Provider>
             </div>

@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  * @property int|null $user_id
  * @property string|null $patient_name
  * @property string|null $register_number
+ * @property int|null $patient_id
  * @property string|null $worker_role
  * @property string $age_band
  * @property string $sex
@@ -45,12 +46,13 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Facility $facility
+ * @property-read Patient|null $patient
  * @property-read SuspectRuleSet $ruleSet
  * @property-read Collection<int, SuspectAnswer> $answers
  * @property-read Collection<int, SuspectAssessmentFlag> $flags
  */
 #[Fillable([
-    'uuid', 'facility_id', 'city_id', 'user_id', 'patient_name', 'register_number', 'worker_role', 'age_band', 'sex', 'rule_set_id',
+    'uuid', 'facility_id', 'city_id', 'user_id', 'patient_name', 'register_number', 'patient_id', 'worker_role', 'age_band', 'sex', 'rule_set_id',
     'engine_version', 'status', 'symptom', 'exposure', 'history', 'raw_score', 'score', 'priority',
     'refer_for_testing', 'recommended_next_action', 'unknown_count', 'unknown_items', 'reason_codes', 'criterion_status', 'completed_at',
 ])]
@@ -130,6 +132,16 @@ class SuspectAssessment extends Model
     public function facility(): BelongsTo
     {
         return $this->belongsTo(Facility::class);
+    }
+
+    /**
+     * The patient record this screening is linked to, at the same facility.
+     *
+     * @return BelongsTo<Patient, $this>
+     */
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
     }
 
     /**

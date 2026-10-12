@@ -14,16 +14,21 @@ use App\Http\Controllers\FacilityHomeController;
 use App\Http\Controllers\FacilityReturnHistoryController;
 use App\Http\Controllers\FallbackController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PatientAdminController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientTreatmentController;
 use App\Http\Controllers\PopulationDenominatorAdminController;
 use App\Http\Controllers\ProgrammeAdminController;
 use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
 use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\ScreeningSessionAdminController;
+use App\Http\Controllers\SlidePhotoController;
 use App\Http\Controllers\SuspectAssessmentAdminController;
+use App\Http\Controllers\SuspectPatientLinkController;
 use App\Http\Controllers\SuspectRuleSetAdminController;
 use App\Http\Controllers\SuspectScreeningController;
-use App\Http\Controllers\SlidePhotoController;
 use App\Http\Controllers\TeamAreaController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\TodayShortcutController;
@@ -194,6 +199,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('admin/suspect-rules/{suspectRuleSet}/retire', [SuspectRuleSetAdminController::class, 'retire'])->name('admin.suspect-rules.retire');
         Route::get('admin/suspect-assessments', [SuspectAssessmentAdminController::class, 'index'])->name('admin.suspect-assessments.index');
     });
+    Route::get('admin/patients', [PatientAdminController::class, 'index'])
+        ->middleware('feature:patients')
+        ->name('admin.patients.index');
+
+    // In-app reminders (missed follow-up visits). No SMS, WhatsApp, or email.
+    Route::middleware('feature:patients')->group(function () {
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])
+            ->whereUuid('notification')
+            ->name('notifications.read');
+    });
     Route::get('admin/users', [UserAdminController::class, 'index'])->name('admin.users.index');
     Route::patch('admin/users/{user}', [UserAdminController::class, 'update'])->name('admin.users.update');
     Route::patch('admin/memberships/{membership}', [UserAdminController::class, 'updateMembership'])->name('admin.memberships.update');
@@ -267,6 +284,32 @@ Route::prefix('{current_team}')
             Route::get('screening/suspects/{assessment}', [SuspectScreeningController::class, 'show'])
                 ->whereUuid('assessment')
                 ->name('suspect.show');
+            Route::post('screening/suspects/{assessment}/patient', SuspectPatientLinkController::class)
+                ->middleware('feature:patients')
+                ->whereUuid('assessment')
+                ->name('suspect.patient.link');
+        });
+
+        // Patient records and treatment follow-up. Facility staff (frontline
+        // workers included) and TB-AI admins; everyone else gets 404.
+        Route::middleware('feature:patients')->group(function () {
+            Route::get('patients', [PatientController::class, 'index'])->name('patients.index');
+            Route::get('patients/create', [PatientController::class, 'create'])->name('patients.create');
+            Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
+            Route::get('patients/{patient}', [PatientController::class, 'show'])->whereUuid('patient')->name('patients.show');
+            Route::get('patients/{patient}/edit', [PatientController::class, 'edit'])->whereUuid('patient')->name('patients.edit');
+            Route::put('patients/{patient}', [PatientController::class, 'update'])->whereUuid('patient')->name('patients.update');
+            Route::post('patients/{patient}/treatments', [PatientTreatmentController::class, 'store'])
+                ->whereUuid('patient')
+                ->name('patients.treatments.store');
+            Route::patch('patients/{patient}/treatments/{treatment}/outcome', [PatientTreatmentController::class, 'outcome'])
+                ->whereUuid('patient')
+                ->whereNumber('treatment')
+                ->name('patients.treatments.outcome');
+            Route::patch('patients/{patient}/visits/{visit}', [PatientTreatmentController::class, 'updateVisit'])
+                ->whereUuid('patient')
+                ->whereNumber('visit')
+                ->name('patients.visits.update');
         });
     });
 

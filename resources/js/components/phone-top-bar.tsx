@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { NotificationBell } from '@/components/notification-bell';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -36,33 +37,36 @@ export function PhoneTopBar() {
                 </span>
             </div>
 
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button
-                        type="button"
-                        data-test="phone-user-menu"
-                        aria-label={`Account menu for ${user.name}`}
-                        className="flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none"
+            <div className="flex shrink-0 items-center gap-1">
+                <NotificationBell />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            data-test="phone-user-menu"
+                            aria-label={`Account menu for ${user.name}`}
+                            className="flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none"
+                        >
+                            <Avatar className="size-9 overflow-hidden rounded-full">
+                                {user.avatar ? (
+                                    <AvatarImage src={user.avatar} alt="" />
+                                ) : null}
+                                <AvatarFallback className="bg-primary text-primary-foreground">
+                                    {getInitials(user.name)}
+                                </AvatarFallback>
+                            </Avatar>
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="end"
+                        sideOffset={4}
+                        collisionPadding={8}
+                        className="min-w-56 rounded-lg"
                     >
-                        <Avatar className="size-9 overflow-hidden rounded-full">
-                            {user.avatar ? (
-                                <AvatarImage src={user.avatar} alt="" />
-                            ) : null}
-                            <AvatarFallback className="bg-primary text-primary-foreground">
-                                {getInitials(user.name)}
-                            </AvatarFallback>
-                        </Avatar>
-                    </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    align="end"
-                    sideOffset={4}
-                    collisionPadding={8}
-                    className="min-w-56 rounded-lg"
-                >
-                    <UserMenuContent user={user} />
-                </DropdownMenuContent>
-            </DropdownMenu>
+                        <UserMenuContent user={user} />
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </header>
     );
 }

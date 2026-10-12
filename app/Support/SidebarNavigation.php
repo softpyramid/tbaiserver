@@ -179,6 +179,10 @@ class SidebarNavigation
             $items[] = $this->link('suspect_rules', __('entry.nav_suspect_rules'), route('admin.suspect-rules.index'), null, ['admin.suspect-']);
         }
 
+        if (config('tbai.features.patients')) {
+            $items[] = $this->link('patients', __('entry.nav_patients'), route('admin.patients.index'), null, ['admin.patients', 'patients.']);
+        }
+
         $items[] = $this->link('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), null, ['admin.audit-log']);
 
         return $items;
@@ -199,11 +203,19 @@ class SidebarNavigation
     {
         $role = $user->teamRole($facilityTeam);
 
-        // Frontline workers only screen; their account sits in the user menu.
+        // Frontline workers screen and follow patients; their account sits in the user menu.
         if ($role !== null && ! $role->canWorkReturns()) {
-            return $role->canScreen() && config('tbai.features.suspect_screening')
-                ? [$this->link('suspect_screening', __('entry.nav_suspect_screening'), route('suspect.index', $facilityTeam), null, ['suspect.'])]
-                : [];
+            if (! $role->canScreen()) {
+                return [];
+            }
+
+            $items = [];
+
+            if (config('tbai.features.suspect_screening')) {
+                $items[] = $this->link('suspect_screening', __('entry.nav_suspect_screening'), route('suspect.index', $facilityTeam), null, ['suspect.']);
+            }
+
+            return [...$items, ...$this->patientItems($user, $facilityTeam)];
         }
 
         $items = [
@@ -222,9 +234,40 @@ class SidebarNavigation
             $items[] = $this->link('suspect_screening', __('entry.nav_suspect_screening'), route('suspect.index', $facilityTeam), null, ['suspect.']);
         }
 
+        if ($role !== null && $role->canScreen()) {
+            $items = [...$items, ...$this->patientItems($user, $facilityTeam)];
+        }
+
         $items[] = $this->link('my_facility', __('entry.nav_facility'), route('facilities.home', $facilityTeam), null, ['facilities.']);
 
         return $items;
+    }
+
+    /**
+     * Patients and the reminders list, for facility staff when patients is on.
+     *
+     * @return list<array{
+     *     key: string,
+     *     label: string,
+     *     href: string|null,
+     *     badge: int|null,
+     *     expanded: bool,
+     *     current: bool,
+     *     children: list<array{key: string, label: string, href: string, badge: int|null, current?: bool, blank?: bool}>
+     * }>
+     */
+    private function patientItems(User $user, Team $facilityTeam): array
+    {
+        if (! config('tbai.features.patients')) {
+            return [];
+        }
+
+        $unread = $user->unreadNotifications()->count();
+
+        return [
+            $this->link('patients', __('entry.nav_patients'), route('patients.index', $facilityTeam), null, ['patients.']),
+            $this->link('notifications', __('entry.nav_notifications'), route('notifications.index'), $unread > 0 ? $unread : null, ['notifications.']),
+        ];
     }
 
     /**

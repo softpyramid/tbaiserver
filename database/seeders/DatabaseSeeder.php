@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
      * national reference row must exist for the estimate card to answer.
      * SuspectRuleSetSeeder is also safe everywhere: it only adds the draft
      * suspect screening rule set, which production never serves.
+     * DemoPatientSeeder (two fake patients) runs here only in local; staging
+     * runs it explicitly with --class.
      */
     public function run(): void
     {
@@ -32,5 +34,9 @@ class DatabaseSeeder extends Seeder
             IncidenceEstimateSeeder::class,
             SuspectRuleSetSeeder::class,
         ]);
+
+        if (app()->environment('local')) {
+            $this->call(DemoPatientSeeder::class);
+        }
     }
 }

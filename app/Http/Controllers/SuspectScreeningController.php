@@ -127,10 +127,38 @@ class SuspectScreeningController extends Controller
             'sexLabel' => AssessmentPresenter::optionLabel($assessment->sex),
             'completedAt' => $assessment->completed_at === null ? null : EntryDate::dateTime($assessment->completed_at),
             'indexUrl' => route('suspect.index', ['current_team' => $current_team->slug]),
+            'patientRecord' => $this->patientRecord($current_team, $assessment),
             'newUrl' => $this->access->staffFacility($user, $current_team) !== null
                 ? route('suspect.create', ['current_team' => $current_team->slug])
                 : null,
         ]);
+    }
+
+    /**
+     * The linked patient record, or the create and link actions, while
+     * patients is on. Only the facility's staff and TB-AI admins reach this
+     * page, the same people who may see patient records.
+     *
+     * @return array{linked: array{href: string, name: string, registerNumber: string}|null, createUrl: string, linkUrl: string, registerNumber: string}|null
+     */
+    private function patientRecord(Team $team, SuspectAssessment $assessment): ?array
+    {
+        if (! config('tbai.features.patients')) {
+            return null;
+        }
+
+        $patient = $assessment->patient;
+
+        return [
+            'linked' => $patient === null ? null : [
+                'href' => route('patients.show', ['current_team' => $team->slug, 'patient' => $patient->uuid]),
+                'name' => $patient->name,
+                'registerNumber' => $patient->register_number,
+            ],
+            'createUrl' => route('patients.create', ['current_team' => $team->slug, 'screening' => $assessment->uuid]),
+            'linkUrl' => route('suspect.patient.link', ['current_team' => $team->slug, 'assessment' => $assessment->uuid]),
+            'registerNumber' => $assessment->register_number ?? '',
+        ];
     }
 
     /**

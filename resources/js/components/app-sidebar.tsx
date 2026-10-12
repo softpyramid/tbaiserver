@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Bell,
     Briefcase,
     Building2,
     CalendarDays,
@@ -9,6 +10,7 @@ import {
     ClipboardPlus,
     Globe,
     Handshake,
+    HeartPulse,
     History,
     FileText,
     Inbox,
@@ -27,6 +29,7 @@ import {
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain, type NavGroup } from '@/components/nav-main';
+import { NotificationBell } from '@/components/notification-bell';
 import { NavUser } from '@/components/nav-user';
 import { SoftPyramidCredit } from '@/components/softpyramid-credit';
 import { TeamSwitcher } from '@/components/team-switcher';
@@ -74,6 +77,8 @@ const icons: Record<string, LucideIcon> = {
     kpis: Database,
     suspect_rules: SlidersHorizontal,
     suspect_screening: Stethoscope,
+    patients: HeartPulse,
+    notifications: Bell,
     public: Landmark,
     private: Briefcase,
     ppm: Handshake,
@@ -117,8 +122,11 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                 </SidebarMenu>
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <TeamSwitcher />
+                    <SidebarMenuItem className="flex items-center gap-1">
+                        <div className="min-w-0 flex-1">
+                            <TeamSwitcher />
+                        </div>
+                        <NotificationBell className="group-data-[collapsible=icon]:hidden" />
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>

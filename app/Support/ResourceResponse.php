@@ -88,7 +88,7 @@ class ResourceResponse
         ?string $nextUrl,
         ?string $createUrl,
         ?string $createLabel,
-        string $exportUrl,
+        ?string $exportUrl,
         array $shell = [],
     ): Response {
         return Inertia::render('resources/index', [

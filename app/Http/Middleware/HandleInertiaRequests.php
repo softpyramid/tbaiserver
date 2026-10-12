@@ -10,6 +10,7 @@ use App\Support\DataScope;
 use App\Support\FacilityTabs;
 use App\Support\Impersonation;
 use App\Support\NavigationShell;
+use App\Support\Patients\PatientAccess;
 use App\Support\RoleHome;
 use App\Support\SidebarNavigation;
 use Illuminate\Http\Request;
@@ -102,6 +103,7 @@ class HandleInertiaRequests extends Middleware
                 ]
                 : null,
             'nav' => $this->navigation($request, $user, $facilityTeam),
+            'notifications' => fn (): ?array => $this->notifications($user),
             'i18n' => Inertia::once(fn (): array => [
                 'locale' => app()->getLocale(),
                 'dir' => in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr',
@@ -135,6 +137,32 @@ class HandleInertiaRequests extends Middleware
             'moreLabel' => __('entry.nav_more'),
             'logoutLabel' => __('entry.nav_log_out'),
             'groups' => app(SidebarNavigation::class)->groups($user, $facilityTeam),
+        ];
+    }
+
+    /**
+     * Reminder bell for facility staff while patients is on. Null hides it.
+     *
+     * @return array{unread: int, url: string, label: string}|null
+     */
+    private function notifications(?User $user): ?array
+    {
+        if (! $user instanceof User || ! config('tbai.features.patients')) {
+            return null;
+        }
+
+        $unread = $user->unreadNotifications()->count();
+
+        if ($unread === 0 && ! app(PatientAccess::class)->isStaffAnywhere($user)) {
+            return null;
+        }
+
+        return [
+            'unread' => $unread,
+            'url' => route('notifications.index'),
+            'label' => $unread > 0
+                ? trans_choice('entry.notifications_bell_unread', $unread, ['count' => $unread])
+                : __('entry.notifications_bell'),
         ];
     }
 

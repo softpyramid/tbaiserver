@@ -1,6 +1,13 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Plus, TriangleAlert } from 'lucide-react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    HeartPulse,
+    Link2,
+    Plus,
+    TriangleAlert,
+} from 'lucide-react';
 import EntryScreen from '@/components/entry-screen';
+import { TextField } from '@/components/patient-fields';
 import {
     SuspectDraftNotice,
     SuspectReferFlag,
@@ -51,6 +58,14 @@ type Props = {
     completedAt: string | null;
     indexUrl: string;
     newUrl: string | null;
+    patientRecord?: PatientRecord | null;
+};
+
+type PatientRecord = {
+    linked: { href: string; name: string; registerNumber: string } | null;
+    createUrl: string;
+    linkUrl: string;
+    registerNumber: string;
 };
 
 export default function SuspectShow({
@@ -65,6 +80,7 @@ export default function SuspectShow({
     completedAt,
     indexUrl,
     newUrl,
+    patientRecord = null,
 }: Props) {
     const { t } = useEntryI18n();
     const completed = result.status === 'completed';
@@ -253,6 +269,10 @@ export default function SuspectShow({
                     })}
                 </p>
 
+                {patientRecord ? (
+                    <PatientRecordSection record={patientRecord} />
+                ) : null}
+
                 <div className="flex flex-col gap-2">
                     {newUrl ? (
                         <Button asChild className="h-12 w-full text-base">
@@ -275,5 +295,85 @@ export default function SuspectShow({
                 </div>
             </EntryScreen>
         </>
+    );
+}
+
+function PatientRecordSection({ record }: { record: PatientRecord }) {
+    const { t } = useEntryI18n();
+    const form = useForm({ register_number: record.registerNumber });
+
+    function submit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        form.post(record.linkUrl, { preserveScroll: true });
+    }
+
+    return (
+        <section
+            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
+            aria-labelledby="suspect-patient-record"
+            data-test="suspect-patient-record"
+        >
+            <h2 id="suspect-patient-record" className="text-base font-semibold">
+                {t('patients_record_section')}
+            </h2>
+            {record.linked ? (
+                <>
+                    <p className="text-base">
+                        {t('patients_linked_to', {
+                            name: record.linked.name,
+                            register: record.linked.registerNumber,
+                        })}
+                    </p>
+                    <Button asChild className="h-12 w-full text-base">
+                        <Link href={record.linked.href}>
+                            <HeartPulse aria-hidden="true" />
+                            {t('patients_open')}
+                        </Link>
+                    </Button>
+                </>
+            ) : (
+                <>
+                    <Button
+                        asChild
+                        className="h-12 w-full text-base"
+                        data-test="suspect-create-patient"
+                    >
+                        <Link href={record.createUrl}>
+                            <Plus aria-hidden="true" />
+                            {t('patients_create_from_screening')}
+                        </Link>
+                    </Button>
+                    <form
+                        className="flex flex-col gap-3 border-t pt-3"
+                        onSubmit={submit}
+                        data-test="suspect-link-patient"
+                    >
+                        <h3 className="text-base font-semibold">
+                            {t('patients_link_existing')}
+                        </h3>
+                        <TextField
+                            id="link_register_number"
+                            label={t('patients_register_number')}
+                            hint={t('patients_link_hint')}
+                            value={form.data.register_number}
+                            error={form.errors.register_number}
+                            required
+                            onChange={(value) =>
+                                form.setData('register_number', value)
+                            }
+                        />
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            className="h-12 w-full text-base"
+                            disabled={form.processing}
+                        >
+                            <Link2 aria-hidden="true" />
+                            {t('patients_link_button')}
+                        </Button>
+                    </form>
+                </>
+            )}
+        </section>
     );
 }

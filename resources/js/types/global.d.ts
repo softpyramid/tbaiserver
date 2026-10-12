@@ -77,6 +77,11 @@ declare module '@inertiajs/core' {
                 dir: 'ltr' | 'rtl';
                 entry: Record<string, string>;
             };
+            notifications: {
+                unread: number;
+                url: string;
+                label: string;
+            } | null;
             sidebarOpen: boolean;
             currentTeam: Team | null;
             teams: Team[];

@@ -95,7 +95,7 @@ type Props = {
     nextUrl: string | null;
     createUrl: string | null;
     createLabel: string | null;
-    exportUrl: string;
+    exportUrl: string | null;
     labels: Labels;
     status: string | null;
     heading?: string | null;
@@ -263,14 +263,16 @@ export default function ResourceIndex({
                             >
                                 {labels.clear}
                             </Button>
-                            <Button variant="outline" asChild>
-                                <a href={exportUrl} data-test="export-link">
-                                    {labels.export}
-                                </a>
-                            </Button>
+                            {exportUrl ? (
+                                <Button variant="outline" asChild>
+                                    <a href={exportUrl} data-test="export-link">
+                                        {labels.export}
+                                    </a>
+                                </Button>
+                            ) : null}
                         </div>
                     </form>
-                ) : (
+                ) : exportUrl ? (
                     <div className="flex justify-end">
                         <Button variant="outline" asChild>
                             <a href={exportUrl} data-test="export-link">
@@ -278,7 +280,7 @@ export default function ResourceIndex({
                             </a>
                         </Button>
                     </div>
-                )}
+                ) : null}
 
                 {showing ? (
                     <p className="text-sm text-muted-foreground">{showing}</p>

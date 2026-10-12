@@ -28,6 +28,8 @@ class FacilityTabs
 
     public const SUSPECT_SCREENING = 'suspect_screening';
 
+    public const PATIENTS = 'patients';
+
     public const FACILITY = 'facility';
 
     public const ACCOUNT = 'account';
@@ -105,6 +107,7 @@ class FacilityTabs
             str_starts_with($name, 'returns.') => self::REGISTER,
             str_starts_with($name, 'screening.') => self::SCREENING,
             str_starts_with($name, 'suspect.') => self::SUSPECT_SCREENING,
+            str_starts_with($name, 'patients.') => self::PATIENTS,
             str_starts_with($name, 'facilities.') => self::FACILITY,
             $this->isAccountRoute($name) => self::ACCOUNT,
             default => null,
@@ -126,6 +129,10 @@ class FacilityTabs
             $tabs[] = $this->tab(self::SUSPECT_SCREENING, __('entry.nav_suspect_screening_short'), route('suspect.index', $team), $active);
         }
 
+        if ($this->showsPatients($user, $team)) {
+            $tabs[] = $this->tab(self::PATIENTS, __('entry.nav_patients'), route('patients.index', $team), $active);
+        }
+
         if (Gate::forUser($user)->allows('viewReturns', $team)) {
             $tabs[] = $this->tab(self::RETURNS, __('entry.nav_returns'), route('returns.history', $team), $active);
         }
@@ -137,17 +144,21 @@ class FacilityTabs
     }
 
     /**
-     * Frontline workers (screeners): Suspect screening and Account only.
+     * Frontline workers (screeners): Suspect screening, Patients, and Account only.
      *
      * @return array{tabs: list<Tab>, more: list<MoreLink>, active: string|null}
      */
     private function frontline(User $user, Team $team, ?string $active): array
     {
-        $active = in_array($active, [self::SUSPECT_SCREENING, self::ACCOUNT], true) ? $active : null;
+        $active = in_array($active, [self::SUSPECT_SCREENING, self::PATIENTS, self::ACCOUNT], true) ? $active : null;
         $tabs = [];
 
         if (config('tbai.features.suspect_screening') && $user->screensAt($team)) {
             $tabs[] = $this->tab(self::SUSPECT_SCREENING, __('entry.nav_suspect_screening_short'), route('suspect.index', $team), $active);
+        }
+
+        if ($this->showsPatients($user, $team)) {
+            $tabs[] = $this->tab(self::PATIENTS, __('entry.nav_patients'), route('patients.index', $team), $active);
         }
 
         $tabs[] = $this->tab(self::ACCOUNT, __('entry.nav_account'), route('profile.edit'), $active);
@@ -205,6 +216,7 @@ class FacilityTabs
             str_starts_with($name, 'admin.access-requests') => self::PEOPLE,
             str_starts_with($name, 'admin.audit-log'),
             str_starts_with($name, 'admin.suspect-'),
+            str_starts_with($name, 'admin.patients'),
             $this->isAccountRoute($name) => self::MORE,
             default => null,
         };
@@ -223,6 +235,10 @@ class FacilityTabs
             $more[] = $this->tab('suspect_rules', __('entry.nav_suspect_rules'), route('admin.suspect-rules.index'), $name !== null && str_starts_with($name, 'admin.suspect-') ? 'suspect_rules' : null);
         }
 
+        if (config('tbai.features.patients')) {
+            $more[] = $this->tab('admin_patients', __('entry.nav_patients'), route('admin.patients.index'), $name !== null && str_starts_with($name, 'admin.patients') ? 'admin_patients' : null);
+        }
+
         $more = [
             ...$more,
             $this->tab('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), $name !== null && str_starts_with($name, 'admin.audit-log') ? 'audit_log' : null),
@@ -230,6 +246,11 @@ class FacilityTabs
         ];
 
         return ['tabs' => $tabs, 'more' => $more, 'active' => $active];
+    }
+
+    private function showsPatients(User $user, Team $team): bool
+    {
+        return (bool) config('tbai.features.patients') && $user->screensAt($team);
     }
 
     /**

@@ -26,6 +26,8 @@ export type SuspectProgressResponse = {
     rule_set_version: string;
     rule_set_status: string;
     score_label: string;
+    patient_name: string | null;
+    register_number: string | null;
     responses: { key: string; value: string }[];
     next_questions: SuspectQuestion[];
     progress: { answered: number; total: number };

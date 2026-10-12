@@ -21,6 +21,8 @@ use Inertia\Response;
 /**
  * Facility pages for the suspect screening. The questionnaire itself talks
  * to the JSON API; these pages list recent screenings and show a result.
+ * Every page here is limited to the facility's staff and TB-AI admins, so
+ * the patient name and register number never reach a programme viewer.
  */
 class SuspectScreeningController extends Controller
 {
@@ -43,6 +45,8 @@ class SuspectScreeningController extends Controller
             ->map(fn (SuspectAssessment $assessment): array => [
                 'id' => $assessment->uuid,
                 'date' => $assessment->created_at === null ? '' : EntryDate::dateTime($assessment->created_at),
+                'patientName' => $assessment->patient_name,
+                'registerNumber' => $assessment->register_number,
                 'ageBand' => AssessmentPresenter::optionLabel($assessment->age_band),
                 'sex' => AssessmentPresenter::optionLabel($assessment->sex),
                 'completed' => $assessment->isCompleted(),

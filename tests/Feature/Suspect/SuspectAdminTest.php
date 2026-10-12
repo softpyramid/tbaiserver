@@ -31,6 +31,7 @@ function suspectDraftForm(SuspectRuleSet $ruleSet, array $points = [], array $ov
     return [
         'high_threshold' => $ruleSet->high_threshold,
         'medium_threshold' => $ruleSet->medium_threshold,
+        'low_threshold' => $ruleSet->low_threshold,
         'refer_threshold' => $ruleSet->refer_threshold,
         'items' => $items,
         ...$overrides,
@@ -137,7 +138,7 @@ test('an approved rule set is read-only', function () {
             ->where('actions.approve', false));
 });
 
-test('cloning copies every row into the next draft version', function () {
+test('cloning copies every row into the next free draft version', function () {
     $ruleSet = suspectDraftRuleSet();
     $admin = suspectAdmin();
 
@@ -145,7 +146,9 @@ test('cloning copies every row into the next draft version', function () {
 
     $clone = SuspectRuleSet::query()->where('cloned_from_id', $ruleSet->id)->sole();
 
-    expect($clone->version)->toBe('2026.10-draft.2')
+    // draft.2 is seeded, so the first clone of draft.1 is draft.3.
+    expect($clone->version)->toBe('2026.10-draft.3')
+        ->and($clone->low_threshold)->toBe(0)
         ->and($clone->status)->toBe(SuspectRuleSetStatus::Draft)
         ->and($clone->created_by)->toBe($admin->id)
         ->and($clone->questions()->count())->toBe(19)
@@ -156,7 +159,14 @@ test('cloning copies every row into the next draft version', function () {
 
     $this->actingAs($admin)->post(route('admin.suspect-rules.clone', $clone))->assertRedirect();
 
-    expect(SuspectRuleSet::query()->latest('id')->value('version'))->toBe('2026.10-draft.3');
+    expect(SuspectRuleSet::query()->latest('id')->value('version'))->toBe('2026.10-draft.4');
+
+    $draftTwo = suspectDraftTwoRuleSet();
+    $this->actingAs($admin)->post(route('admin.suspect-rules.clone', $draftTwo))->assertRedirect();
+    $twoClone = SuspectRuleSet::query()->where('cloned_from_id', $draftTwo->id)->sole();
+
+    expect([$twoClone->high_threshold, $twoClone->medium_threshold, $twoClone->low_threshold, $twoClone->refer_threshold])
+        ->toBe([70, 40, 20, 70]);
 });
 
 test('approval needs a clinical sign-off reference and records the approver', function () {
@@ -248,4 +258,55 @@ test('a draft cannot be published without approval', function () {
         ->assertSessionHasErrors('status');
 
     expect($ruleSet->refresh()->published_at)->toBeNull();
+});
+
+test('the low threshold is editable in a draft, audited and shown', function () {
+    $ruleSet = suspectDraftTwoRuleSet();
+    $admin = suspectAdmin();
+
+    $this->actingAs($admin)
+        ->patch(route('admin.suspect-rules.update', $ruleSet), suspectDraftForm($ruleSet, [], ['low_threshold' => 25]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($ruleSet->refresh()->low_threshold)->toBe(25)
+        ->and(AuditLog::query()->where('action', 'suspect_rules.updated')->sole()->properties['changes'])
+        ->toBe(['low_threshold' => ['from' => 20, 'to' => 25]]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.suspect-rules.show', $ruleSet))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('ruleSet.thresholds', ['high' => 70, 'medium' => 40, 'low' => 25, 'refer' => 70]));
+});
+
+test('the low threshold cannot be above the medium threshold', function () {
+    $ruleSet = suspectDraftTwoRuleSet();
+
+    $this->actingAs(suspectAdmin())
+        ->patch(route('admin.suspect-rules.update', $ruleSet), suspectDraftForm($ruleSet, [], ['low_threshold' => 41]))
+        ->assertSessionHasErrors('low_threshold');
+
+    $this->actingAs(suspectAdmin())
+        ->patch(route('admin.suspect-rules.update', $ruleSet), suspectDraftForm($ruleSet, [], ['medium_threshold' => 71]))
+        ->assertSessionHasErrors('medium_threshold');
+
+    $this->actingAs(suspectAdmin())
+        ->patch(route('admin.suspect-rules.update', $ruleSet), suspectDraftForm($ruleSet, [], ['low_threshold' => null]))
+        ->assertSessionHasErrors('low_threshold');
+
+    expect($ruleSet->refresh()->low_threshold)->toBe(20)
+        ->and($ruleSet->medium_threshold)->toBe(40);
+});
+
+test('the low threshold of an approved set cannot be changed', function () {
+    $ruleSet = suspectDraftTwoRuleSet();
+    $admin = suspectAdmin();
+    approveSuspectRuleSet($ruleSet, $admin);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.suspect-rules.update', $ruleSet), suspectDraftForm($ruleSet, [], ['low_threshold' => 5]))
+        ->assertForbidden();
+
+    expect($ruleSet->refresh()->low_threshold)->toBe(20)
+        ->and(fn () => $ruleSet->update(['low_threshold' => 5]))->toThrow(LogicException::class);
 });

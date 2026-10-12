@@ -26,6 +26,8 @@ function startSuspectScreening(TeamRole $role = TeamRole::Member): array
     $response = test()->actingAs($user)
         ->postJson(route('api.suspect.assessments.store'), [
             'facility' => $facility->team->slug,
+            'patient_name' => 'Test Patient',
+            'register_number' => 'REG-TEST-1',
             'age_band' => '25_44',
             'sex' => 'female',
         ])
@@ -40,15 +42,17 @@ test('the rule set endpoint returns the draft with its labels and never a probab
     $this->actingAs($user)
         ->getJson(route('api.suspect.rule-set'))
         ->assertOk()
-        ->assertJsonPath('version', '2026.10-draft.1')
+        ->assertJsonPath('version', '2026.10-draft.2')
         ->assertJsonPath('status', 'draft')
         ->assertJsonPath('engine_version', '1.0.0')
         ->assertJsonPath('is_probability', false)
         ->assertJsonPath('score_label', 'Provisional prioritisation score, not a probability')
-        ->assertJsonPath('thresholds', ['high' => 40, 'medium' => 20, 'refer' => 40])
+        ->assertJsonPath('thresholds', ['high' => 70, 'medium' => 40, 'low' => 20, 'refer' => 70])
         ->assertJsonPath('questions.3.key', 'cough_duration')
         ->assertJsonPath('questions.3.ask_when', ['eq' => ['cough_current', 'yes']])
         ->assertJsonPath('score_items.1.points', 10)
+        ->assertJsonPath('score_items.3.label', 'Prolonged fever (2 weeks or more)')
+        ->assertJsonPath('score_items.3.points', 15)
         ->assertJsonCount(19, 'questions')
         ->assertJsonCount(14, 'score_items');
 });
@@ -89,9 +93,11 @@ test('start, answer and complete a screening', function () {
         ->postJson(route('api.suspect.assessments.complete', $id))
         ->assertOk()
         ->assertJsonPath('assessment_id', $id)
+        ->assertJsonPath('patient_name', 'Test Patient')
+        ->assertJsonPath('register_number', 'REG-TEST-1')
         ->assertJsonPath('status', 'completed')
         ->assertJsonPath('engine_version', '1.0.0')
-        ->assertJsonPath('rule_set_version', '2026.10-draft.1')
+        ->assertJsonPath('rule_set_version', '2026.10-draft.2')
         ->assertJsonPath('rule_set_status', 'draft')
         ->assertJsonPath('scores', ['symptom' => 18, 'exposure' => 0, 'history' => 0, 'raw' => 18, 'score' => 18, 'is_probability' => false])
         ->assertJsonPath('alerts', ['HEMOPTYSIS_CLINICAL_REVIEW'])
@@ -154,6 +160,8 @@ test('personal fields are rejected on every endpoint', function (string $field) 
     $this->actingAs($user)
         ->postJson(route('api.suspect.assessments.store'), [
             'facility' => $facility->team->slug,
+            'patient_name' => 'Test Patient',
+            'register_number' => 'REG-TEST-1',
             'age_band' => '25_44',
             'sex' => 'female',
             $field => 'Someone',
@@ -176,7 +184,7 @@ test('personal fields are rejected on every endpoint', function (string $field) 
 
     expect(SuspectAssessment::query()->count())->toBe(1)
         ->and(SuspectAssessment::query()->first()->answers()->count())->toBe(0);
-})->with(['name', 'phone', 'national_id', 'nationalId', 'cnic', 'patient_name', 'mr_number']);
+})->with(['name', 'phone', 'national_id', 'nationalId', 'cnic', 'mr_number']);
 
 test('staff of another facility cannot see or change a screening', function () {
     [, , $id] = startSuspectScreening();
@@ -196,6 +204,8 @@ test('staff cannot start a screening at a facility they do not belong to', funct
     $this->actingAs($user)
         ->postJson(route('api.suspect.assessments.store'), [
             'facility' => $otherFacility->team->slug,
+            'patient_name' => 'Test Patient',
+            'register_number' => 'REG-TEST-1',
             'age_band' => '25_44',
             'sex' => 'male',
         ])
@@ -215,6 +225,8 @@ test('a programme viewer cannot start a screening', function () {
     $this->actingAs($viewer)
         ->postJson(route('api.suspect.assessments.store'), [
             'facility' => $facility->team->slug,
+            'patient_name' => 'Test Patient',
+            'register_number' => 'REG-TEST-1',
             'age_band' => '25_44',
             'sex' => 'male',
         ])
@@ -247,6 +259,8 @@ test('the api answers not found while the flag is off', function () {
     $this->actingAs($user)
         ->postJson(route('api.suspect.assessments.store'), [
             'facility' => $facility->team->slug,
+            'patient_name' => 'Test Patient',
+            'register_number' => 'REG-TEST-1',
             'age_band' => '25_44',
             'sex' => 'male',
         ])
@@ -268,6 +282,8 @@ test('production with no approved published rule set answers 503', function () {
     $this->actingAs($user)
         ->postJson(route('api.suspect.assessments.store'), [
             'facility' => $facility->team->slug,
+            'patient_name' => 'Test Patient',
+            'register_number' => 'REG-TEST-1',
             'age_band' => '25_44',
             'sex' => 'male',
         ])

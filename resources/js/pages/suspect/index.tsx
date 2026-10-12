@@ -12,6 +12,8 @@ import { useEntryI18n } from '@/lib/i18n';
 type Row = {
     id: string;
     date: string;
+    patientName: string | null;
+    registerNumber: string | null;
     ageBand: string;
     sex: string;
     completed: boolean;
@@ -90,6 +92,20 @@ export default function SuspectIndex({
                                     <span className="text-sm text-muted-foreground">
                                         {row.date}
                                     </span>
+                                    {row.patientName || row.registerNumber ? (
+                                        <span className="text-base font-semibold text-foreground">
+                                            {row.patientName}
+                                            {row.registerNumber ? (
+                                                <span className="font-normal text-muted-foreground">
+                                                    {' · '}
+                                                    {t(
+                                                        'suspect_register_number',
+                                                    )}
+                                                    : {row.registerNumber}
+                                                </span>
+                                            ) : null}
+                                        </span>
+                                    ) : null}
                                     <span className="text-base text-foreground">
                                         {t('suspect_age_band')}: {row.ageBand}
                                         {' · '}

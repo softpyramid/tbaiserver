@@ -13,7 +13,7 @@ test('facility staff see the suspect screening list with the draft notice and na
     $ruleSet = suspectDraftRuleSet();
     [$user, $facility] = suspectStaff(TeamRole::Member);
     $recorder = app(AssessmentRecorder::class);
-    $assessment = $recorder->start($user, $facility, $ruleSet, '25_44', 'female');
+    $assessment = $recorder->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '25_44', 'female');
     $recorder->answer($assessment, ['hemoptysis' => 'yes']);
     $recorder->complete($assessment);
 
@@ -29,6 +29,8 @@ test('facility staff see the suspect screening list with the draft notice and na
             ->where('newUrl', route('suspect.create', $facility->team))
             ->has('rows', 1)
             ->where('rows.0.id', $assessment->uuid)
+            ->where('rows.0.patientName', 'Test Patient')
+            ->where('rows.0.registerNumber', 'REG-TEST-1')
             ->where('rows.0.ageBand', '25 to 44')
             ->where('rows.0.sex', 'Female')
             ->where('rows.0.score', 0)
@@ -47,20 +49,20 @@ test('the new screening page carries the api endpoints and profile options', fun
         ->assertInertia(fn (Assert $page) => $page
             ->component('suspect/new')
             ->where('unavailable', null)
-            ->where('ruleSetVersion', '2026.10-draft.1')
+            ->where('ruleSetVersion', '2026.10-draft.2')
             ->where('endpoints.start', route('api.suspect.assessments.store'))
             ->where('endpoints.assessments', url('/api/v1/suspect/assessments'))
             ->has('profile.ageBands', 6)
             ->where('profile.ageBands.5', ['value' => 'unknown', 'label' => 'Unknown'])
             ->has('profile.sexes', 4)
-            ->where('i18n.entry.suspect_privacy_note', 'Do not enter names, phone numbers, CNIC or any patient ID.'));
+            ->where('i18n.entry.suspect_privacy_note', 'Record the patient name and register number only. Do not enter a phone number, CNIC, national ID or MR number.'));
 });
 
 test('the result page shows the stored result with alerts, referral and rule set', function () {
     $ruleSet = suspectDraftRuleSet();
     [$user, $facility] = suspectStaff();
     $recorder = app(AssessmentRecorder::class);
-    $assessment = $recorder->start($user, $facility, $ruleSet, '15_24', 'male');
+    $assessment = $recorder->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '15_24', 'male');
     $recorder->answer($assessment, ['hemoptysis' => 'yes', 'close_contact' => 'unknown']);
     $recorder->complete($assessment);
 
@@ -70,6 +72,8 @@ test('the result page shows the stored result with alerts, referral and rule set
         ->assertInertia(fn (Assert $page) => $page
             ->component('suspect/show')
             ->where('result.assessment_id', $assessment->uuid)
+            ->where('result.patient_name', 'Test Patient')
+            ->where('result.register_number', 'REG-TEST-1')
             ->where('result.score_label', 'Provisional prioritisation score, not a probability')
             ->where('result.scores.is_probability', false)
             ->where('result.scores.score', 0)
@@ -88,7 +92,7 @@ test('the result page shows the stored result with alerts, referral and rule set
 test('another facility cannot open a result and viewers cannot open the pages', function () {
     $ruleSet = suspectDraftRuleSet();
     [$user, $facility] = suspectStaff();
-    $assessment = app(AssessmentRecorder::class)->start($user, $facility, $ruleSet, '15_24', 'male');
+    $assessment = app(AssessmentRecorder::class)->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '15_24', 'male');
     [$other, $otherFacility] = suspectStaff();
 
     $this->actingAs($other)
@@ -139,7 +143,7 @@ test('the admin rule set page and lists render with their props', function () {
     $ruleSet = suspectDraftRuleSet();
     $admin = suspectAdmin();
     [$user, $facility] = suspectStaff();
-    app(AssessmentRecorder::class)->start($user, $facility, $ruleSet, '15_24', 'male');
+    app(AssessmentRecorder::class)->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '15_24', 'male');
 
     $this->actingAs($admin)
         ->get(route('admin.suspect-rules.show', $ruleSet))
@@ -149,7 +153,7 @@ test('the admin rule set page and lists render with their props', function () {
             ->where('ruleSet.version', '2026.10-draft.1')
             ->where('ruleSet.status', 'draft')
             ->where('ruleSet.editable', true)
-            ->where('ruleSet.thresholds', ['high' => 40, 'medium' => 20, 'refer' => 40])
+            ->where('ruleSet.thresholds', ['high' => 40, 'medium' => 20, 'low' => 0, 'refer' => 40])
             ->has('questions', 19)
             ->has('scoreItems', 14)
             ->where('scoreItems.1.key', 'cough_gte_2_weeks')
@@ -171,9 +175,10 @@ test('the admin rule set page and lists render with their props', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('resources/index')
-            ->has('rows', 1)
-            ->where('rows.0.cells.version', '2026.10-draft.1')
-            ->where('rows.0.cells.status', 'Draft'));
+            ->has('rows', 2)
+            ->where('rows.0.cells.version', '2026.10-draft.2')
+            ->where('rows.1.cells.version', '2026.10-draft.1')
+            ->where('rows.1.cells.status', 'Draft'));
 
     $this->actingAs($admin)
         ->get(route('admin.suspect-assessments.index', ['refer' => '']))
@@ -181,6 +186,8 @@ test('the admin rule set page and lists render with their props', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('resources/index')
             ->has('rows', 1)
+            ->where('rows.0.cells.patient_name', 'Test Patient')
+            ->where('rows.0.cells.register_number', 'REG-TEST-1')
             ->where('rows.0.cells.age_band', '15 to 24')
             ->where('rows.0.cells.score', 'In progress'));
 

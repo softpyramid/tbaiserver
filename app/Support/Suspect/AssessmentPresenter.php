@@ -12,6 +12,9 @@ use App\Support\ResourceResponse;
 /**
  * JSON shapes for the suspect screening API and pages. The score is always
  * labelled a provisional prioritisation score and is_probability is false.
+ * inProgress() and result() carry the patient name and register number, so
+ * callers must check SuspectAccess::canRead() (facility staff or TB-AI admin)
+ * before using them.
  *
  * @phpstan-import-type Evaluation from Assessor
  */
@@ -47,6 +50,7 @@ class AssessmentPresenter
             'thresholds' => [
                 'high' => $ruleSet->high_threshold,
                 'medium' => $ruleSet->medium_threshold,
+                'low' => $ruleSet->low_threshold,
                 'refer' => $ruleSet->refer_threshold,
             ],
             'profile' => [
@@ -114,6 +118,8 @@ class AssessmentPresenter
             'rule_set_version' => $ruleSet->version,
             'rule_set_status' => $ruleSet->status->value,
             'score_label' => self::scoreLabel(),
+            'patient_name' => $assessment->patient_name,
+            'register_number' => $assessment->register_number,
             'age_band' => $assessment->age_band,
             'sex' => $assessment->sex,
             'responses' => $this->responses($ruleSet, $answers),
@@ -167,6 +173,8 @@ class AssessmentPresenter
             'rule_set_version' => $ruleSet->version,
             'rule_set_status' => $ruleSet->status->value,
             'score_label' => self::scoreLabel(),
+            'patient_name' => $assessment->patient_name,
+            'register_number' => $assessment->register_number,
             'age_band' => $assessment->age_band,
             'sex' => $assessment->sex,
             'responses' => $this->responses($ruleSet, $answers),

@@ -24,12 +24,14 @@ class AssessmentRecorder
         private readonly NextQuestions $nextQuestions,
     ) {}
 
-    public function start(User $user, Facility $facility, SuspectRuleSet $ruleSet, string $ageBand, string $sex): SuspectAssessment
+    public function start(User $user, Facility $facility, SuspectRuleSet $ruleSet, string $patientName, string $registerNumber, string $ageBand, string $sex): SuspectAssessment
     {
         return SuspectAssessment::query()->create([
             'facility_id' => $facility->id,
             'city_id' => $facility->city_id,
             'user_id' => $user->id,
+            'patient_name' => $patientName,
+            'register_number' => $registerNumber,
             'worker_role' => $user->teamRole($facility->team)?->value,
             'age_band' => $ageBand,
             'sex' => $sex,

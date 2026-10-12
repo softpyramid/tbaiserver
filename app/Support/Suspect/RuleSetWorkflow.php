@@ -45,6 +45,7 @@ class RuleSetWorkflow
                 'engine_version' => ScoringEngine::ENGINE_VERSION,
                 'high_threshold' => $source->high_threshold,
                 'medium_threshold' => $source->medium_threshold,
+                'low_threshold' => $source->low_threshold,
                 'refer_threshold' => $source->refer_threshold,
                 'cloned_from_id' => $source->id,
                 'created_by' => $actor->id,

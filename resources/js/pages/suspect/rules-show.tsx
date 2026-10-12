@@ -15,7 +15,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { useEntryI18n } from '@/lib/i18n';
 
-type Thresholds = { high: number; medium: number; refer: number };
+type Thresholds = {
+    high: number;
+    medium: number;
+    low: number;
+    refer: number;
+};
 
 type RuleSet = {
     id: number;
@@ -170,6 +175,7 @@ export default function SuspectRulesShow({
             {
                 high_threshold: thresholds.high,
                 medium_threshold: thresholds.medium,
+                low_threshold: thresholds.low,
                 refer_threshold: thresholds.refer,
                 items: points,
                 criteria,
@@ -330,7 +336,7 @@ export default function SuspectRulesShow({
                     <h2 className="mb-3 text-base font-semibold">
                         {t('suspect_thresholds')}
                     </h2>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {(
                             [
                                 [
@@ -342,6 +348,11 @@ export default function SuspectRulesShow({
                                     'medium',
                                     'medium_threshold',
                                     t('suspect_threshold_medium'),
+                                ],
+                                [
+                                    'low',
+                                    'low_threshold',
+                                    t('suspect_threshold_low'),
                                 ],
                                 [
                                     'refer',

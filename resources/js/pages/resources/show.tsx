@@ -27,7 +27,7 @@ type Props = {
     historyColumns: Column[];
     history: HistoryRow[];
     slidePhotosTitle?: string;
-    slidePhotos?: SlidePhoto[];
+    slidePhotos?: SlidePhoto[] | null;
 };
 
 export default function ResourceShow({

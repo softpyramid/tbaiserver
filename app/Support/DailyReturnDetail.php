@@ -52,7 +52,28 @@ class DailyReturnDetail
             ],
             'history' => $this->revisions->lines($return),
             'slidePhotosTitle' => __('entry.slide_photos_title'),
-            'slidePhotos' => $user === null ? [] : app(SlidePhotoList::class)->photos($return, $user, null),
+            'slidePhotos' => $this->canSeeSlidePhotos($user, $return)
+                ? app(SlidePhotoList::class)->photos($return, $user, null)
+                : null,
         ]);
+    }
+
+    /**
+     * Slide photos are for TB-AI admins and staff of the facility that filed
+     * the return. Programme viewers get no section at all, not an empty one.
+     */
+    private function canSeeSlidePhotos(?User $user, DailyReturn $return): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        if ($user->isTbaiAdmin()) {
+            return true;
+        }
+
+        $team = $return->facility?->team;
+
+        return $team !== null && $user->belongsToTeam($team);
     }
 }

@@ -11,8 +11,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * One suspect screening. No patient identifiers: age band, sex and answers
- * only. Scores, priority and flags are stored when completed and are never
+ * One suspect screening: the patient's name and register number (named
+ * screenings, shown only to the facility's staff and TB-AI admins), age band,
+ * sex and answers. No phone number, CNIC, national ID or MR number. Scores, priority and flags are stored when completed and are never
  * recomputed with a newer rule set.
  *
  * @property int $id
@@ -20,6 +21,8 @@ use Illuminate\Support\Str;
  * @property int $facility_id
  * @property int|null $city_id
  * @property int|null $user_id
+ * @property string|null $patient_name
+ * @property string|null $register_number
  * @property string|null $worker_role
  * @property string $age_band
  * @property string $sex
@@ -47,7 +50,7 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, SuspectAssessmentFlag> $flags
  */
 #[Fillable([
-    'uuid', 'facility_id', 'city_id', 'user_id', 'worker_role', 'age_band', 'sex', 'rule_set_id',
+    'uuid', 'facility_id', 'city_id', 'user_id', 'patient_name', 'register_number', 'worker_role', 'age_band', 'sex', 'rule_set_id',
     'engine_version', 'status', 'symptom', 'exposure', 'history', 'raw_score', 'score', 'priority',
     'refer_for_testing', 'recommended_next_action', 'unknown_count', 'unknown_items', 'reason_codes', 'criterion_status', 'completed_at',
 ])]

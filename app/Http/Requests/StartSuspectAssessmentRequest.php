@@ -24,6 +24,8 @@ class StartSuspectAssessmentRequest extends FormRequest
     {
         return [
             'facility' => ['required', 'string', 'max:255'],
+            'patient_name' => ['required', 'string', 'max:120'],
+            'register_number' => ['required', 'string', 'max:50'],
             'age_band' => ['required', 'string', Rule::in(SuspectAssessment::AGE_BANDS)],
             'sex' => ['required', 'string', Rule::in(SuspectAssessment::SEXES)],
         ];

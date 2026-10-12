@@ -61,6 +61,8 @@ class SuspectApiController extends Controller
             $user,
             $facility,
             $ruleSet,
+            $request->string('patient_name')->toString(),
+            $request->string('register_number')->toString(),
             $request->string('age_band')->toString(),
             $request->string('sex')->toString(),
         );

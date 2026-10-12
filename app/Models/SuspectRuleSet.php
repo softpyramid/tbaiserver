@@ -22,6 +22,7 @@ use LogicException;
  * @property string $engine_version
  * @property int $high_threshold
  * @property int $medium_threshold
+ * @property int $low_threshold
  * @property int $refer_threshold
  * @property int|null $cloned_from_id
  * @property int|null $created_by
@@ -41,7 +42,7 @@ use LogicException;
  * @property-read User|null $creator
  */
 #[Fillable([
-    'version', 'status', 'engine_version', 'high_threshold', 'medium_threshold', 'refer_threshold',
+    'version', 'status', 'engine_version', 'high_threshold', 'medium_threshold', 'low_threshold', 'refer_threshold',
     'cloned_from_id', 'created_by', 'submitted_at', 'approved_by', 'approved_at',
     'clinical_signoff_reference', 'approval_note', 'published_at',
 ])]
@@ -86,6 +87,7 @@ class SuspectRuleSet extends Model
             'status' => SuspectRuleSetStatus::class,
             'high_threshold' => 'integer',
             'medium_threshold' => 'integer',
+            'low_threshold' => 'integer',
             'refer_threshold' => 'integer',
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',

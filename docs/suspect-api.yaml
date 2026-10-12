@@ -12,9 +12,23 @@ info:
     score never overrules a clinical rule: a met testing criterion or the
     coughed-up-blood alert always refers and is never low priority.
 
-    No patient identifiers. Requests carrying `name`, `phone`, `national_id`,
-    `nationalId`, `cnic`, `patient_name` or `mr_number` (at the top level or
-    inside `answers`) are rejected with 422 on every endpoint.
+    Named screenings. The start request must carry the patient's
+    `patient_name` (max 120) and `register_number` (max 50); both are stored
+    and returned in the progress and result shapes, which only the
+    facility's staff and TB-AI admins can read. They are accepted only at the
+    top level of the start request body: inside `answers`, on any other
+    endpoint or in a query string they are rejected with 422.
+
+    Other personal fields are never accepted. Requests carrying `name`,
+    `phone`, `national_id`, `nationalId`, `cnic` or `mr_number` (at the top
+    level or inside `answers`) are rejected with 422 on every endpoint.
+
+    Priority bands: score at or above `thresholds.high` is `high`, at or
+    above `thresholds.medium` is `medium`, at or above `thresholds.low` is
+    `low`, and below it `none` (shown as "Very low"). A met clinical rule
+    lifts `none`, `low` and `medium` to `evaluation_required`; `high` stays
+    `high`. `refer_for_testing` is true when the score is at or above
+    `thresholds.refer` or any clinical rule is met.
 
     Unknown stays unknown: `unknown`, `not_disclosed` and "not asked" give 0
     points, are stored as given (a never-asked question has no answer), and
@@ -58,11 +72,19 @@ paths:
           application/json:
             schema:
               type: object
-              required: [facility, age_band, sex]
+              required: [facility, patient_name, register_number, age_band, sex]
               properties:
                 facility:
                   type: string
                   description: Facility slug. The caller must be on its staff.
+                patient_name:
+                  type: string
+                  maxLength: 120
+                  description: The patient's name. Top level of this request only.
+                register_number:
+                  type: string
+                  maxLength: 50
+                  description: The patient's TB register number. Top level of this request only.
                 age_band:
                   $ref: '#/components/schemas/AgeBand'
                 sex:
@@ -190,7 +212,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Message' }
     ValidationError:
-      description: Invalid input, an unknown question key, an answer outside the options, or a personal field.
+      description: Invalid input (including a missing patient_name or register_number on start), an unknown question key, an answer outside the options, or a personal field.
       content:
         application/json:
           schema:
@@ -222,7 +244,8 @@ components:
       enum: [female, male, other, unknown]
     Priority:
       type: string
-      enum: [high, medium, low, evaluation_required]
+      enum: [high, medium, low, none, evaluation_required]
+      description: none is below the low threshold (label "Very low").
     Condition:
       type: object
       description: |
@@ -275,7 +298,7 @@ components:
     RuleSet:
       type: object
       properties:
-        version: { type: string, example: 2026.10-draft.1 }
+        version: { type: string, example: 2026.10-draft.2 }
         status:
           type: string
           enum: [draft, pending_approval, approved, retired]
@@ -288,9 +311,10 @@ components:
         thresholds:
           type: object
           properties:
-            high: { type: integer }
-            medium: { type: integer }
-            refer: { type: integer }
+            high: { type: integer, example: 70 }
+            medium: { type: integer, example: 40 }
+            low: { type: integer, example: 20, description: 'Below it the priority is none. 0 in draft.1.' }
+            refer: { type: integer, example: 70 }
         profile:
           type: object
           properties:
@@ -332,6 +356,8 @@ components:
         rule_set_version: { type: string }
         rule_set_status: { type: string }
         score_label: { type: string }
+        patient_name: { type: string, nullable: true, description: Null for screenings recorded before named screenings. }
+        register_number: { type: string, nullable: true, description: Null for screenings recorded before named screenings. }
         age_band: { $ref: '#/components/schemas/AgeBand' }
         sex: { $ref: '#/components/schemas/Sex' }
         responses:
@@ -369,9 +395,11 @@ components:
         status: { type: string, enum: [completed] }
         completed_at: { type: string, format: date-time }
         engine_version: { type: string, example: 1.0.0 }
-        rule_set_version: { type: string, example: 2026.10-draft.1 }
+        rule_set_version: { type: string, example: 2026.10-draft.2 }
         rule_set_status: { type: string, enum: [draft, pending_approval, approved, retired] }
         score_label: { type: string }
+        patient_name: { type: string, nullable: true, description: Null for screenings recorded before named screenings. }
+        register_number: { type: string, nullable: true, description: Null for screenings recorded before named screenings. }
         age_band: { $ref: '#/components/schemas/AgeBand' }
         sex: { $ref: '#/components/schemas/Sex' }
         responses:

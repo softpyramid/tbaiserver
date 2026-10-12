@@ -95,7 +95,8 @@ function suspectAdmin(): User
 }
 
 /**
- * The seeded draft rule set with every relation loaded.
+ * The seeded 2026.10-draft.1 rule set with every relation loaded. Seeding also
+ * adds draft.2, which the resolver serves as the newest draft.
  */
 function suspectDraftRuleSet(): SuspectRuleSet
 {
@@ -103,6 +104,19 @@ function suspectDraftRuleSet(): SuspectRuleSet
 
     return SuspectRuleSet::query()
         ->where('version', SuspectRuleSetSeeder::VERSION)
+        ->firstOrFail()
+        ->load(['questions', 'scoreItems', 'clinicalRules', 'riskPatterns']);
+}
+
+/**
+ * The seeded 2026.10-draft.2 rule set (thresholds 70/40/20/70) with every relation loaded.
+ */
+function suspectDraftTwoRuleSet(): SuspectRuleSet
+{
+    (new SuspectRuleSetSeeder)->run();
+
+    return SuspectRuleSet::query()
+        ->where('version', SuspectRuleSetSeeder::VERSION_2)
         ->firstOrFail()
         ->load(['questions', 'scoreItems', 'clinicalRules', 'riskPatterns']);
 }

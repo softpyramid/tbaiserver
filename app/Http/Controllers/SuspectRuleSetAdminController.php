@@ -141,6 +141,7 @@ class SuspectRuleSetAdminController extends Controller
                 'thresholds' => [
                     'high' => $ruleSet->high_threshold,
                     'medium' => $ruleSet->medium_threshold,
+                    'low' => $ruleSet->low_threshold,
                     'refer' => $ruleSet->refer_threshold,
                 ],
             ],
@@ -208,6 +209,7 @@ class SuspectRuleSetAdminController extends Controller
         $data = $request->validate([
             'high_threshold' => ['required', 'integer', 'min:0', 'max:100'],
             'medium_threshold' => ['required', 'integer', 'min:0', 'max:100', 'lte:high_threshold'],
+            'low_threshold' => ['required', 'integer', 'min:0', 'max:100', 'lte:medium_threshold'],
             'refer_threshold' => ['required', 'integer', 'min:0', 'max:100'],
             'items' => ['array'],
             'items.*' => ['required', 'integer', 'min:0', 'max:100'],
@@ -261,6 +263,7 @@ class SuspectRuleSetAdminController extends Controller
             $thresholds = [
                 'high_threshold' => (int) $data['high_threshold'],
                 'medium_threshold' => (int) $data['medium_threshold'],
+                'low_threshold' => (int) $data['low_threshold'],
                 'refer_threshold' => (int) $data['refer_threshold'],
             ];
 

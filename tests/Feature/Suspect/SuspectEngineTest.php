@@ -88,7 +88,7 @@ test('T3 unknown close contact scores E 0, is listed, and is stored as unknown',
 
     [$user, $facility] = suspectStaff();
     $recorder = app(AssessmentRecorder::class);
-    $assessment = $recorder->start($user, $facility, $ruleSet, '25_44', 'female');
+    $assessment = $recorder->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '25_44', 'female');
     $recorder->answer($assessment, ['close_contact' => 'unknown']);
     $recorder->complete($assessment);
 
@@ -156,7 +156,7 @@ test('T8 HIV not disclosed scores 0 and is stored as not_disclosed; diabetes giv
 
     [$user, $facility] = suspectStaff();
     $recorder = app(AssessmentRecorder::class);
-    $assessment = $recorder->start($user, $facility, $ruleSet, '45_64', 'male');
+    $assessment = $recorder->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '45_64', 'male');
     $recorder->answer($assessment, ['hiv' => 'not_disclosed', 'diabetes' => 'yes']);
 
     expect(SuspectAnswer::query()->where('assessment_id', $assessment->id)->where('question_key', 'hiv')->value('value'))
@@ -191,7 +191,7 @@ test('T10 a clone with new weights leaves an old assessment and its rule set unc
     [$user, $facility] = suspectStaff();
     $recorder = app(AssessmentRecorder::class);
 
-    $assessment = $recorder->start($user, $facility, $ruleSet, '25_44', 'female');
+    $assessment = $recorder->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '25_44', 'female');
     $recorder->answer($assessment, suspectAnswersWithRestNo(['cough_current' => 'yes', 'cough_duration' => 'gte_2_weeks']));
     $recorder->complete($assessment);
     $before = app(AssessmentPresenter::class)->result($assessment->refresh());
@@ -262,7 +262,7 @@ test('adaptive questions skip branches that do not apply and drop answers that s
 
     [$user, $facility] = suspectStaff(TeamRole::Owner);
     $recorder = app(AssessmentRecorder::class);
-    $assessment = $recorder->start($user, $facility, $ruleSet, '25_44', 'female');
+    $assessment = $recorder->start($user, $facility, $ruleSet, 'Test Patient', 'REG-TEST-1', '25_44', 'female');
 
     $recorder->answer($assessment, ['cough_current' => 'no']);
     expect($assessment->answers()->where('question_key', 'cough_duration')->exists())->toBeFalse();
@@ -306,7 +306,7 @@ test('the seeder is idempotent and an approved set cannot be edited', function (
     $ruleSet = suspectDraftRuleSet();
     suspectDraftRuleSet();
 
-    expect(SuspectRuleSet::query()->count())->toBe(1)
+    expect(SuspectRuleSet::query()->count())->toBe(2)
         ->and($ruleSet->questions)->toHaveCount(19)
         ->and($ruleSet->scoreItems)->toHaveCount(14)
         ->and($ruleSet->riskPatterns->where('active', true))->toHaveCount(0);
@@ -322,11 +322,13 @@ test('the seeder is idempotent and an approved set cannot be edited', function (
         ->and(fn () => $ruleSet->refresh()->update(['high_threshold' => 10]))->toThrow(LogicException::class);
 });
 
-test('tbai:suspect-seed adds the draft once and never duplicates it', function () {
-    $this->artisan('tbai:suspect-seed')->assertSuccessful();
+test('tbai:suspect-seed adds both drafts once and never duplicates them', function () {
+    $this->artisan('tbai:suspect-seed')
+        ->expectsOutput('Draft suspect screening rule sets 2026.10-draft.1 and 2026.10-draft.2 are present.')
+        ->assertSuccessful();
     $this->artisan('tbai:suspect-seed')->assertSuccessful();
 
-    expect(SuspectRuleSet::query()->count())->toBe(1)
-        ->and(SuspectRuleSet::query()->value('version'))->toBe('2026.10-draft.1')
-        ->and(SuspectRuleSet::query()->value('status'))->toBe(SuspectRuleSetStatus::Draft);
+    expect(SuspectRuleSet::query()->count())->toBe(2)
+        ->and(SuspectRuleSet::query()->orderBy('id')->pluck('version')->all())->toBe(['2026.10-draft.1', '2026.10-draft.2'])
+        ->and(SuspectRuleSet::query()->pluck('status')->unique()->all())->toBe([SuspectRuleSetStatus::Draft]);
 });

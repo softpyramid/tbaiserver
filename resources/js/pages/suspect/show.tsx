@@ -15,6 +15,8 @@ type Result = {
     rule_set_version: string;
     rule_set_status: string;
     score_label: string;
+    patient_name: string | null;
+    register_number: string | null;
     scores: SuspectScores;
     unknown_items: string[];
     clinical_rule_status: {
@@ -111,6 +113,25 @@ export default function SuspectShow({
                 ) : null}
 
                 <section className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+                    {result.patient_name || result.register_number ? (
+                        <dl
+                            className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-base"
+                            data-test="suspect-patient"
+                        >
+                            <dt className="text-muted-foreground">
+                                {t('suspect_patient_name')}
+                            </dt>
+                            <dd className="font-semibold">
+                                {result.patient_name}
+                            </dd>
+                            <dt className="text-muted-foreground">
+                                {t('suspect_register_number')}
+                            </dt>
+                            <dd className="font-semibold">
+                                {result.register_number}
+                            </dd>
+                        </dl>
+                    ) : null}
                     <p className="text-sm text-muted-foreground">
                         {t('suspect_age_band')}: {ageBandLabel} ·{' '}
                         {t('suspect_sex')}: {sexLabel}

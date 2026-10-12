@@ -8,6 +8,7 @@ import {
     SuspectUnavailable,
 } from '@/components/suspect-notices';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useEntryI18n } from '@/lib/i18n';
 import {
     postSuspect,
@@ -88,6 +89,8 @@ export default function SuspectNew({
     indexUrl,
 }: Props) {
     const { t } = useEntryI18n();
+    const [patientName, setPatientName] = useState('');
+    const [registerNumber, setRegisterNumber] = useState('');
     const [ageBand, setAgeBand] = useState<string | null>(null);
     const [sex, setSex] = useState<string | null>(null);
     const [state, setState] = useState<SuspectProgressResponse | null>(null);
@@ -120,7 +123,13 @@ export default function SuspectNew({
         run(async () => {
             const response = await postSuspect<SuspectProgressResponse>(
                 endpoints.start,
-                { facility: teamSlug, age_band: ageBand, sex },
+                {
+                    facility: teamSlug,
+                    patient_name: patientName.trim(),
+                    register_number: registerNumber.trim(),
+                    age_band: ageBand,
+                    sex,
+                },
                 t('suspect_error'),
             );
             setState(response);
@@ -189,6 +198,11 @@ export default function SuspectNew({
         (question === null ||
             history.findIndex((item) => item.key === question.key) !== 0);
     const progress = state?.progress ?? { answered: 0, total: 0 };
+    const canStart =
+        patientName.trim() !== '' &&
+        registerNumber.trim() !== '' &&
+        ageBand !== null &&
+        sex !== null;
 
     return (
         <>
@@ -212,6 +226,45 @@ export default function SuspectNew({
                                 className="flex flex-col gap-4 rounded-xl border bg-card p-4"
                                 data-test="suspect-profile"
                             >
+                                <h2 className="text-base font-semibold">
+                                    {t('suspect_patient')}
+                                </h2>
+                                <label className="flex flex-col gap-2">
+                                    <span className="text-base font-medium">
+                                        {t('suspect_patient_name')}
+                                    </span>
+                                    <Input
+                                        value={patientName}
+                                        onChange={(event) =>
+                                            setPatientName(event.target.value)
+                                        }
+                                        required
+                                        maxLength={120}
+                                        autoComplete="off"
+                                        disabled={busy}
+                                        className="h-12 text-base"
+                                        data-test="suspect-patient-name"
+                                    />
+                                </label>
+                                <label className="flex flex-col gap-2">
+                                    <span className="text-base font-medium">
+                                        {t('suspect_register_number')}
+                                    </span>
+                                    <Input
+                                        value={registerNumber}
+                                        onChange={(event) =>
+                                            setRegisterNumber(
+                                                event.target.value,
+                                            )
+                                        }
+                                        required
+                                        maxLength={50}
+                                        autoComplete="off"
+                                        disabled={busy}
+                                        className="h-12 text-base"
+                                        data-test="suspect-register-number"
+                                    />
+                                </label>
                                 <h2 className="text-base font-semibold">
                                     {t('suspect_section_profile')}
                                 </h2>
@@ -242,7 +295,7 @@ export default function SuspectNew({
                                 <Button
                                     type="button"
                                     className="h-12 w-full text-base"
-                                    disabled={busy || !ageBand || !sex}
+                                    disabled={busy || !canStart}
                                     onClick={() => void start()}
                                     data-test="suspect-start"
                                 >

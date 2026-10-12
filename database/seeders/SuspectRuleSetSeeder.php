@@ -11,17 +11,27 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The draft suspect screening rule set with the prototype questions and
- * weights from the Suspect-Finding spec. Every weight, threshold, criterion
- * and pattern is provisional and waits on clinical sign-off, so the set is
+ * The draft suspect screening rule sets. Every weight, threshold, criterion
+ * and pattern is provisional and waits on clinical sign-off, so each set is
  * seeded as a draft and production never serves it (the release gate needs
- * an approved, published set). Safe in every environment: it contains no
- * patient data, and it is keyed on the version, so it never overwrites a set
- * that already exists or an admin edit.
+ * an approved, published set). Safe in every environment: no patient data,
+ * and each set is keyed on its version, so it never overwrites a set that
+ * already exists or an admin edit.
+ *
+ * - 2026.10-draft.1: the prototype questions and weights from the
+ *   Suspect-Finding spec (high 40, medium 20, refer 40, no low threshold).
+ * - 2026.10-draft.2: the decisions of 12 Oct 2026. Same questions, clinical
+ *   rules and patterns; thresholds high 70, medium 40, low 20, refer 70;
+ *   prolonged fever 15, previous TB 10, diabetes 8. Created after draft.1,
+ *   so it has the higher id and the resolver serves it as the newest draft.
+ *   Clinical sign-off approver for draft.2: Fakhar Khan, recorded as the
+ *   clinical_signoff_reference when the set is approved in the admin.
  */
 class SuspectRuleSetSeeder extends Seeder
 {
     public const VERSION = '2026.10-draft.1';
+
+    public const VERSION_2 = '2026.10-draft.2';
 
     /**
      * @var list<string>
@@ -30,20 +40,31 @@ class SuspectRuleSetSeeder extends Seeder
 
     private const YES_NO_UNKNOWN = ['yes', 'no', 'unknown'];
 
+    /**
+     * Create each version only if it is missing, oldest first.
+     */
     public function run(): void
     {
-        if (SuspectRuleSet::query()->where('version', self::VERSION)->exists()) {
+        $this->seed(self::VERSION, ['high_threshold' => 40, 'medium_threshold' => 20, 'refer_threshold' => 40], $this->scoreItems());
+        $this->seed(self::VERSION_2, ['high_threshold' => 70, 'medium_threshold' => 40, 'low_threshold' => 20, 'refer_threshold' => 70], $this->scoreItemsDraftTwo());
+    }
+
+    /**
+     * @param  array<string, int>  $thresholds
+     * @param  list<array{0: string, 1: string, 2: string, 3: array<string, mixed>, 4: int}>  $scoreItems
+     */
+    private function seed(string $version, array $thresholds, array $scoreItems): void
+    {
+        if (SuspectRuleSet::query()->where('version', $version)->exists()) {
             return;
         }
 
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($version, $thresholds, $scoreItems): void {
             $ruleSet = SuspectRuleSet::query()->create([
-                'version' => self::VERSION,
+                'version' => $version,
                 'status' => SuspectRuleSetStatus::Draft,
                 'engine_version' => ScoringEngine::ENGINE_VERSION,
-                'high_threshold' => 40,
-                'medium_threshold' => 20,
-                'refer_threshold' => 40,
+                ...$thresholds,
             ]);
 
             foreach ($this->questions() as $sort => $question) {
@@ -55,7 +76,7 @@ class SuspectRuleSetSeeder extends Seeder
                 ]);
             }
 
-            foreach ($this->scoreItems() as $sort => [$component, $key, $label, $condition, $points]) {
+            foreach ($scoreItems as $sort => [$component, $key, $label, $condition, $points]) {
                 $ruleSet->scoreItems()->create([
                     'component' => $component,
                     'key' => $key,
@@ -157,6 +178,27 @@ class SuspectRuleSetSeeder extends Seeder
             ['H', 'diabetes', 'Known diabetes', self::eq('diabetes', 'yes'), 4],
             ['H', 'undernutrition', 'Documented undernutrition', self::eq('undernutrition', 'yes'), 4],
         ];
+    }
+
+    /**
+     * Draft.2 weights: the draft.1 items with prolonged fever 15 (relabelled),
+     * previous TB 10 and diabetes 8. All provisional.
+     *
+     * @return list<array{0: string, 1: string, 2: string, 3: array<string, mixed>, 4: int}>
+     */
+    private function scoreItemsDraftTwo(): array
+    {
+        $changes = [
+            'fever_gte_2_weeks' => ['Prolonged fever (2 weeks or more)', 15],
+            'previous_tb' => [null, 10],
+            'diabetes' => [null, 8],
+        ];
+
+        return array_map(function (array $item) use ($changes): array {
+            [$label, $points] = $changes[$item[1]] ?? [null, null];
+
+            return [$item[0], $item[1], $label ?? $item[2], $item[3], $points ?? $item[4]];
+        }, $this->scoreItems());
     }
 
     /**

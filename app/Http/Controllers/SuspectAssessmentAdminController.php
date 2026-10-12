@@ -16,8 +16,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class SuspectAssessmentAdminController extends Controller
 {
     /**
-     * Facility, date, age band, sex, score, priority and referral only.
-     * No patient identifiers exist to show.
+     * Facility, date, patient name and register number (named screenings;
+     * TB-AI admins only), age band, sex, score, priority and referral. No
+     * phone number, CNIC, national ID or MR number is ever stored.
      */
     public function index(Request $request): Response|StreamedResponse
     {
@@ -44,6 +45,8 @@ class SuspectAssessmentAdminController extends Controller
         $columns = [
             ['key' => 'facility', 'label' => __('entry.column_facility')],
             ['key' => 'date', 'label' => __('entry.column_date')],
+            ['key' => 'patient_name', 'label' => __('entry.suspect_patient_name')],
+            ['key' => 'register_number', 'label' => __('entry.suspect_register_number')],
             ['key' => 'age_band', 'label' => __('entry.suspect_age_band')],
             ['key' => 'sex', 'label' => __('entry.suspect_sex')],
             ['key' => 'score', 'label' => __('entry.column_score')],
@@ -55,6 +58,8 @@ class SuspectAssessmentAdminController extends Controller
         $cells = fn (SuspectAssessment $assessment): array => [
             'facility' => $assessment->facility->team->name,
             'date' => $assessment->created_at === null ? '' : EntryDate::dateTime($assessment->created_at),
+            'patient_name' => $assessment->patient_name ?? '',
+            'register_number' => $assessment->register_number ?? '',
             'age_band' => AssessmentPresenter::optionLabel($assessment->age_band),
             'sex' => AssessmentPresenter::optionLabel($assessment->sex),
             'score' => $assessment->isCompleted() ? (string) $assessment->score : __('entry.suspect_in_progress'),
@@ -67,7 +72,11 @@ class SuspectAssessmentAdminController extends Controller
             return ResourceResponse::csv(
                 'suspect-screenings.csv',
                 array_column($columns, 'label'),
-                $query->lazy(200)->map(fn (SuspectAssessment $assessment): array => array_values($cells($assessment))),
+                $query->lazy(200)->map(fn (SuspectAssessment $assessment): array => array_values([
+                    ...$cells($assessment),
+                    'patient_name' => self::csvText($assessment->patient_name ?? ''),
+                    'register_number' => self::csvText($assessment->register_number ?? ''),
+                ])),
             );
         }
 
@@ -131,5 +140,14 @@ class SuspectAssessmentAdminController extends Controller
                 ],
             ],
         );
+    }
+
+    /**
+     * Names and register numbers are typed by facility staff, so a value a
+     * spreadsheet would read as a formula is exported as plain text.
+     */
+    private static function csvText(string $value): string
+    {
+        return $value !== '' && str_contains("=+-@\t\r", $value[0]) ? "'".$value : $value;
     }
 }

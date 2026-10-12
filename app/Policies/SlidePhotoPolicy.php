@@ -8,8 +8,8 @@ use App\Models\User;
 class SlidePhotoPolicy
 {
     /**
-     * A TB-AI admin can view every slide photo. Anyone else must belong to the
-     * facility the photo was taken for.
+     * A TB-AI admin can view every slide photo. Anyone else must work the
+     * returns of the facility the photo was taken for (not a frontline worker).
      */
     public function view(User $user, SlidePhoto $photo): bool
     {
@@ -19,7 +19,7 @@ class SlidePhotoPolicy
 
         $team = $photo->facility->team;
 
-        return $user->belongsToTeam($team);
+        return $user->worksReturnsAt($team);
     }
 
     /**
@@ -34,6 +34,6 @@ class SlidePhotoPolicy
         }
 
         return $photo->uploaded_by === $user->id
-            && $user->belongsToTeam($photo->facility->team);
+            && $user->worksReturnsAt($photo->facility->team);
     }
 }

@@ -74,6 +74,6 @@ class DailyReturnDetail
 
         $team = $return->facility?->team;
 
-        return $team !== null && $user->belongsToTeam($team);
+        return $team !== null && $user->worksReturnsAt($team);
     }
 }

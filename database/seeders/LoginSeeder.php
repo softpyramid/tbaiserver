@@ -11,12 +11,14 @@ use App\Models\ProgrammeAssignment;
 use App\Models\Province;
 use App\Models\Team;
 use App\Models\User;
+use Database\Seeders\Concerns\ResolvesSeedLoginPassword;
 use Database\Seeders\Concerns\SkipsOutsideLocalDevStaging;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
 class LoginSeeder extends Seeder
 {
+    use ResolvesSeedLoginPassword;
     use SkipsOutsideLocalDevStaging;
 
     /**
@@ -30,7 +32,8 @@ class LoginSeeder extends Seeder
      *
      * Password is "password" unless SEED_LOGIN_PASSWORD is set.
      * When config is cached, the cached value is used.
-     * Facility ownership and sample returns are seeded next by FacilitySeeder.
+     * Facility ownership and sample returns are seeded next by FacilitySeeder,
+     * then FrontlineWorkerSeeder adds the frontline worker at Karachi West BMU.
      */
     public function run(): void
     {
@@ -79,6 +82,7 @@ class LoginSeeder extends Seeder
         }
 
         $this->call(FacilitySeeder::class);
+        $this->call(FrontlineWorkerSeeder::class);
     }
 
     /**
@@ -156,29 +160,6 @@ class LoginSeeder extends Seeder
         }
 
         return $adminEmail;
-    }
-
-    private function password(): string
-    {
-        $configured = config('access.seed_login_password');
-
-        if (is_string($configured) && $configured !== '') {
-            return $configured;
-        }
-
-        if ($this->usesDefaultPassword()) {
-            return 'password';
-        }
-
-        throw new RuntimeException('Set SEED_LOGIN_PASSWORD before seeding login accounts.');
-    }
-
-    private function usesDefaultPassword(): bool
-    {
-        $configured = config('access.seed_login_password');
-
-        return (! is_string($configured) || $configured === '')
-            && app()->environment('local', 'dev', 'staging');
     }
 
     private function ensurePersonalTeam(User $user): void

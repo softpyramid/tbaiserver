@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Teams;
 
+use App\Enums\FrontlineDesignation;
 use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Rules\UniqueTeamInvitation;
@@ -25,6 +26,25 @@ class CreateTeamInvitationRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email', 'max:255', new UniqueTeamInvitation($team)],
             'role' => ['required', 'string', Rule::enum(TeamRole::class)],
+            // Frontline workers need a designation; no other role takes one.
+            'designation' => [
+                'nullable',
+                'string',
+                'required_if:role,'.TeamRole::Screener->value,
+                'prohibited_unless:role,'.TeamRole::Screener->value,
+                Rule::enum(FrontlineDesignation::class),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'designation.required_if' => __('entry.designation_required'),
+            'designation.prohibited_unless' => __('entry.designation_only_frontline'),
         ];
     }
 }

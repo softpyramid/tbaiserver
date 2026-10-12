@@ -110,6 +110,10 @@ class FacilityTabs
             default => null,
         };
 
+        if (! $user->worksReturnsAt($team)) {
+            return $this->frontline($user, $team, $active);
+        }
+
         $tabs = [
             $this->tab(self::REGISTER, __('entry.nav_register'), route('returns.today', $team), $active),
         ];
@@ -127,6 +131,25 @@ class FacilityTabs
         }
 
         $tabs[] = $this->tab(self::FACILITY, __('entry.nav_facility'), route('facilities.home', $team), $active);
+        $tabs[] = $this->tab(self::ACCOUNT, __('entry.nav_account'), route('profile.edit'), $active);
+
+        return ['tabs' => $tabs, 'more' => [], 'active' => $active];
+    }
+
+    /**
+     * Frontline workers (screeners): Suspect screening and Account only.
+     *
+     * @return array{tabs: list<Tab>, more: list<MoreLink>, active: string|null}
+     */
+    private function frontline(User $user, Team $team, ?string $active): array
+    {
+        $active = in_array($active, [self::SUSPECT_SCREENING, self::ACCOUNT], true) ? $active : null;
+        $tabs = [];
+
+        if (config('tbai.features.suspect_screening') && $user->screensAt($team)) {
+            $tabs[] = $this->tab(self::SUSPECT_SCREENING, __('entry.nav_suspect_screening_short'), route('suspect.index', $team), $active);
+        }
+
         $tabs[] = $this->tab(self::ACCOUNT, __('entry.nav_account'), route('profile.edit'), $active);
 
         return ['tabs' => $tabs, 'more' => [], 'active' => $active];

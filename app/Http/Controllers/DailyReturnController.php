@@ -31,7 +31,8 @@ class DailyReturnController extends Controller
 
         $facility = $current_team->facility;
         abort_unless($facility !== null, 404);
-        abort_unless($user->belongsToTeam($current_team) || $user->isTbaiAdmin(), 403);
+        // Frontline workers (screeners) belong to the team but never see the return.
+        abort_unless($user->worksReturnsAt($current_team) || $user->isTbaiAdmin(), 403);
 
         $reportedOn = $this->reportedOn($request);
 
@@ -83,7 +84,7 @@ class DailyReturnController extends Controller
             'canChooseDate' => $canChooseDate,
             'earliestDate' => $canChooseDate ? null : $today->subDay()->toDateString(),
             'latestDate' => $today->toDateString(),
-            'canSave' => $user->belongsToTeam($current_team),
+            'canSave' => $user->worksReturnsAt($current_team),
             'returnUpdatedAt' => $dailyReturn?->updated_at?->toISOString(),
             'lastUpdated' => $this->lastUpdated($dailyReturn),
             'screeningSuspects' => $screeningSuspects,
@@ -109,7 +110,7 @@ class DailyReturnController extends Controller
             'dateNotice' => $request->session()->get('date_notice'),
             'slides' => [
                 'photos' => app(SlidePhotoList::class)->photos($dailyReturn, $user, $current_team),
-                'uploadUrl' => $dailyReturn !== null && $user->belongsToTeam($current_team) && $dates->canEdit($user, $current_team, $reportedOn)
+                'uploadUrl' => $dailyReturn !== null && $user->worksReturnsAt($current_team) && $dates->canEdit($user, $current_team, $reportedOn)
                     ? route('returns.slides.store', ['current_team' => $current_team->slug, 'dailyReturn' => $dailyReturn->id])
                     : null,
                 'needsSavedReturn' => $dailyReturn === null,

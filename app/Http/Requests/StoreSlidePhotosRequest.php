@@ -28,7 +28,7 @@ class StoreSlidePhotosRequest extends FormRequest
 
         $facility = $team->facility;
 
-        if ($facility === null || $dailyReturn->facility_id !== $facility->id || ! $user->belongsToTeam($team)) {
+        if ($facility === null || $dailyReturn->facility_id !== $facility->id || ! $user->worksReturnsAt($team)) {
             return false;
         }
 

@@ -21,11 +21,13 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { store as storeInvitation } from '@/routes/teams/invitations';
-import type { RoleOption, Team } from '@/types';
+import type { DesignationOption, RoleOption, Team } from '@/types';
 
 type Props = {
     team: Team;
     availableRoles: RoleOption[];
+    /** Shown when the role is a frontline worker (screener). */
+    designations?: DesignationOption[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
@@ -33,16 +35,20 @@ type Props = {
 export default function InviteMemberModal({
     team,
     availableRoles,
+    designations = [],
     open,
     onOpenChange,
 }: Props) {
     const [inviteRole, setInviteRole] = useState<RoleOption['value']>('member');
+    const [designation, setDesignation] = useState('');
+    const needsDesignation = inviteRole === 'screener';
 
     const handleOpenChange = (nextOpen: boolean) => {
         onOpenChange(nextOpen);
 
         if (!nextOpen) {
             setInviteRole('member');
+            setDesignation('');
         }
     };
 
@@ -107,6 +113,40 @@ export default function InviteMemberModal({
                                     </Select>
                                     <InputError message={errors.role} />
                                 </div>
+
+                                {needsDesignation ? (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="designation">
+                                            Designation
+                                        </Label>
+                                        <Select
+                                            name="designation"
+                                            data-test="invite-designation"
+                                            value={designation}
+                                            onValueChange={setDesignation}
+                                        >
+                                            <SelectTrigger
+                                                id="designation"
+                                                className="w-full"
+                                            >
+                                                <SelectValue placeholder="Select a designation" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {designations.map((option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={errors.designation}
+                                        />
+                                    </div>
+                                ) : null}
                             </div>
 
                             <DialogFooter className="gap-2">

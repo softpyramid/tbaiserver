@@ -8,11 +8,11 @@ use App\Models\User;
 use App\Support\AdminTabs;
 use App\Support\AuditLogger;
 use App\Support\DataScope;
+use App\Support\MemberRoleChoice;
 use App\Support\ResourceResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -74,10 +74,7 @@ class UserAdminController extends Controller
         }
 
         $page = $query->paginate(15)->withQueryString();
-        $roleOptions = array_map(
-            fn (TeamRole $role): array => ['value' => $role->value, 'label' => $role->label()],
-            TeamRole::cases(),
-        );
+        $roleOptions = MemberRoleChoice::options(TeamRole::cases(), rosterLabels: false);
 
         $actor = $request->user();
 
@@ -96,7 +93,7 @@ class UserAdminController extends Controller
                     'url' => route('admin.memberships.update', $membership),
                     'method' => 'patch',
                     'name' => 'role',
-                    'value' => $membership->role->value,
+                    'value' => MemberRoleChoice::valueFor($membership->role, $membership->designation),
                     'label' => __('entry.change_role'),
                     'person' => $user->name,
                     'options' => $roleOptions,
@@ -226,21 +223,26 @@ class UserAdminController extends Controller
         $membership->load('team', 'user');
         abort_if($membership->team->is_personal || $membership->team->facility === null, 404);
 
-        $validated = $request->validate([
-            'role' => ['required', Rule::enum(TeamRole::class)],
+        $request->validate([
+            'role' => ['required', 'string', 'max:40'],
+            'designation' => ['nullable', 'string', 'max:20'],
         ]);
 
-        $next = TeamRole::from($validated['role']);
+        // "screener:doctor" from the select, or role and designation apart.
+        $next = MemberRoleChoice::fromInput($request->input('role'), $request->input('designation'), TeamRole::cases());
         $previous = $membership->role;
+        $previousDesignation = $membership->designation;
 
-        if ($previous !== $next) {
-            $membership->role = $next;
+        if ($previous !== $next->role || $previousDesignation !== $next->designation) {
+            $membership->role = $next->role;
+            $membership->designation = $next->designation;
             $membership->save();
 
             $audit->write($actor, 'user.role_changed', $membership->user, [
                 'team_id' => $membership->team_id,
                 'from' => $previous->value,
-                'to' => $next->value,
+                'to' => $next->role->value,
+                'designation' => $next->designation?->value,
             ]);
         }
 
@@ -252,7 +254,9 @@ class UserAdminController extends Controller
         $roles = collect($user->teamMemberships)
             ->filter(fn (Membership $membership): bool => ! $membership->team->is_personal
                 && $membership->team->facility !== null)
-            ->map(fn (Membership $membership): string => $membership->role->label());
+            ->map(fn (Membership $membership): string => $membership->role->takesDesignation()
+                ? $membership->rosterLabel()
+                : $membership->role->label());
 
         $programme = collect($user->programmeAssignments)
             ->map(fn ($assignment): string => $assignment->role->label());

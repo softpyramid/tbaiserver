@@ -18,7 +18,7 @@ class SaveDailyReturnRequest extends FormRequest
 
         return $team instanceof Team
             && $user !== null
-            && $user->belongsToTeam($team)
+            && $user->worksReturnsAt($team)
             && $team->facility !== null;
     }
 

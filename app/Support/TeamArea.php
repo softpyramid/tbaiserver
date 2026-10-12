@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\FrontlineDesignation;
 use App\Enums\ProgrammeRole;
 use App\Enums\TeamRole;
 use App\Models\AuditLog;
@@ -40,6 +41,7 @@ class TeamArea
             'tabs' => $this->tabs($user, $team, $current),
             'canInvite' => Gate::forUser($user)->allows('inviteMember', $team),
             'inviteRoles' => TeamRole::rosterOptions(),
+            'inviteDesignations' => FrontlineDesignation::options(),
         ];
     }
 
@@ -118,7 +120,7 @@ class TeamArea
             ],
             'members' => collect($page->items())->map(function (Membership $membership) use ($actor, $team, $returns, $ownerCount): array {
                 $member = $membership->user;
-                $badge = $this->badge($member, $membership->role);
+                $badge = $this->badge($member, $membership);
                 $seen = LastActive::describe($member->last_seen_at);
                 $lastOwner = $membership->role === TeamRole::Owner && $ownerCount <= 1;
                 $ownRole = $actor->is($member) && $actor->teamRole($team) === TeamRole::Owner;
@@ -181,7 +183,7 @@ class TeamArea
                 return [
                     'code' => $invitation->code,
                     'email' => $invitation->email,
-                    'roleLabel' => $invitation->role->rosterLabel(),
+                    'roleLabel' => $invitation->role->rosterLabelWith($invitation->designation),
                     'sent' => $invitation->created_at?->timezone((string) config('app.timezone'))->format('j M Y') ?? __('entry.not_available'),
                     'actions' => $canManage ? [
                         [
@@ -226,6 +228,7 @@ class TeamArea
                 ['role' => TeamRole::Owner->rosterLabel(), 'access' => __('entry.role_access_in_charge')],
                 ['role' => TeamRole::Admin->rosterLabel(), 'access' => __('entry.role_access_senior')],
                 ['role' => TeamRole::Member->rosterLabel(), 'access' => __('entry.role_access_technician')],
+                ['role' => TeamRole::Screener->rosterLabel(), 'access' => __('entry.role_access_frontline')],
                 ['role' => ProgrammeRole::CityOfficer->label(), 'access' => __('entry.role_access_city')],
                 ['role' => ProgrammeRole::ProvincialViewer->label(), 'access' => __('entry.role_access_province')],
                 ['role' => ProgrammeRole::CountryViewer->label(), 'access' => __('entry.role_access_country')],
@@ -391,7 +394,7 @@ class TeamArea
     /**
      * @return array{value: string, label: string}
      */
-    private function badge(User $user, TeamRole $role): array
+    private function badge(User $user, Membership $membership): array
     {
         $assignment = $user->programmeAssignments->first();
 
@@ -403,8 +406,8 @@ class TeamArea
         }
 
         return [
-            'value' => $role->value,
-            'label' => $role->rosterLabel(),
+            'value' => $membership->role->value,
+            'label' => $membership->rosterLabel(),
         ];
     }
 
@@ -420,7 +423,7 @@ class TeamArea
                 'kind' => 'roles',
                 'label' => __('entry.change_role'),
                 'url' => route('teams.members.update', ['team' => $team->slug, 'user' => $member->id]),
-                'options' => TeamRole::rosterOptions(),
+                'options' => MemberRoleChoice::rosterOptions(),
             ];
         }
 
@@ -487,6 +490,7 @@ class TeamArea
             ['value' => TeamRole::Member->value, 'label' => TeamRole::Member->rosterLabel()],
             ['value' => TeamRole::Owner->value, 'label' => TeamRole::Owner->rosterLabel()],
             ['value' => TeamRole::Admin->value, 'label' => TeamRole::Admin->rosterLabel()],
+            ['value' => TeamRole::Screener->value, 'label' => TeamRole::Screener->rosterLabel()],
             ...ProgrammeRole::options(),
         ];
     }

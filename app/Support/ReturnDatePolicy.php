@@ -37,6 +37,10 @@ class ReturnDatePolicy
 
         $role = $user->teamRole($team);
 
+        if ($role === null || ! $role->canWorkReturns()) {
+            return false;
+        }
+
         if ($role === TeamRole::Owner || $role === TeamRole::Admin) {
             return true;
         }

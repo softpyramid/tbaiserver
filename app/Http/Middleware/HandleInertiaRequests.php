@@ -80,7 +80,7 @@ class HandleInertiaRequests extends Middleware
             'registerUrl' => function () use ($user): ?string {
                 $team = $user?->currentTeam;
 
-                if ($team === null || ! $team->facility()->exists()) {
+                if ($user === null || $team === null || ! $team->facility()->exists() || ! ($user->isTbaiAdmin() || $user->worksReturnsAt($team))) {
                     return null;
                 }
 
@@ -89,7 +89,7 @@ class HandleInertiaRequests extends Middleware
             'profileUrl' => $canOpenProfile
                 ? route('facilities.edit', ['current_team' => $facilityTeam->slug])
                 : null,
-            'myFacilityUrl' => $user !== null && $facilityTeam !== null && ($isTbaiAdmin || $user->belongsToTeam($facilityTeam))
+            'myFacilityUrl' => $user !== null && $facilityTeam !== null && ($isTbaiAdmin || $user->worksReturnsAt($facilityTeam))
                 ? route('facilities.home', ['current_team' => $facilityTeam->slug])
                 : null,
             'impersonation' => $user instanceof User && app(Impersonation::class)->active($request)
@@ -107,7 +107,7 @@ class HandleInertiaRequests extends Middleware
                 'dir' => in_array(app()->getLocale(), ['ur', 'ar', 'fa'], true) ? 'rtl' : 'ltr',
                 'entry' => trans('entry'),
             ]),
-            'screeningUrl' => config('tbai.features.screening') && $user !== null && $facilityTeam !== null && $user->belongsToTeam($facilityTeam)
+            'screeningUrl' => config('tbai.features.screening') && $user !== null && $facilityTeam !== null && $user->worksReturnsAt($facilityTeam)
                 ? route('screening.create', ['current_team' => $facilityTeam->slug])
                 : null,
             'facilitiesUrl' => $isTbaiAdmin ? route('facilities.index') : null,

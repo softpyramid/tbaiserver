@@ -25,7 +25,7 @@ trait HasTeams
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'team_members', 'user_id', 'team_id')
-            ->withPivot(['role'])
+            ->withPivot(['role', 'designation'])
             ->withTimestamps();
     }
 
@@ -126,6 +126,23 @@ trait HasTeams
             ->where('team_id', $team->id)
             ->first()
             ?->role;
+    }
+
+    /**
+     * May this user work the daily return (register, history, slide photos,
+     * facility overview) of this facility team? Frontline workers may not.
+     */
+    public function worksReturnsAt(Team $team): bool
+    {
+        return $this->teamRole($team)?->canWorkReturns() ?? false;
+    }
+
+    /**
+     * May this user run suspect screenings at this facility team?
+     */
+    public function screensAt(Team $team): bool
+    {
+        return $this->teamRole($team)?->canScreen() ?? false;
     }
 
     /**

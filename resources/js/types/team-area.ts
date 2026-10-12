@@ -1,4 +1,4 @@
-import type { RoleOption } from '@/types';
+import type { DesignationOption, RoleOption } from '@/types';
 
 export type TeamTab = {
     id: string;
@@ -24,6 +24,7 @@ export type TeamAreaHeader = {
     tabs: TeamTab[];
     canInvite: boolean;
     inviteRoles: RoleOption[];
+    inviteDesignations: DesignationOption[];
 };
 
 export type PageLinks = {

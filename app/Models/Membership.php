@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FrontlineDesignation;
 use App\Enums\TeamRole;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,12 +14,13 @@ use Illuminate\Support\Carbon;
  * @property int $team_id
  * @property int $user_id
  * @property TeamRole $role
+ * @property FrontlineDesignation|null $designation
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Team $team
  * @property-read User $user
  */
-#[Fillable(['team_id', 'user_id', 'role'])]
+#[Fillable(['team_id', 'user_id', 'role', 'designation'])]
 class Membership extends Pivot
 {
     /**
@@ -56,6 +58,14 @@ class Membership extends Pivot
     }
 
     /**
+     * Roster label, for example "Frontline worker (Doctor)".
+     */
+    public function rosterLabel(): string
+    {
+        return $this->role->rosterLabelWith($this->designation);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -64,6 +74,7 @@ class Membership extends Pivot
     {
         return [
             'role' => TeamRole::class,
+            'designation' => FrontlineDesignation::class,
         ];
     }
 }

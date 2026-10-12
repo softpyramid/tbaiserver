@@ -63,7 +63,8 @@ test('login seeder can be run again without duplicating accounts', function () {
         ->and(User::query()->where('email', 'karachi-west@tbai.test')->count())->toBe(1)
         ->and(User::query()->where('email', 'sindh@tbai.test')->count())->toBe(1)
         ->and(User::query()->where('email', 'country@tbai.test')->count())->toBe(1)
-        ->and(User::query()->count())->toBe(6);
+        ->and(User::query()->where('email', 'screener@tbai.test')->count())->toBe(1)
+        ->and(User::query()->count())->toBe(7);
 });
 
 test('login seeder wires programme scope and facility ownership', function () {

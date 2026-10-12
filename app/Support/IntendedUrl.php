@@ -86,6 +86,16 @@ class IntendedUrl
             return false;
         }
 
+        if (str_starts_with($name, 'suspect.')) {
+            return $user->screensAt($team);
+        }
+
+        // Frontline workers only screen: the register, slide photos, the
+        // facility area, and the older flat screening are closed to them.
+        if (! $user->worksReturnsAt($team)) {
+            return false;
+        }
+
         return match (true) {
             $name === 'returns.history' => Gate::forUser($user)->allows('viewReturns', $team),
             in_array($name, ['facilities.members', 'facilities.invites', 'facilities.roles', 'facilities.activity'], true) => Gate::forUser($user)->allows('viewRoster', $team),

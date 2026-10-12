@@ -9,6 +9,13 @@ enum TeamRole: string
     case Member = 'member';
 
     /**
+     * Frontline worker (doctor, LHW, CHW, nurse...). Screens suspects at the
+     * facility and does nothing else there: no daily return, no slide
+     * photos, no facility profile, no staff management.
+     */
+    case Screener = 'screener';
+
+    /**
      * Facility name for this stored team role.
      */
     public function label(): string
@@ -17,6 +24,7 @@ enum TeamRole: string
             self::Owner => 'Facility in-charge',
             self::Admin => 'Senior technician',
             self::Member => 'Technician',
+            self::Screener => 'Frontline worker',
         };
     }
 
@@ -29,7 +37,52 @@ enum TeamRole: string
             self::Owner => 'In-charge',
             self::Admin => 'Senior technician',
             self::Member => 'Technician',
+            self::Screener => 'Frontline worker',
         };
+    }
+
+    /**
+     * Roster label with the frontline designation, for example
+     * "Frontline worker (Doctor)". Other roles ignore the designation.
+     */
+    public function rosterLabelWith(?FrontlineDesignation $designation): string
+    {
+        if ($this === self::Screener && $designation !== null) {
+            return $this->rosterLabel().' ('.$designation->label().')';
+        }
+
+        return $this->rosterLabel();
+    }
+
+    /**
+     * May this role open, save, and backfill the daily BMU return, its
+     * history, slide photos, and the facility overview? Frontline workers
+     * may not; they only screen.
+     */
+    public function canWorkReturns(): bool
+    {
+        return $this !== self::Screener;
+    }
+
+    /**
+     * May this role start, answer, complete, and read suspect screenings at
+     * its facility? Every facility role may.
+     *
+     * Hook for the later patients feature: screeners will also create and
+     * view patients at their facility. Gate that feature on this method (or
+     * a sibling canManagePatients()) rather than on canWorkReturns().
+     */
+    public function canScreen(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Only frontline workers carry a designation.
+     */
+    public function takesDesignation(): bool
+    {
+        return $this === self::Screener;
     }
 
     /**
@@ -61,6 +114,7 @@ enum TeamRole: string
                 TeamPermission::CancelInvitation,
             ],
             self::Member => [],
+            self::Screener => [],
         };
     }
 
@@ -82,6 +136,7 @@ enum TeamRole: string
             self::Owner => 3,
             self::Admin => 2,
             self::Member => 1,
+            self::Screener => 0,
         };
     }
 
@@ -94,14 +149,16 @@ enum TeamRole: string
     }
 
     /**
-     * Get the roles that can be assigned to team members (excludes Owner).
+     * Get the roles that can be assigned on the generic team settings page
+     * (excludes Owner, and Screener, which needs a designation and only
+     * exists on facility teams).
      *
      * @return array<array{value: string, label: string}>
      */
     public static function assignable(): array
     {
         return collect(self::cases())
-            ->filter(fn (self $role) => $role !== self::Owner)
+            ->filter(fn (self $role) => $role !== self::Owner && $role !== self::Screener)
             ->map(fn (self $role) => ['value' => $role->value, 'label' => $role->label()])
             ->values()
             ->toArray();

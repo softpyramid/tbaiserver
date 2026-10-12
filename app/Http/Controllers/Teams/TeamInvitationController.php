@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Teams;
 
+use App\Enums\FrontlineDesignation;
 use App\Enums\TeamRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\CreateTeamInvitationRequest;
@@ -30,9 +31,15 @@ class TeamInvitationController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
 
+        $role = TeamRole::from($request->validated('role'));
+        $designation = $request->validated('designation');
+
         $invitation = $team->invitations()->create([
             'email' => $request->validated('email'),
-            'role' => TeamRole::from($request->validated('role')),
+            'role' => $role,
+            'designation' => $role->takesDesignation() && is_string($designation)
+                ? FrontlineDesignation::from($designation)
+                : null,
             'invited_by' => $actor->id,
             'expires_at' => now()->addDays(3),
         ]);
@@ -44,6 +51,7 @@ class TeamInvitationController extends Controller
             'team_id' => $team->id,
             'email' => $invitation->email,
             'role' => $invitation->role->value,
+            'designation' => $invitation->designation?->value,
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent.')]);
@@ -88,7 +96,7 @@ class TeamInvitationController extends Controller
 
             $team->memberships()->firstOrCreate(
                 ['user_id' => $user->id],
-                ['role' => $invitation->role],
+                ['role' => $invitation->role, 'designation' => $invitation->designation],
             );
 
             $invitation->update(['accepted_at' => now()]);

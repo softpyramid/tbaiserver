@@ -151,6 +151,7 @@ export default function FacilityInvites({
                         isPersonal: false,
                     }}
                     availableRoles={area.inviteRoles}
+                    designations={area.inviteDesignations}
                     open={inviteOpen}
                     onOpenChange={setInviteOpen}
                 />

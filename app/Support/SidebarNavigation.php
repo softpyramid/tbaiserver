@@ -102,8 +102,14 @@ class SidebarNavigation
             return [];
         }
 
+        $items = $this->facilityItems($user, $facilityTeam);
+
+        if ($items === []) {
+            return [];
+        }
+
         return [
-            $this->group('facility', __('entry.nav_group_my_facility'), $this->facilityItems($user, $facilityTeam)),
+            $this->group('facility', __('entry.nav_group_my_facility'), $items),
         ];
     }
 
@@ -192,6 +198,14 @@ class SidebarNavigation
     private function facilityItems(User $user, Team $facilityTeam): array
     {
         $role = $user->teamRole($facilityTeam);
+
+        // Frontline workers only screen; their account sits in the user menu.
+        if ($role !== null && ! $role->canWorkReturns()) {
+            return $role->canScreen() && config('tbai.features.suspect_screening')
+                ? [$this->link('suspect_screening', __('entry.nav_suspect_screening'), route('suspect.index', $facilityTeam), null, ['suspect.'])]
+                : [];
+        }
+
         $items = [
             $this->link('register', __('entry.nav_register_long'), route('returns.today', $facilityTeam), null, ['returns.today', 'returns.update']),
         ];

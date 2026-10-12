@@ -29,14 +29,15 @@ class TeamMemberController extends Controller
 
         $membership = $team->memberships()->where('user_id', $user->id)->firstOrFail();
         $from = $membership->role;
-        $newRole = TeamRole::from($request->validated('role'));
+        $choice = $request->choice();
 
-        $membership->update(['role' => $newRole]);
+        $membership->update(['role' => $choice->role, 'designation' => $choice->designation]);
 
         $audit->write($actor, 'team.member.role_updated', $user, [
             'team_id' => $team->id,
             'from' => $from->value,
-            'to' => $newRole->value,
+            'to' => $choice->role->value,
+            'designation' => $choice->designation?->value,
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('entry.role_saved')]);

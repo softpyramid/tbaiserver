@@ -17,7 +17,8 @@ class FacilityPolicy
     }
 
     /**
-     * Facility staff may open the facility home. Saving stays on update.
+     * Facility staff who work the return may open the facility home. Saving
+     * stays on update. Frontline workers only screen, so they may not.
      */
     public function view(User $user, Facility $facility): bool
     {
@@ -25,7 +26,7 @@ class FacilityPolicy
             return true;
         }
 
-        return $user->belongsToTeam($facility->team);
+        return $user->worksReturnsAt($facility->team);
     }
 
     /**
@@ -72,10 +73,12 @@ class FacilityPolicy
     }
 
     /**
-     * Any member of the facility team may record a screening.
+     * The older flat screening feeds the daily register (its suspects show
+     * on the return), so it stays with the staff who work the return.
+     * Frontline workers use the suspect screening instead.
      */
     public function screen(User $user, Facility $facility): bool
     {
-        return $user->belongsToTeam($facility->team);
+        return $user->worksReturnsAt($facility->team);
     }
 }

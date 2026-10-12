@@ -77,8 +77,9 @@ return [
     | interventions: the response and priority lines on that page. Follows drivers.
     | incidence: Incidence page of the command center.
     | ai_tests: AI Assisted Testing page and every AI-assisted figure.
+    | suspect_screening: the Suspect-Finding questionnaire, API, and rule sets.
     |
-    | drivers, interventions, incidence, and ai_tests are on in local, dev, and
+    | drivers, interventions, incidence, ai_tests, and suspect_screening are on in local, dev, and
     | staging and off in production (and in any environment not listed in
     | area_defaults) unless the env variable says otherwise. An explicit true or
     | false in the environment always wins. area_defaults is the one place to
@@ -93,6 +94,7 @@ return [
         'interventions' => $interventions,
         'incidence' => $areaFlag('TBAI_SHOW_INCIDENCE'),
         'ai_tests' => $areaFlag('TBAI_SHOW_AI_TESTS'),
+        'suspect_screening' => $areaFlag('TBAI_SHOW_SUSPECT_SCREENING'),
     ],
 
     /*

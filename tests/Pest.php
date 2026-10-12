@@ -1,5 +1,12 @@
 <?php
 
+use App\Enums\ProgrammeRole;
+use App\Enums\TeamRole;
+use App\Models\Facility;
+use App\Models\ProgrammeAssignment;
+use App\Models\SuspectRuleSet;
+use App\Models\User;
+use Database\Seeders\SuspectRuleSetSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,4 +64,45 @@ function enableFeature(string ...$features): void
     foreach ($features as $feature) {
         config(["tbai.features.{$feature}" => true]);
     }
+}
+
+/**
+ * A facility with one staff member at the given role, for suspect screening tests.
+ *
+ * @return array{0: User, 1: Facility}
+ */
+function suspectStaff(TeamRole $role = TeamRole::Member, ?Facility $facility = null): array
+{
+    $user = User::factory()->create();
+    $facility ??= Facility::factory()->create();
+    $facility->team->members()->attach($user, ['role' => $role->value]);
+    $user->switchTeam($facility->team);
+
+    return [$user, $facility];
+}
+
+function suspectAdmin(): User
+{
+    $admin = User::factory()->create();
+    ProgrammeAssignment::factory()->create([
+        'user_id' => $admin->id,
+        'role' => ProgrammeRole::TbaiAdmin,
+        'scope_type' => null,
+        'scope_id' => null,
+    ]);
+
+    return $admin->fresh() ?? $admin;
+}
+
+/**
+ * The seeded draft rule set with every relation loaded.
+ */
+function suspectDraftRuleSet(): SuspectRuleSet
+{
+    (new SuspectRuleSetSeeder)->run();
+
+    return SuspectRuleSet::query()
+        ->where('version', SuspectRuleSetSeeder::VERSION)
+        ->firstOrFail()
+        ->load(['questions', 'scoreItems', 'clinicalRules', 'riskPatterns']);
 }

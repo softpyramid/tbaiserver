@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessRequestController;
 use App\Http\Controllers\Api\CommandApiController;
+use App\Http\Controllers\Api\SuspectApiController;
 use App\Http\Controllers\AuditLogAdminController;
 use App\Http\Controllers\CaseNotificationAdminController;
 use App\Http\Controllers\CommandCenterController;
@@ -19,6 +20,9 @@ use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
 use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\ScreeningSessionAdminController;
+use App\Http\Controllers\SuspectAssessmentAdminController;
+use App\Http\Controllers\SuspectRuleSetAdminController;
+use App\Http\Controllers\SuspectScreeningController;
 use App\Http\Controllers\TeamAreaController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\TodayShortcutController;
@@ -26,6 +30,7 @@ use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\WebManifestController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Http\Middleware\RedirectProgrammeTeamUrl;
+use App\Http\Middleware\RejectPersonalFields;
 use App\Models\Team;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
@@ -145,6 +150,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('incidence', [CommandApiController::class, 'incidence'])->middleware('feature:incidence')->name('incidence');
         });
 
+    // Suspect-Finding screening API, Phase 1. Facility staff only; session auth.
+    Route::prefix('api/v1/suspect')
+        ->middleware(['feature:suspect_screening', 'throttle:command-api', RejectPersonalFields::class])
+        ->name('api.suspect.')
+        ->group(function () {
+            Route::get('rule-set', [SuspectApiController::class, 'ruleSet'])->name('rule-set');
+            Route::post('assessments', [SuspectApiController::class, 'start'])->name('assessments.store');
+            Route::get('assessments/{assessment}', [SuspectApiController::class, 'show'])
+                ->whereUuid('assessment')
+                ->name('assessments.show');
+            Route::post('assessments/{assessment}/answers', [SuspectApiController::class, 'answers'])
+                ->whereUuid('assessment')
+                ->name('assessments.answers');
+            Route::post('assessments/{assessment}/complete', [SuspectApiController::class, 'complete'])
+                ->whereUuid('assessment')
+                ->name('assessments.complete');
+        });
+
     Route::get('admin', fn () => redirect()->route('command.index'))->name('admin.home');
     Route::get('admin/facilities', [FacilityController::class, 'index'])->name('facilities.index');
     Route::post('admin/facilities/{facility}/deactivate', [FacilityController::class, 'deactivate'])->name('facilities.deactivate');
@@ -157,6 +180,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/screening-sessions', [ScreeningSessionAdminController::class, 'index'])
         ->middleware('feature:screening')
         ->name('admin.screening-sessions.index');
+    Route::middleware('feature:suspect_screening')->group(function () {
+        Route::get('admin/suspect-rules', [SuspectRuleSetAdminController::class, 'index'])->name('admin.suspect-rules.index');
+        Route::get('admin/suspect-rules/{suspectRuleSet}', [SuspectRuleSetAdminController::class, 'show'])->name('admin.suspect-rules.show');
+        Route::patch('admin/suspect-rules/{suspectRuleSet}', [SuspectRuleSetAdminController::class, 'update'])->name('admin.suspect-rules.update');
+        Route::post('admin/suspect-rules/{suspectRuleSet}/clone', [SuspectRuleSetAdminController::class, 'cloneToDraft'])->name('admin.suspect-rules.clone');
+        Route::post('admin/suspect-rules/{suspectRuleSet}/submit', [SuspectRuleSetAdminController::class, 'submit'])->name('admin.suspect-rules.submit');
+        Route::post('admin/suspect-rules/{suspectRuleSet}/approve', [SuspectRuleSetAdminController::class, 'approve'])->name('admin.suspect-rules.approve');
+        Route::post('admin/suspect-rules/{suspectRuleSet}/publish', [SuspectRuleSetAdminController::class, 'publish'])->name('admin.suspect-rules.publish');
+        Route::post('admin/suspect-rules/{suspectRuleSet}/retire', [SuspectRuleSetAdminController::class, 'retire'])->name('admin.suspect-rules.retire');
+        Route::get('admin/suspect-assessments', [SuspectAssessmentAdminController::class, 'index'])->name('admin.suspect-assessments.index');
+    });
     Route::get('admin/users', [UserAdminController::class, 'index'])->name('admin.users.index');
     Route::patch('admin/users/{user}', [UserAdminController::class, 'update'])->name('admin.users.update');
     Route::patch('admin/memberships/{membership}', [UserAdminController::class, 'updateMembership'])->name('admin.memberships.update');
@@ -220,6 +254,14 @@ Route::prefix('{current_team}')
         Route::middleware('feature:screening')->group(function () {
             Route::get('screening/new', [ScreeningController::class, 'create'])->name('screening.create');
             Route::post('screening', [ScreeningController::class, 'store'])->name('screening.store');
+        });
+
+        Route::middleware('feature:suspect_screening')->group(function () {
+            Route::get('screening/suspects', [SuspectScreeningController::class, 'index'])->name('suspect.index');
+            Route::get('screening/suspects/new', [SuspectScreeningController::class, 'create'])->name('suspect.create');
+            Route::get('screening/suspects/{assessment}', [SuspectScreeningController::class, 'show'])
+                ->whereUuid('assessment')
+                ->name('suspect.show');
         });
     });
 

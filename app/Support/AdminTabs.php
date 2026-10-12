@@ -59,6 +59,17 @@ class AdminTabs
     }
 
     /**
+     * @return list<array{id: string, label: string, href: string, current: bool, badge: int|null}>
+     */
+    public static function suspect(string $current): array
+    {
+        return self::build($current, [
+            ['rules', __('entry.nav_suspect_rule_sets'), route('admin.suspect-rules.index'), null],
+            ['assessments', __('entry.nav_suspect_assessments'), route('admin.suspect-assessments.index'), null],
+        ]);
+    }
+
+    /**
      * @param  list<array{0: string, 1: string, 2: string, 3: int|null}>  $rows
      * @return list<array{id: string, label: string, href: string, current: bool, badge: int|null}>
      */

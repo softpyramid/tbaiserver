@@ -13,6 +13,8 @@ import {
     LogOut,
     Map,
     ScrollText,
+    SlidersHorizontal,
+    Stethoscope,
     Users,
     type LucideIcon,
 } from 'lucide-react';
@@ -32,6 +34,8 @@ const icons: Record<string, LucideIcon> = {
     register: ClipboardList,
     returns: FileText,
     screening: ClipboardPlus,
+    suspect_screening: Stethoscope,
+    suspect_rules: SlidersHorizontal,
     facility: Building2,
     account: CircleUser,
     overview: LayoutDashboard,

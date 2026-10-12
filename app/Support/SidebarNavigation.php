@@ -162,13 +162,20 @@ class SidebarNavigation
             ->count();
         $badge = $pending > 0 ? $pending : null;
 
-        return [
+        $items = [
             $this->link('facilities', __('entry.nav_facilities'), route('facilities.index'), null, ['facilities.']),
             $this->link('returns', __('entry.nav_returns'), route('admin.daily-returns.index'), null, ['admin.daily-returns', 'admin.revisions', 'admin.screening-sessions']),
             $this->link('people', __('entry.nav_people'), route('admin.users.index'), $badge, ['admin.users', 'admin.memberships', 'admin.programme-', 'admin.access-requests']),
             $this->link('kpis', __('entry.nav_kpis'), route('admin.population-denominators.index'), null, ['admin.population-denominators', 'admin.case-notifications']),
-            $this->link('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), null, ['admin.audit-log']),
         ];
+
+        if (config('tbai.features.suspect_screening')) {
+            $items[] = $this->link('suspect_rules', __('entry.nav_suspect_rules'), route('admin.suspect-rules.index'), null, ['admin.suspect-']);
+        }
+
+        $items[] = $this->link('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), null, ['admin.audit-log']);
+
+        return $items;
     }
 
     /**
@@ -195,6 +202,10 @@ class SidebarNavigation
 
         if (config('tbai.features.screening')) {
             $items[] = $this->link('screening', __('entry.nav_screening'), route('screening.create', $facilityTeam), null, ['screening.']);
+        }
+
+        if (config('tbai.features.suspect_screening')) {
+            $items[] = $this->link('suspect_screening', __('entry.nav_suspect_screening'), route('suspect.index', $facilityTeam), null, ['suspect.']);
         }
 
         $items[] = $this->link('my_facility', __('entry.nav_facility'), route('facilities.home', $facilityTeam), null, ['facilities.']);

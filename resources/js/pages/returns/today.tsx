@@ -5,6 +5,7 @@ import CountStepper from '@/components/count-stepper';
 import EntryScreen from '@/components/entry-screen';
 import FacilitySummaryCard from '@/components/facility-summary-card';
 import FieldError from '@/components/field-error';
+import SlidePhotos, { type SlidePhotosProps } from '@/components/slide-photos';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { scrollToField } from '@/lib/entry-fields';
@@ -83,6 +84,7 @@ type Props = {
     };
     history: HistoryEntry[] | null;
     dateNotice?: string | null;
+    slides?: SlidePhotosProps;
 };
 
 const fieldOrder = [
@@ -621,6 +623,11 @@ function RegisterForm(props: Props) {
                         )}
                     </Form>
                 )}
+                {props.slides ? (
+                    <div className="mt-6">
+                        <SlidePhotos slides={props.slides} />
+                    </div>
+                ) : null}
             </EntryScreen>
         </>
     );

@@ -219,7 +219,7 @@ test('the uploader or an admin can delete a photo and its files, a colleague can
     expect(SlidePhoto::query()->count())->toBe(0);
 });
 
-test('the admin return detail lists slide photos and a programme viewer sees none', function () {
+test('the admin return detail lists slide photos and a programme viewer gets no section', function () {
     $facility = Facility::factory()->create();
     $member = slideStaff($facility);
     $return = slideReturn($facility, $member);
@@ -243,6 +243,16 @@ test('the admin return detail lists slide photos and a programme viewer sees non
     ]);
 
     $this->actingAs($officer)
+        ->get(route('command.returns.show', $return))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('slidePhotos', null));
+});
+
+test('an admin still gets the empty slide photo section when a return has no photos', function () {
+    $facility = Facility::factory()->create();
+    $return = slideReturn($facility, slideStaff($facility));
+
+    $this->actingAs(slideAdmin())
         ->get(route('command.returns.show', $return))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->where('slidePhotos', []));

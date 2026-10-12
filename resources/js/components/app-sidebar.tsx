@@ -1,20 +1,26 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Briefcase,
     Building2,
     CalendarDays,
     CircleUser,
+    Database,
     ClipboardList,
     ClipboardPlus,
     Globe,
+    Handshake,
     History,
     FileText,
     Inbox,
+    Landmark,
     LayoutDashboard,
     LayoutGrid,
     List,
     MapPinned,
     MonitorPlay,
     ScrollText,
+    SlidersHorizontal,
+    Stethoscope,
     Users,
     type LucideIcon,
 } from 'lucide-react';
@@ -65,6 +71,12 @@ const icons: Record<string, LucideIcon> = {
     programme_assignments: MapPinned,
     access_requests: Inbox,
     programme_access: Users,
+    kpis: Database,
+    suspect_rules: SlidersHorizontal,
+    suspect_screening: Stethoscope,
+    public: Landmark,
+    private: Briefcase,
+    ppm: Handshake,
 };
 
 export function AppSidebar() {

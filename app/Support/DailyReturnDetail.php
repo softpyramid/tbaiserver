@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\DailyReturn;
+use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +21,8 @@ class DailyReturnDetail
         ]);
 
         $latest = $return->revisions->sortByDesc('id')->first();
+        $user = request()->user();
+        $user = $user instanceof User ? $user : null;
 
         return Inertia::render('resources/show', [
             'title' => __('entry.detail_title'),
@@ -48,6 +51,8 @@ class DailyReturnDetail
                 ['key' => 'new', 'label' => __('entry.column_new')],
             ],
             'history' => $this->revisions->lines($return),
+            'slidePhotosTitle' => __('entry.slide_photos_title'),
+            'slidePhotos' => $user === null ? [] : app(SlidePhotoList::class)->photos($return, $user, null),
         ]);
     }
 }

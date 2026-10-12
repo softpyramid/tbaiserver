@@ -11,6 +11,7 @@ use App\Models\Team;
 use App\Support\EntryDate;
 use App\Support\ProvisionalReportedTat;
 use App\Support\ReturnDatePolicy;
+use App\Support\SlidePhotoList;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Http\RedirectResponse;
@@ -106,6 +107,14 @@ class DailyReturnController extends Controller
                 ? $this->history($dailyReturn)
                 : null,
             'dateNotice' => $request->session()->get('date_notice'),
+            'slides' => [
+                'photos' => app(SlidePhotoList::class)->photos($dailyReturn, $user, $current_team),
+                'uploadUrl' => $dailyReturn !== null && $user->belongsToTeam($current_team) && $dates->canEdit($user, $current_team, $reportedOn)
+                    ? route('returns.slides.store', ['current_team' => $current_team->slug, 'dailyReturn' => $dailyReturn->id])
+                    : null,
+                'needsSavedReturn' => $dailyReturn === null,
+                ...app(SlidePhotoList::class)->limits(),
+            ],
         ]);
     }
 

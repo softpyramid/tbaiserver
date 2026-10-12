@@ -110,6 +110,14 @@ class DailyReturn extends Model
     }
 
     /**
+     * @return HasMany<SlidePhoto, $this>
+     */
+    public function slidePhotos(): HasMany
+    {
+        return $this->hasMany(SlidePhoto::class);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function submitter(): BelongsTo

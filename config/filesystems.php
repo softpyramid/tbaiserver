@@ -38,6 +38,17 @@ return [
             'report' => false,
         ],
 
+        // Slide photos. Private: never linked from public/storage and only
+        // served through the authorized SlidePhotoController routes.
+        'slides' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/slides'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

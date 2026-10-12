@@ -122,6 +122,15 @@ return [
         'default_period' => env('TBAI_COMMAND_DEFAULT_PERIOD', 'ytd'),
     ],
 
+    // Slide photos on the BMU daily return. Stored on a private disk and
+    // served only through authorized routes. No AI processing.
+    'slide_photos' => [
+        'disk' => env('TBAI_SLIDE_PHOTOS_DISK', 'slides'),
+        'max_kilobytes' => 10240,
+        'max_per_upload' => 10,
+        'thumbnail_width' => 480,
+    ],
+
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',
 
     'partner_line' => 'Technical partner: Soft Pyramid',

@@ -106,7 +106,7 @@ class SecurityHeaders
             "default-src 'self'",
             $script,
             $style,
-            "img-src 'self' data:",
+            "img-src 'self' data: blob:",
             $font,
             $connect,
             "frame-ancestors 'self'",

@@ -19,6 +19,7 @@ use App\Http\Controllers\ProgrammeAssignmentController;
 use App\Http\Controllers\ReturnRevisionAdminController;
 use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\ScreeningSessionAdminController;
+use App\Http\Controllers\SlidePhotoController;
 use App\Http\Controllers\TeamAreaController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\TodayShortcutController;
@@ -123,6 +124,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('command.districts.show');
     Route::get('command/facilities', [FacilityController::class, 'scoped'])->name('command.facilities');
     Route::get('command/returns', [CommandCenterController::class, 'returns'])->name('command.returns');
+    Route::get('slide-photos/{slidePhoto}', [SlidePhotoController::class, 'show'])->name('slide-photos.show');
+    Route::get('slide-photos/{slidePhoto}/thumbnail', [SlidePhotoController::class, 'thumbnail'])->name('slide-photos.thumbnail');
     Route::get('command/returns/{dailyReturn}', [CommandCenterController::class, 'showReturn'])->name('command.returns.show');
 
     Route::prefix('api/command')
@@ -194,6 +197,8 @@ Route::prefix('{current_team}')
         Route::get('returns/today', [DailyReturnController::class, 'edit'])->name('returns.today');
         Route::put('returns/today', [DailyReturnController::class, 'update'])->name('returns.update');
         Route::get('returns/history', FacilityReturnHistoryController::class)->name('returns.history');
+        Route::post('returns/{dailyReturn}/slides', [SlidePhotoController::class, 'store'])->name('returns.slides.store');
+        Route::delete('slides/{slidePhoto}', [SlidePhotoController::class, 'destroy'])->name('returns.slides.destroy');
 
         // One Facility area with tabs: Overview, Profile, Staff, Invites, Activity.
         Route::get('facility', FacilityHomeController::class)->name('facilities.home');

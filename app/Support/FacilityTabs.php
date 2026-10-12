@@ -26,6 +26,8 @@ class FacilityTabs
 
     public const SCREENING = 'screening';
 
+    public const SUSPECT_SCREENING = 'suspect_screening';
+
     public const FACILITY = 'facility';
 
     public const ACCOUNT = 'account';
@@ -102,6 +104,7 @@ class FacilityTabs
             $name === 'returns.history' && Gate::forUser($user)->allows('viewReturns', $team) => self::RETURNS,
             str_starts_with($name, 'returns.') => self::REGISTER,
             str_starts_with($name, 'screening.') => self::SCREENING,
+            str_starts_with($name, 'suspect.') => self::SUSPECT_SCREENING,
             str_starts_with($name, 'facilities.') => self::FACILITY,
             $this->isAccountRoute($name) => self::ACCOUNT,
             default => null,
@@ -113,6 +116,10 @@ class FacilityTabs
 
         if (config('tbai.features.screening')) {
             $tabs[] = $this->tab(self::SCREENING, __('entry.nav_screening'), route('screening.create', $team), $active);
+        }
+
+        if (config('tbai.features.suspect_screening')) {
+            $tabs[] = $this->tab(self::SUSPECT_SCREENING, __('entry.nav_suspect_screening_short'), route('suspect.index', $team), $active);
         }
 
         if (Gate::forUser($user)->allows('viewReturns', $team)) {
@@ -174,6 +181,7 @@ class FacilityTabs
             str_starts_with($name, 'admin.programme-'),
             str_starts_with($name, 'admin.access-requests') => self::PEOPLE,
             str_starts_with($name, 'admin.audit-log'),
+            str_starts_with($name, 'admin.suspect-'),
             $this->isAccountRoute($name) => self::MORE,
             default => null,
         };
@@ -186,7 +194,14 @@ class FacilityTabs
             $this->tab(self::MORE, __('entry.nav_more'), '#more', $active),
         ];
 
+        $more = [];
+
+        if (config('tbai.features.suspect_screening')) {
+            $more[] = $this->tab('suspect_rules', __('entry.nav_suspect_rules'), route('admin.suspect-rules.index'), $name !== null && str_starts_with($name, 'admin.suspect-') ? 'suspect_rules' : null);
+        }
+
         $more = [
+            ...$more,
             $this->tab('audit_log', __('entry.nav_audit_log'), route('admin.audit-log.index'), $name !== null && str_starts_with($name, 'admin.audit-log') ? 'audit_log' : null),
             $this->tab(self::ACCOUNT, __('entry.nav_account'), route('profile.edit'), $name !== null && $this->isAccountRoute($name) ? self::ACCOUNT : null),
         ];

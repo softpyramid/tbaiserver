@@ -1,0 +1,416 @@
+openapi: 3.0.3
+info:
+  title: TB-AI Suspect-Finding screening API
+  version: 1.0.0
+  description: |
+    Phase 1 of the Suspect-Finding screening API. Session authentication (the
+    signed-in web session plus the CSRF token), like /api/command. Token
+    authentication for field devices is not part of this phase.
+
+    The score is a provisional prioritisation score, not a probability, and
+    every response that carries a score says `is_probability: false`. The
+    score never overrules a clinical rule: a met testing criterion or the
+    coughed-up-blood alert always refers and is never low priority.
+
+    No patient identifiers. Requests carrying `name`, `phone`, `national_id`,
+    `nationalId`, `cnic`, `patient_name` or `mr_number` (at the top level or
+    inside `answers`) are rejected with 422 on every endpoint.
+
+    Unknown stays unknown: `unknown`, `not_disclosed` and "not asked" give 0
+    points, are stored as given (a never-asked question has no answer), and
+    are listed in `unknown_items`.
+
+    Release gate: the current rule set is the published approved one. Outside
+    production, with none published, the newest draft is served and
+    `rule_set_status` is `draft`. In production with no approved published
+    set, every endpoint answers 503.
+
+    The area is behind the `suspect_screening` feature flag
+    (TBAI_SHOW_SUSPECT_SCREENING); while it is off every endpoint answers 404.
+servers:
+  - url: /api/v1/suspect
+security:
+  - session: []
+paths:
+  /rule-set:
+    get:
+      summary: Current rule set (questions, options, branching, score items, thresholds)
+      description: Facility staff or a TB-AI admin.
+      responses:
+        '200':
+          description: The rule set the next screening will use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleSet'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /assessments:
+    post:
+      summary: Start a screening
+      description: Staff (in-charge, senior technician, technician) of the facility named by its slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [facility, age_band, sex]
+              properties:
+                facility:
+                  type: string
+                  description: Facility slug. The caller must be on its staff.
+                age_band:
+                  $ref: '#/components/schemas/AgeBand'
+                sex:
+                  $ref: '#/components/schemas/Sex'
+      responses:
+        '201':
+          description: Started. Returns the first questions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Progress'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /assessments/{assessment}:
+    parameters:
+      - $ref: '#/components/parameters/Assessment'
+    get:
+      summary: Read a screening
+      description: Staff of its facility or a TB-AI admin; anyone else gets 404. A completed screening returns the stored result, never re-scored.
+      responses:
+        '200':
+          description: Stored result, or progress while in progress.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Result'
+                  - $ref: '#/components/schemas/Progress'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /assessments/{assessment}/answers:
+    parameters:
+      - $ref: '#/components/parameters/Assessment'
+    post:
+      summary: Submit one or more answers
+      description: |
+        Staff of the screening's facility only (others 404, a TB-AI admin 403).
+        Keys must be questions of the screening's rule set and values one of
+        their options. An answer whose question stops applying (for example
+        cough changed to no) is removed and listed in `removed_answers`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              properties:
+                answers:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  example:
+                    cough_current: 'yes'
+                    cough_duration: gte_2_weeks
+      responses:
+        '200':
+          description: Next questions, partial scores, criterion and alerts as soon as they are met.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Progress'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Completed' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /assessments/{assessment}/complete:
+    parameters:
+      - $ref: '#/components/parameters/Assessment'
+    post:
+      summary: Finalise a screening
+      description: Allowed with unanswered questions; they stay "not asked" and count as unknown.
+      responses:
+        '200':
+          description: The full result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Completed' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: tb-ai-session
+      description: Signed-in web session cookie (named from APP_NAME unless SESSION_COOKIE is set). POST requests also send X-CSRF-TOKEN.
+  parameters:
+    Assessment:
+      name: assessment
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthenticated:
+      description: Not signed in.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Forbidden:
+      description: Not on the staff of that facility (or a programme viewer).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    NotFound:
+      description: Unknown screening, a screening at another facility, or the feature flag is off.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Completed:
+      description: The screening is already complete.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    ValidationError:
+      description: Invalid input, an unknown question key, an answer outside the options, or a personal field.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }
+    Unavailable:
+      description: No clinically approved rule set is published (production only).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+          example:
+            message: Suspect screening is not available until a clinically approved rule set is published.
+  schemas:
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+    AgeBand:
+      type: string
+      enum: [0_14, 15_24, 25_44, 45_64, 65_plus, unknown]
+    Sex:
+      type: string
+      enum: [female, male, other, unknown]
+    Priority:
+      type: string
+      enum: [high, medium, low, evaluation_required]
+    Condition:
+      type: object
+      description: |
+        {"eq": [key, value]}, {"all": [condition, ...]}, {"any": [condition, ...]},
+        or {"count_yes": [[keys], n]}. A missing or unknown answer never
+        satisfies an eq on yes or no.
+    Scores:
+      type: object
+      properties:
+        symptom: { type: integer, description: S }
+        exposure: { type: integer, description: E }
+        history: { type: integer, description: H }
+        raw: { type: integer, description: S + E + H }
+        score: { type: integer, description: 'min(100, raw)' }
+        is_probability:
+          type: boolean
+          enum: [false]
+    ClinicalRuleStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [configured, not_configured]
+          description: not_configured while no approved testing criterion is entered.
+        testing_criterion_met: { type: boolean }
+        rules:
+          type: array
+          items: { type: string }
+          example: [TESTING_CRITERION_MET]
+    Question:
+      type: object
+      properties:
+        key: { type: string }
+        section:
+          type: string
+          enum: [symptoms, exposure_history]
+        section_label: { type: string }
+        prompt: { type: string }
+        help: { type: string, nullable: true }
+        options:
+          type: array
+          items: { type: string }
+        option_labels:
+          type: object
+          additionalProperties: { type: string }
+        why:
+          type: string
+          nullable: true
+          example: Asked because cough is yes.
+    RuleSet:
+      type: object
+      properties:
+        version: { type: string, example: 2026.10-draft.1 }
+        status:
+          type: string
+          enum: [draft, pending_approval, approved, retired]
+        engine_version: { type: string, example: 1.0.0 }
+        is_probability:
+          type: boolean
+          enum: [false]
+        score_label: { type: string, example: 'Provisional prioritisation score, not a probability' }
+        draft_notice: { type: string, nullable: true }
+        thresholds:
+          type: object
+          properties:
+            high: { type: integer }
+            medium: { type: integer }
+            refer: { type: integer }
+        profile:
+          type: object
+          properties:
+            age_band:
+              type: array
+              items: { type: object, properties: { value: { type: string }, label: { type: string } } }
+            sex:
+              type: array
+              items: { type: object, properties: { value: { type: string }, label: { type: string } } }
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              section: { type: string, enum: [profile, symptoms, exposure_history] }
+              prompt: { type: string }
+              help: { type: string, nullable: true }
+              options: { type: array, items: { type: string } }
+              option_labels: { type: object, additionalProperties: { type: string } }
+              ask_when:
+                allOf: [{ $ref: '#/components/schemas/Condition' }]
+                nullable: true
+        score_items:
+          type: array
+          items:
+            type: object
+            properties:
+              component: { type: string, enum: [S, E, H] }
+              key: { type: string }
+              label: { type: string }
+              points: { type: integer }
+    Progress:
+      type: object
+      properties:
+        assessment_id: { type: string, format: uuid }
+        status: { type: string, enum: [in_progress] }
+        engine_version: { type: string }
+        rule_set_version: { type: string }
+        rule_set_status: { type: string }
+        score_label: { type: string }
+        age_band: { $ref: '#/components/schemas/AgeBand' }
+        sex: { $ref: '#/components/schemas/Sex' }
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              value: { type: string }
+        next_questions:
+          type: array
+          items: { $ref: '#/components/schemas/Question' }
+        progress:
+          type: object
+          properties:
+            answered: { type: integer }
+            total: { type: integer }
+        removed_answers:
+          type: array
+          items: { type: string }
+        scores: { $ref: '#/components/schemas/Scores' }
+        unknown_items:
+          type: array
+          items: { type: string }
+        testing_criterion_met: { type: boolean }
+        clinical_rule_status: { $ref: '#/components/schemas/ClinicalRuleStatus' }
+        alerts:
+          type: array
+          items: { type: string }
+          example: [HEMOPTYSIS_CLINICAL_REVIEW]
+    Result:
+      type: object
+      properties:
+        assessment_id: { type: string, format: uuid }
+        status: { type: string, enum: [completed] }
+        completed_at: { type: string, format: date-time }
+        engine_version: { type: string, example: 1.0.0 }
+        rule_set_version: { type: string, example: 2026.10-draft.1 }
+        rule_set_status: { type: string, enum: [draft, pending_approval, approved, retired] }
+        score_label: { type: string }
+        age_band: { $ref: '#/components/schemas/AgeBand' }
+        sex: { $ref: '#/components/schemas/Sex' }
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              value: { type: string }
+        scores: { $ref: '#/components/schemas/Scores' }
+        unknown_items:
+          type: array
+          items: { type: string }
+          example: [close_contact]
+        unknown_count: { type: integer }
+        clinical_rule_status: { $ref: '#/components/schemas/ClinicalRuleStatus' }
+        alerts:
+          type: array
+          items: { type: string }
+        risk_patterns:
+          type: array
+          description: Active (clinically approved) patterns only.
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              reason: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        refer_for_testing: { type: boolean }
+        recommended_next_action: { type: string, example: Refer for diagnostic evaluation }
+        reason_codes:
+          type: array
+          items: { type: string }
+          example: [COUGH_CURRENT, COUGH_GTE_2_WEEKS, UNKNOWN_CLOSE_CONTACT]
+        follow_up:
+          type: object
+          nullable: true
+          description: Phase 2. Always null in this phase.
+        epidemiological_context:
+          type: object
+          nullable: true
+          description: Phase 2. Always null in this phase and never part of the score.

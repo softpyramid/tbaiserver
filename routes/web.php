@@ -9,6 +9,7 @@ use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DailyReturnAdminController;
 use App\Http\Controllers\DailyReturnController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiagnosisController;
 use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\FacilityHomeController;
 use App\Http\Controllers\FacilityReturnHistoryController;
@@ -310,6 +311,25 @@ Route::prefix('{current_team}')
                 ->whereUuid('patient')
                 ->whereNumber('visit')
                 ->name('patients.visits.update');
+
+            // Simulated AI diagnosis demo. Same access as the patient record.
+            Route::middleware('feature:ai_demo')->group(function () {
+                Route::get('patients/{patient}/diagnoses/create', [DiagnosisController::class, 'create'])
+                    ->whereUuid('patient')
+                    ->name('patients.diagnoses.create');
+                Route::post('patients/{patient}/diagnoses', [DiagnosisController::class, 'store'])
+                    ->whereUuid('patient')
+                    ->name('patients.diagnoses.store');
+                Route::get('patients/{patient}/diagnoses/{diagnosis}', [DiagnosisController::class, 'show'])
+                    ->whereUuid(['patient', 'diagnosis'])
+                    ->name('patients.diagnoses.show');
+                Route::get('patients/{patient}/diagnoses/{diagnosis}/image', [DiagnosisController::class, 'image'])
+                    ->whereUuid(['patient', 'diagnosis'])
+                    ->name('patients.diagnoses.image');
+                Route::get('patients/{patient}/diagnoses/{diagnosis}/thumbnail', [DiagnosisController::class, 'thumbnail'])
+                    ->whereUuid(['patient', 'diagnosis'])
+                    ->name('patients.diagnoses.thumbnail');
+            });
         });
     });
 

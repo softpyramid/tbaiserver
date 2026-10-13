@@ -258,3 +258,44 @@
         bottom: calc(var(--entry-tab-offset, 0px) + 5.5rem) !important;
     }
 }
+
+/*
+ * Printed diagnosis demo report: A4, no app chrome, banner and colours kept.
+ */
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    body:has(.diagnosis-report) [data-slot='sidebar'],
+    body:has(.diagnosis-report) [data-test='phone-top-bar'],
+    body:has(.diagnosis-report) [data-test='phone-tabs'],
+    body:has(.diagnosis-report) [data-slot='sidebar-inset'] > div:has(> header),
+    body:has(.diagnosis-report) [data-sonner-toaster] {
+        display: none !important;
+    }
+
+    body:has(.diagnosis-report) .entry-screen {
+        max-width: none;
+        padding: 0;
+    }
+
+    .diagnosis-report {
+        max-width: none;
+        color: #000;
+        background: #fff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .diagnosis-report section,
+    .diagnosis-slide {
+        break-inside: avoid;
+    }
+
+    /* The image and its highlight boxes scale together. */
+    .diagnosis-slide > div {
+        max-width: 95mm;
+    }
+}

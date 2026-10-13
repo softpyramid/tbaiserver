@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\TeamPermission;
 use App\Enums\TeamRole;
 use App\Models\Team;
+use App\Models\TeamInvitation;
 use App\Models\User;
 
 class TeamPolicy
@@ -84,11 +85,37 @@ class TeamPolicy
     }
 
     /**
+     * May this person invite someone at this role? Nobody invites an
+     * in-charge through the invite form (ownership transfer is a TB-AI admin
+     * task). Only the in-charge may invite a senior technician; a senior
+     * technician invites technicians and frontline workers.
+     */
+    public function inviteAs(User $user, Team $team, TeamRole $role): bool
+    {
+        if (! $this->inviteMember($user, $team) || $role === TeamRole::Owner) {
+            return false;
+        }
+
+        return $role !== TeamRole::Admin
+            || $user->hasTeamPermission($team, TeamPermission::UpdateMember);
+    }
+
+    /**
      * Determine whether the user can cancel invitations.
      */
     public function cancelInvitation(User $user, Team $team): bool
     {
         return $user->hasTeamPermission($team, TeamPermission::CancelInvitation);
+    }
+
+    /**
+     * Cancel or resend one invitation: only for a role this person could
+     * have invited.
+     */
+    public function manageInvitation(User $user, Team $team, TeamInvitation $invitation): bool
+    {
+        return $this->cancelInvitation($user, $team)
+            && $this->inviteAs($user, $team, $invitation->role);
     }
 
     /**
@@ -112,6 +139,7 @@ class TeamPolicy
 
     /**
      * Deactivate or reactivate a facility account from the team roster.
+     * The in-charge and TB-AI admins only; a senior technician may not.
      */
     public function deactivateMember(User $user, Team $team): bool
     {
@@ -123,8 +151,7 @@ class TeamPolicy
             return true;
         }
 
-        return $user->hasTeamPermission($team, TeamPermission::RemoveMember)
-            || $user->hasTeamPermission($team, TeamPermission::CreateInvitation);
+        return $user->hasTeamPermission($team, TeamPermission::RemoveMember);
     }
 
     /**

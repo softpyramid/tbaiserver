@@ -106,6 +106,13 @@ class LoginSeeder extends Seeder
                 'scope_slug' => null,
             ],
             [
+                'name' => 'Demo Senior Technician',
+                'email' => 'senior@tbai.test',
+                'programme_admin' => false,
+                'role' => null,
+                'scope_slug' => null,
+            ],
+            [
                 'name' => 'Karachi West In-charge',
                 'email' => 'incharge@tbai.test',
                 'programme_admin' => false,

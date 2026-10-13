@@ -301,7 +301,9 @@ test('programme viewers get 404 on every patient route and no patient data anywh
     $this->actingAs($viewer)->post(route('patients.store', $facility->team), patPayload())->assertNotFound();
     $this->actingAs($viewer)->get(route('admin.patients.index'))->assertForbidden();
 
-    foreach ([route('command.index'), route('command.map'), route('command.alerts'), route('command.returns'), route('notifications.index')] as $url) {
+    $this->actingAs($viewer)->get(route('notifications.index'))->assertForbidden();
+
+    foreach ([route('command.index'), route('command.map'), route('command.alerts'), route('command.returns')] as $url) {
         $content = $this->actingAs($viewer)->get($url)->assertOk()->getContent();
 
         expect($content)->not->toContain('Test Patient Hidden')

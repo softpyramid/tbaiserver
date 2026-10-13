@@ -234,7 +234,9 @@ test('a reminder hides the patient once the person may no longer see them', func
     patTreatment($facility);
     $this->artisan('tbai:flag-missed-visits');
 
+    // Moved to another facility: still staff, but no longer at this one.
     $facility->team->members()->detach($member->id);
+    Facility::factory()->create()->team->members()->attach($member, ['role' => TeamRole::Member->value]);
 
     $content = $this->actingAs($member)->get(route('notifications.index'))
         ->assertOk()

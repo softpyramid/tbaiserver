@@ -32,6 +32,7 @@ class TeamInvitationController extends Controller
         abort_unless($actor instanceof User, 403);
 
         $role = TeamRole::from($request->validated('role'));
+        Gate::authorize('inviteAs', [$team, $role]);
         $designation = $request->validated('designation');
 
         $invitation = $team->invitations()->create([
@@ -66,7 +67,7 @@ class TeamInvitationController extends Controller
     {
         abort_unless($invitation->team_id === $team->id, 404);
 
-        Gate::authorize('cancelInvitation', $team);
+        Gate::authorize('manageInvitation', [$team, $invitation]);
 
         $actor = request()->user();
 

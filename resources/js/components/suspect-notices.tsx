@@ -1,4 +1,10 @@
-import { CircleCheck, Info, ShieldAlert, TriangleAlert } from 'lucide-react';
+import {
+    CircleCheck,
+    CirclePause,
+    ShieldAlert,
+    TriangleAlert,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEntryI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -40,16 +46,51 @@ export function SuspectPrivacyNote() {
     );
 }
 
-export function SuspectUnavailable({ text }: { text: string }) {
+/**
+ * Screening is paused: no servable rule set. Existing screenings stay
+ * readable; the caller hides every way to start a new one.
+ */
+export function SuspectUnavailable({
+    text,
+    children,
+}: {
+    text: string;
+    children?: ReactNode;
+}) {
+    const { t } = useEntryI18n();
+
     return (
-        <p
-            className="flex items-start gap-2 rounded-xl border bg-card p-4 text-base text-foreground"
+        <div
+            className="flex items-start gap-3 rounded-xl border border-amber-500 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100"
             data-test="suspect-unavailable"
             role="status"
         >
-            <Info aria-hidden="true" className="mt-1 size-4 shrink-0" />
-            <span>{text}</span>
-        </p>
+            <CirclePause aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+            <div className="flex flex-col gap-1">
+                <p className="text-base font-semibold">
+                    {t('suspect_paused_title')}
+                </p>
+                <p className="text-sm">{text}</p>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+/** Marks a screening scored with a rule set that was not yet published. */
+export function SuspectDraftBadge() {
+    const { t } = useEntryI18n();
+
+    return (
+        <span
+            className="inline-flex w-fit items-center gap-1 rounded-md border border-amber-500 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-950 dark:bg-amber-950/40 dark:text-amber-100"
+            data-test="suspect-draft-badge"
+            title={t('suspect_draft_badge_hint')}
+        >
+            <TriangleAlert aria-hidden="true" className="size-3.5" />
+            {t('suspect_draft_badge')}
+            <span className="sr-only">: {t('suspect_draft_badge_hint')}</span>
+        </span>
     );
 }
 

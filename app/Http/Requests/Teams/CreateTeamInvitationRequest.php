@@ -8,10 +8,30 @@ use App\Models\Team;
 use App\Rules\UniqueTeamInvitation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class CreateTeamInvitationRequest extends FormRequest
 {
+    /**
+     * Inviting at all needs the invite permission. A senior technician who
+     * asks for a senior technician role is refused here too; an in-charge
+     * role is refused for everyone by the rules below.
+     */
+    public function authorize(): bool
+    {
+        $team = $this->route('team');
+        $user = $this->user();
+
+        if (! $team instanceof Team || $user === null || ! Gate::forUser($user)->allows('inviteMember', $team)) {
+            return false;
+        }
+
+        $role = TeamRole::tryFrom((string) $this->input('role'));
+
+        return $role !== TeamRole::Admin || Gate::forUser($user)->allows('inviteAs', [$team, $role]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -25,7 +45,8 @@ class CreateTeamInvitationRequest extends FormRequest
 
         return [
             'email' => ['required', 'string', 'email', 'max:255', new UniqueTeamInvitation($team)],
-            'role' => ['required', 'string', Rule::enum(TeamRole::class)],
+            // Nobody invites an in-charge here. Ownership transfer is out of scope.
+            'role' => ['required', 'string', Rule::enum(TeamRole::class)->except([TeamRole::Owner])],
             // Frontline workers need a designation; no other role takes one.
             'designation' => [
                 'nullable',

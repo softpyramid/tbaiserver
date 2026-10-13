@@ -126,7 +126,7 @@ test('the pages are not found while the flag is off and no nav entry shows', fun
             ->where('nav.groups.0.items', fn ($items) => ! collect($items)->contains('key', 'suspect_screening')));
 });
 
-test('production with no approved set shows the unavailable text', function () {
+test('production with no approved set shows the screening paused text', function () {
     suspectDraftRuleSet();
     [$user, $facility] = suspectStaff();
     app()->instance('env', 'production');
@@ -136,7 +136,7 @@ test('production with no approved set shows the unavailable text', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('suspect/new')
-            ->where('unavailable', 'Suspect screening is not available until a clinically approved rule set is published.'));
+            ->where('unavailable', 'Screening is paused until an approved rule set is published. Existing screenings are still available to view.'));
 });
 
 test('the admin rule set page and lists render with their props', function () {

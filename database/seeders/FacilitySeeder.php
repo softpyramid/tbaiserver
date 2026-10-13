@@ -42,6 +42,11 @@ class FacilitySeeder extends Seeder
     public const WINDOW_DAYS = 60;
 
     /**
+     * Demo senior technician at Karachi West BMU, created by LoginSeeder.
+     */
+    public const SENIOR_EMAIL = 'senior@tbai.test';
+
+    /**
      * Skip about one day in eight so the series has gaps, not zero rows.
      */
     private const GAP_EVERY = 8;
@@ -58,7 +63,9 @@ class FacilitySeeder extends Seeder
      * Skips production and every environment other than local, dev, and staging.
      *
      * The in-charge account owns Karachi West BMU. The member account stays a
-     * technician there. The TB-AI admin keeps that programme role.
+     * technician there (a role changed by hand is put back), and the senior
+     * account, when LoginSeeder created it, is the senior technician. The
+     * TB-AI admin keeps that programme role.
      *
      *   php artisan db:seed --class=FacilitySeeder
      */
@@ -70,6 +77,7 @@ class FacilitySeeder extends Seeder
 
         $incharge = $this->user('incharge@tbai.test', 'LoginSeeder');
         $member = $this->user('member@tbai.test', 'LoginSeeder');
+        $senior = User::query()->where('email', self::SENIOR_EMAIL)->first();
 
         $this->call(GeographySeeder::class);
 
@@ -77,7 +85,7 @@ class FacilitySeeder extends Seeder
 
         foreach ($this->facilities() as $ordinal => $definition) {
             $sites[] = [
-                'facility' => $this->seedFacility($definition, $incharge, $member),
+                'facility' => $this->seedFacility($definition, $incharge, $member, $senior),
                 'ordinal' => $ordinal,
                 'series' => $definition['series'],
                 'owned' => $definition['owned'],
@@ -89,7 +97,8 @@ class FacilitySeeder extends Seeder
 
         $this->command?->info('Test facilities ready: '.count($sites).' sites. Sindh, plus test sites in Lahore and Peshawar.');
         $this->command?->line('  In-charge: '.$incharge->email.' owns Karachi West BMU.');
-        $this->command?->line('  Technician: '.$member->email.' at Karachi West BMU.');
+        $this->command?->line('  Technician: '.$member->email.' at Karachi West BMU.'
+            .($senior !== null ? ' Senior technician: '.$senior->email.'.' : ''));
         $this->command?->line('  Test data: 60-day daily returns with gaps. Rising positivity: Test Gulshan BMU. Treatment gap: Test Latifabad BMU.');
     }
 
@@ -134,6 +143,7 @@ class FacilitySeeder extends Seeder
         if ($currentValue !== $role->value) {
             $team->members()->updateExistingPivot($user->id, [
                 'role' => $role->value,
+                'designation' => null,
             ]);
         }
     }
@@ -181,7 +191,7 @@ class FacilitySeeder extends Seeder
      *     owned: bool
      * }  $definition
      */
-    private function seedFacility(array $definition, User $incharge, User $member): Facility
+    private function seedFacility(array $definition, User $incharge, User $member, ?User $senior): Facility
     {
         $city = City::query()->where('slug', $definition['city'])->first();
 
@@ -235,6 +245,11 @@ class FacilitySeeder extends Seeder
         if ($definition['owned']) {
             $this->ensureMember($team, $incharge, TeamRole::Owner);
             $this->ensureMember($team, $member, TeamRole::Member);
+
+            if ($senior !== null) {
+                $this->ensureMember($team, $senior, TeamRole::Admin);
+                $senior->switchTeam($team);
+            }
             $this->releaseSeededAdminOwnership($team, $incharge);
 
             $incharge->switchTeam($team);

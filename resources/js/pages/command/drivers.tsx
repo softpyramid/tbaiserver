@@ -90,12 +90,21 @@ export default function CommandDrivers({
 
             <div className="flex min-w-0 flex-col gap-4">
                 {categories.map((category) => (
-                    <CategoryCard key={category.key} category={category} labels={driverLabels} />
+                    <CategoryCard
+                        key={category.key}
+                        category={category}
+                        labels={driverLabels}
+                    />
                 ))}
             </div>
 
-            <section className="flex min-w-0 flex-col gap-3" data-test="pending-drivers">
-                <h2 className="text-base font-medium">{driverLabels.pending}</h2>
+            <section
+                className="flex min-w-0 flex-col gap-3"
+                data-test="pending-drivers"
+            >
+                <h2 className="text-base font-medium">
+                    {driverLabels.pending}
+                </h2>
                 <ul className="flex flex-col gap-2">
                     {pending.map((item) => (
                         <li
@@ -104,7 +113,9 @@ export default function CommandDrivers({
                             data-test={`pending-${item.key}`}
                         >
                             <div className="text-sm">{item.label}</div>
-                            <div className="mt-1 text-sm text-muted-foreground">{item.status}</div>
+                            <div className="mt-1 text-sm text-muted-foreground">
+                                {item.status}
+                            </div>
                         </li>
                     ))}
                 </ul>
@@ -121,9 +132,14 @@ function CategoryCard({
     labels: Props['driverLabels'];
 }) {
     return (
-        <section className="min-w-0 rounded-lg border p-3" data-test={`driver-${category.key}`}>
+        <section
+            className="min-w-0 rounded-lg border p-3"
+            data-test={`driver-${category.key}`}
+        >
             <h2 className="text-base font-medium">{category.label}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{category.formula}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+                {category.formula}
+            </p>
 
             <h3 className="mt-3 text-sm font-medium">{labels.actions}</h3>
             <ul className="mt-1 list-disc pl-5 text-sm">
@@ -134,10 +150,16 @@ function CategoryCard({
 
             <h3 className="mt-3 text-sm font-medium">{labels.priority}</h3>
             {category.status === 'available' ? (
-                <ul className="mt-1 flex flex-col gap-2" data-test={`priority-${category.key}`}>
+                <ul
+                    className="mt-1 flex flex-col gap-2"
+                    data-test={`priority-${category.key}`}
+                >
                     {category.districts.map((district) => (
                         <li key={district.id} className="min-w-0 text-sm">
-                            <Link href={district.href} className="underline-offset-2 hover:underline">
+                            <Link
+                                href={district.href}
+                                className="underline-offset-2 hover:underline"
+                            >
                                 {district.name}
                             </Link>
                             <span className="text-muted-foreground">
@@ -148,7 +170,10 @@ function CategoryCard({
                     ))}
                 </ul>
             ) : (
-                <p className="mt-1 text-sm text-muted-foreground" data-test={`unavailable-${category.key}`}>
+                <p
+                    className="mt-1 text-sm text-muted-foreground"
+                    data-test={`unavailable-${category.key}`}
+                >
                     {labels.unavailable}
                 </p>
             )}

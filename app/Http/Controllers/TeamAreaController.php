@@ -79,7 +79,7 @@ class TeamAreaController extends Controller
         abort_unless($invitation->team_id === $current_team->id, 404);
         abort_if($invitation->isAccepted(), 404);
 
-        Gate::authorize('inviteMember', $current_team);
+        Gate::authorize('manageInvitation', [$current_team, $invitation]);
 
         $actor = $this->actor($request);
 

@@ -111,6 +111,19 @@ class SuspectAssessment extends Model
     }
 
     /**
+     * Was this screening scored with a rule set that was not yet published
+     * when it started? True for a draft or pending set, an approved set that
+     * was never published, and a set published only after this screening.
+     */
+    public function usedDraftRuleSet(): bool
+    {
+        $publishedAt = $this->ruleSet->published_at;
+
+        return $publishedAt === null
+            || ($this->created_at !== null && $publishedAt->greaterThan($this->created_at));
+    }
+
+    /**
      * Answers keyed by question key.
      *
      * @return array<string, string>

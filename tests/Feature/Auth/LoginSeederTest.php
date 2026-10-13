@@ -64,7 +64,8 @@ test('login seeder can be run again without duplicating accounts', function () {
         ->and(User::query()->where('email', 'sindh@tbai.test')->count())->toBe(1)
         ->and(User::query()->where('email', 'country@tbai.test')->count())->toBe(1)
         ->and(User::query()->where('email', 'screener@tbai.test')->count())->toBe(1)
-        ->and(User::query()->count())->toBe(7);
+        ->and(User::query()->where('email', 'senior@tbai.test')->count())->toBe(1)
+        ->and(User::query()->count())->toBe(8);
 });
 
 test('login seeder wires programme scope and facility ownership', function () {
@@ -89,7 +90,8 @@ test('login seeder wires programme scope and facility ownership', function () {
         ->and($team)->not->toBeNull()
         ->and($incharge->ownsTeam($team))->toBeTrue()
         ->and($member->teamRole($team))->toBe(TeamRole::Member)
-        ->and($member->ownsTeam($team))->toBeFalse();
+        ->and($member->ownsTeam($team))->toBeFalse()
+        ->and(User::query()->where('email', 'senior@tbai.test')->first()->teamRole($team))->toBe(TeamRole::Admin);
 
     $pakistanId = Country::query()->where('slug', 'pakistan')->value('id');
     $sindhId = Province::query()->where('slug', 'sindh')->value('id');
@@ -115,6 +117,36 @@ test('login seeder wires programme scope and facility ownership', function () {
         ->and(DailyReturn::query()->whereDate('reported_on', '<', $today->subDays(60)->toDateString())->exists())->toBeFalse()
         ->and(DailyReturnRevision::query()->count())->toBe(1)
         ->and(DailyReturnRevision::query()->first()->changed_by)->toBe($incharge->id);
+});
+
+test('login seeder seeds a senior technician and puts the member back to technician', function () {
+    $this->app['env'] = 'local';
+    config(['access.seed_login_password' => 'server-secret']);
+
+    $this->seed(LoginSeeder::class);
+
+    $team = Team::query()->where('slug', 'karachi-west-bmu')->firstOrFail();
+    $member = User::query()->where('email', 'member@tbai.test')->firstOrFail();
+    $senior = User::query()->where('email', 'senior@tbai.test')->firstOrFail();
+
+    expect($senior->name)->toBe('Demo Senior Technician')
+        ->and($senior->email_verified_at)->not->toBeNull()
+        ->and(Hash::check('server-secret', $senior->password))->toBeTrue()
+        ->and($senior->teamRole($team))->toBe(TeamRole::Admin)
+        ->and($senior->current_team_id)->toBe($team->id)
+        ->and($member->teamRole($team))->toBe(TeamRole::Member);
+
+    // An earlier demo made member@tbai.test the senior technician.
+    $team->memberships()->where('user_id', $member->id)->update(['role' => TeamRole::Admin->value]);
+    expect($member->fresh()->teamRole($team))->toBe(TeamRole::Admin);
+
+    $this->seed(LoginSeeder::class);
+
+    expect($member->fresh()->teamRole($team))->toBe(TeamRole::Member)
+        ->and($senior->fresh()->teamRole($team))->toBe(TeamRole::Admin)
+        ->and($team->memberships()->where('user_id', $senior->id)->count())->toBe(1)
+        ->and($team->memberships()->where('role', TeamRole::Admin->value)->count())->toBe(1)
+        ->and(User::query()->where('email', 'senior@tbai.test')->count())->toBe(1);
 });
 
 test('login seeder does not run in production', function () {

@@ -141,7 +141,8 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Reminder bell for facility staff while patients is on. Null hides it.
+     * Reminder bell for facility staff (and a TB-AI admin with unread
+     * reminders) while patients is on. Null hides it.
      *
      * @return array{unread: int, url: string, label: string}|null
      */
@@ -151,9 +152,16 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
+        $staff = app(PatientAccess::class)->isStaffAnywhere($user);
+
+        // Programme viewers never get the bell, even with old reminders.
+        if (! $staff && ! $user->isTbaiAdmin()) {
+            return null;
+        }
+
         $unread = $user->unreadNotifications()->count();
 
-        if ($unread === 0 && ! app(PatientAccess::class)->isStaffAnywhere($user)) {
+        if ($unread === 0 && ! $staff) {
             return null;
         }
 

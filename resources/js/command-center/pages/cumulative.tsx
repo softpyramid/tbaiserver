@@ -64,9 +64,7 @@ export function CumulativePage() {
         ? null
         : estimate.sub || estimate.message || null;
     const estimateInterval =
-        !estimateMissing &&
-        estimate.lower != null &&
-        estimate.upper != null;
+        !estimateMissing && estimate.lower != null && estimate.upper != null;
     const decimal = (n: number) =>
         Number.isInteger(n) ? String(n) : n.toFixed(1);
     const bars = cascade
@@ -264,7 +262,10 @@ export function CumulativePage() {
                             style={at(0, 700, 440, 260)}
                         >
                             {estimateMissing ? (
-                                <p className="cc-state" style={{ marginTop: 12 }}>
+                                <p
+                                    className="cc-state"
+                                    style={{ marginTop: 12 }}
+                                >
                                     No approved estimate entered
                                 </p>
                             ) : (
@@ -284,7 +285,10 @@ export function CumulativePage() {
                                             {decimal(estimate.rate as number)}
                                         </div>
                                         <div
-                                            style={{ fontSize: 13, opacity: 0.75 }}
+                                            style={{
+                                                fontSize: 13,
+                                                opacity: 0.75,
+                                            }}
                                         >
                                             per 100,000 population
                                         </div>
@@ -296,9 +300,14 @@ export function CumulativePage() {
                                                     marginTop: 6,
                                                 }}
                                             >
-                                                {decimal(estimate.lower as number)} to{' '}
-                                                {decimal(estimate.upper as number)} per
-                                                100,000
+                                                {decimal(
+                                                    estimate.lower as number,
+                                                )}{' '}
+                                                to{' '}
+                                                {decimal(
+                                                    estimate.upper as number,
+                                                )}{' '}
+                                                per 100,000
                                             </div>
                                         ) : null}
                                     </div>
@@ -350,7 +359,9 @@ export function CumulativePage() {
                                         {estimate.reference_url ? (
                                             <div>
                                                 <a
-                                                    href={estimate.reference_url}
+                                                    href={
+                                                        estimate.reference_url
+                                                    }
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     style={{ color: '#3b6cf0' }}

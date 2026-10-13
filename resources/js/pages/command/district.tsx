@@ -63,7 +63,10 @@ export default function CommandDistrict({
     const { t } = useEntryI18n();
     const [mode, setMode] = useChartMode();
     const [selectedId, setSelectedId] = useState(facilities[0]?.id ?? '');
-    const selected = facilities.find((facility) => facility.id === selectedId) ?? facilities[0] ?? null;
+    const selected =
+        facilities.find((facility) => facility.id === selectedId) ??
+        facilities[0] ??
+        null;
     const showFacilityTabs = facilities.length > 1;
 
     return (
@@ -90,12 +93,17 @@ export default function CommandDistrict({
             labels={labels}
             links={links}
         >
-            {hasReturns ? null : <p className="text-sm text-muted-foreground">{labels.empty}</p>}
+            {hasReturns ? null : (
+                <p className="text-sm text-muted-foreground">{labels.empty}</p>
+            )}
 
             <ViewToggle mode={mode} labels={labels} onChange={setMode} />
 
             {selected ? (
-                <section className="min-w-0 rounded-lg border p-3" data-test="facility-chart">
+                <section
+                    className="min-w-0 rounded-lg border p-3"
+                    data-test="facility-chart"
+                >
                     <h2 className="mb-3 font-medium">{selected.name}</h2>
                     <CommandCharts
                         mode={mode}

@@ -37,6 +37,7 @@ class SuspectScreeningController extends Controller
         $ruleSet = $this->resolver->current();
 
         $rows = SuspectAssessment::query()
+            ->with('ruleSet')
             ->where('facility_id', $facility->id)
             ->latest('created_at')
             ->latest('id')
@@ -54,6 +55,7 @@ class SuspectScreeningController extends Controller
                 'priority' => $assessment->priority,
                 'priorityLabel' => $assessment->priority === null ? null : ResourceResponse::line('entry.suspect_priority_'.$assessment->priority),
                 'refer' => $assessment->refer_for_testing,
+                'draft' => $assessment->usedDraftRuleSet(),
                 'href' => route('suspect.show', ['current_team' => $current_team->slug, 'assessment' => $assessment->uuid]),
             ])->values()->all();
 
@@ -61,9 +63,9 @@ class SuspectScreeningController extends Controller
             'facilityName' => $current_team->name,
             'dateLabel' => EntryDate::label(),
             'teamSlug' => $current_team->slug,
-            'unavailable' => $ruleSet === null ? RuleSetResolver::unavailableMessage() : null,
+            'unavailable' => $ruleSet === null ? RuleSetResolver::pausedMessage() : null,
             'draftNotice' => $ruleSet !== null && ! $ruleSet->isPublished() ? __('entry.suspect_draft_banner') : null,
-            'canScreen' => $this->access->staffFacility($user, $current_team) !== null,
+            'canScreen' => $ruleSet !== null && $this->access->staffFacility($user, $current_team) !== null,
             'newUrl' => route('suspect.create', ['current_team' => $current_team->slug]),
             'rows' => $rows,
         ]);
@@ -78,7 +80,7 @@ class SuspectScreeningController extends Controller
             'facilityName' => $current_team->name,
             'dateLabel' => EntryDate::label(),
             'teamSlug' => $current_team->slug,
-            'unavailable' => $ruleSet === null ? RuleSetResolver::unavailableMessage() : null,
+            'unavailable' => $ruleSet === null ? RuleSetResolver::pausedMessage() : null,
             'draftNotice' => $ruleSet !== null && ! $ruleSet->isPublished() ? __('entry.suspect_draft_banner') : null,
             'ruleSetVersion' => $ruleSet?->version,
             'profile' => [
@@ -128,7 +130,7 @@ class SuspectScreeningController extends Controller
             'completedAt' => $assessment->completed_at === null ? null : EntryDate::dateTime($assessment->completed_at),
             'indexUrl' => route('suspect.index', ['current_team' => $current_team->slug]),
             'patientRecord' => $this->patientRecord($current_team, $assessment),
-            'newUrl' => $this->access->staffFacility($user, $current_team) !== null
+            'newUrl' => $this->resolver->current() !== null && $this->access->staffFacility($user, $current_team) !== null
                 ? route('suspect.create', ['current_team' => $current_team->slug])
                 : null,
         ]);

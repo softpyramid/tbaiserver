@@ -40,9 +40,23 @@ class TeamArea
             'teamSlug' => $team->slug,
             'tabs' => $this->tabs($user, $team, $current),
             'canInvite' => Gate::forUser($user)->allows('inviteMember', $team),
-            'inviteRoles' => TeamRole::rosterOptions(),
+            'inviteRoles' => $this->inviteRoles($user, $team),
             'inviteDesignations' => FrontlineDesignation::options(),
         ];
+    }
+
+    /**
+     * Roles this person may invite: the in-charge every roster role, a
+     * senior technician technicians and frontline workers only.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    private function inviteRoles(User $user, Team $team): array
+    {
+        return array_values(array_filter(
+            TeamRole::rosterOptions(),
+            fn (array $option): bool => Gate::forUser($user)->allows('inviteAs', [$team, TeamRole::from($option['value'])]),
+        ));
     }
 
     private function sectionLabel(string $current): string
@@ -178,7 +192,7 @@ class TeamArea
         return [
             'area' => $this->header($actor, $team, 'invites'),
             'invitations' => collect($page->items())->map(function (TeamInvitation $invitation) use ($team, $actor): array {
-                $canManage = Gate::forUser($actor)->allows('inviteMember', $team);
+                $canManage = Gate::forUser($actor)->allows('manageInvitation', [$team, $invitation]);
 
                 return [
                     'code' => $invitation->code,
@@ -432,7 +446,7 @@ class TeamArea
             ->whereNull('accepted_at')
             ->first();
 
-        if ($invitation instanceof TeamInvitation && Gate::forUser($actor)->allows('inviteMember', $team)) {
+        if ($invitation instanceof TeamInvitation && Gate::forUser($actor)->allows('manageInvitation', [$team, $invitation])) {
             $actions[] = [
                 'kind' => 'post',
                 'label' => __('entry.resend_invite'),

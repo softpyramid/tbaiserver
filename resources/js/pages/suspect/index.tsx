@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import EntryScreen from '@/components/entry-screen';
 import {
+    SuspectDraftBadge,
     SuspectDraftNotice,
     SuspectReferFlag,
     SuspectUnavailable,
@@ -21,6 +22,7 @@ type Row = {
     priority: string | null;
     priorityLabel: string | null;
     refer: boolean;
+    draft: boolean;
     href: string;
 };
 
@@ -89,8 +91,11 @@ export default function SuspectIndex({
                                     href={row.href}
                                     className="flex flex-col gap-2 rounded-xl border bg-card p-4 hover:bg-accent focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none"
                                 >
-                                    <span className="text-sm text-muted-foreground">
+                                    <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                                         {row.date}
+                                        {row.draft ? (
+                                            <SuspectDraftBadge />
+                                        ) : null}
                                     </span>
                                     {row.patientName || row.registerNumber ? (
                                         <span className="text-base font-semibold text-foreground">

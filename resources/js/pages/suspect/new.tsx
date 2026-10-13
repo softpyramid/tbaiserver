@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import EntryScreen from '@/components/entry-screen';
@@ -213,7 +213,15 @@ export default function SuspectNew({
                 dateLabel={dateLabel}
             >
                 {unavailable ? (
-                    <SuspectUnavailable text={unavailable} />
+                    <SuspectUnavailable text={unavailable}>
+                        <Link
+                            href={indexUrl}
+                            className="text-sm font-medium underline underline-offset-2"
+                            data-test="suspect-paused-back"
+                        >
+                            {t('suspect_paused_back')}
+                        </Link>
+                    </SuspectUnavailable>
                 ) : (
                     <>
                         <SuspectDraftNotice

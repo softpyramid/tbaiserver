@@ -55,4 +55,12 @@ class RuleSetResolver
     {
         return ResourceResponse::line('entry.suspect_unavailable');
     }
+
+    /**
+     * Banner for the facility pages while no rule set is servable.
+     */
+    public static function pausedMessage(): string
+    {
+        return ResourceResponse::line('entry.suspect_paused_body');
+    }
 }

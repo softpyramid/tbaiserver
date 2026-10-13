@@ -16,11 +16,14 @@ use Inertia\Response;
 /**
  * The signed-in person's in-app reminders. The stored payload holds ids and
  * dates only; the patient's name and register number are added here, and
- * only while the person may still see that patient.
+ * only while the person may still see that patient. Facility staff and
+ * TB-AI admins only; programme viewers get 403.
  */
 class NotificationController extends Controller
 {
-    public function index(Request $request, PatientAccess $access): Response
+    public function __construct(private readonly PatientAccess $access) {}
+
+    public function index(Request $request): Response
     {
         $user = $this->user($request);
         $notifications = $user->notifications()->limit(100)->get();
@@ -36,7 +39,7 @@ class NotificationController extends Controller
             ->whereIn('uuid', $uuids)
             ->with('facility.team')
             ->get()
-            ->filter(fn (Patient $patient): bool => $access->canSee($user, $patient))
+            ->filter(fn (Patient $patient): bool => $this->access->canSee($user, $patient))
             ->keyBy('uuid');
 
         return Inertia::render('notifications/index', [
@@ -90,6 +93,7 @@ class NotificationController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 403);
+        abort_unless($user->isTbaiAdmin() || $this->access->isStaffAnywhere($user), 403);
 
         return $user;
     }

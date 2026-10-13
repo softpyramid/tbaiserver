@@ -42,102 +42,104 @@ export default function TeamsIndex({ teams }: Props) {
                 </div>
 
                 <div className="space-y-3">
-                    {teams.filter((team) => !team.isPersonal).map((team) => {
-                        const canLeaveTeam = team.role !== 'owner';
+                    {teams
+                        .filter((team) => !team.isPersonal)
+                        .map((team) => {
+                            const canLeaveTeam = team.role !== 'owner';
 
-                        return (
-                            <div
-                                key={team.id}
-                                data-test="team-row"
-                                className="flex items-center justify-between gap-4 rounded-lg border p-4"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">
-                                                {team.name}
+                            return (
+                                <div
+                                    key={team.id}
+                                    data-test="team-row"
+                                    className="flex items-center justify-between gap-4 rounded-lg border p-4"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">
+                                                    {team.name}
+                                                </span>
+                                            </div>
+                                            <span className="text-sm text-muted-foreground">
+                                                {team.roleLabel}
                                             </span>
                                         </div>
-                                        <span className="text-sm text-muted-foreground">
-                                            {team.roleLabel}
-                                        </span>
                                     </div>
+
+                                    <TooltipProvider>
+                                        <div className="flex items-center gap-2">
+                                            {canLeaveTeam ? (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            data-test="team-leave-button"
+                                                            onClick={() =>
+                                                                openLeaveTeamDialog(
+                                                                    team,
+                                                                )
+                                                            }
+                                                        >
+                                                            <LogOut className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Leave facility</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ) : null}
+
+                                            {team.role === 'member' ? (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            data-test="team-view-button"
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={edit(
+                                                                    team.slug,
+                                                                )}
+                                                            >
+                                                                <Eye className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>View facility</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ) : (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            data-test="team-edit-button"
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={edit(
+                                                                    team.slug,
+                                                                )}
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Edit facility</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                    </TooltipProvider>
                                 </div>
-
-                                <TooltipProvider>
-                                    <div className="flex items-center gap-2">
-                                        {canLeaveTeam ? (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        data-test="team-leave-button"
-                                                        onClick={() =>
-                                                            openLeaveTeamDialog(
-                                                                team,
-                                                            )
-                                                        }
-                                                    >
-                                                        <LogOut className="h-4 w-4" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Leave facility</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ) : null}
-
-                                        {team.role === 'member' ? (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        data-test="team-view-button"
-                                                        asChild
-                                                    >
-                                                        <Link
-                                                            href={edit(
-                                                                team.slug,
-                                                            )}
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>View facility</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ) : (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        data-test="team-edit-button"
-                                                        asChild
-                                                    >
-                                                        <Link
-                                                            href={edit(
-                                                                team.slug,
-                                                            )}
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Edit facility</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        )}
-                                    </div>
-                                </TooltipProvider>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
 
                     {teams.length === 0 ? (
                         <p className="py-8 text-center text-muted-foreground">

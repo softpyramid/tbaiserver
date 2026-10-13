@@ -9,7 +9,11 @@ type Props = {
     drawerBelow?: 768 | 1024;
 };
 
-export function AppShell({ children, variant = 'sidebar', drawerBelow = 768 }: Props) {
+export function AppShell({
+    children,
+    variant = 'sidebar',
+    drawerBelow = 768,
+}: Props) {
     const isOpen = usePage().props.sidebarOpen;
 
     if (variant === 'header') {

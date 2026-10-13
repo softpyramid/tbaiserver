@@ -51,10 +51,9 @@ describe('browser tab title', () => {
         for (const path of Object.values(titledShells)) {
             const code = source(path);
 
-            expect(
-                setsTitle(code) || /<PageShell\b/.test(code),
-                path,
-            ).toBe(true);
+            expect(setsTitle(code) || /<PageShell\b/.test(code), path).toBe(
+                true,
+            );
         }
     });
 

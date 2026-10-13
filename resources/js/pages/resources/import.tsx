@@ -43,14 +43,20 @@ export default function ResourceImport({
         setBusy(true);
         setError(null);
 
-        router.post(action, { file }, {
-            forceFormData: true,
-            preserveScroll: true,
-            onFinish: () => setBusy(false),
-            onError: (errors) => {
-                setError(Object.values(errors).join(' ') || 'Import failed.');
+        router.post(
+            action,
+            { file },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onFinish: () => setBusy(false),
+                onError: (errors) => {
+                    setError(
+                        Object.values(errors).join(' ') || 'Import failed.',
+                    );
+                },
             },
-        });
+        );
     }
 
     return (

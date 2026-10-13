@@ -65,7 +65,10 @@ export function SuspectUnavailable({
             data-test="suspect-unavailable"
             role="status"
         >
-            <CirclePause aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+            <CirclePause
+                aria-hidden="true"
+                className="mt-0.5 size-5 shrink-0"
+            />
             <div className="flex flex-col gap-1">
                 <p className="text-base font-semibold">
                     {t('suspect_paused_title')}

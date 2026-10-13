@@ -22,13 +22,19 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
     const { t } = useEntryI18n();
     const isMobile = useIsMobile();
     const scopeLabel =
-        typeof page.props.scopeLabel === 'string' ? page.props.scopeLabel : null;
-    const facilities = (page.props.teams ?? []).filter((team) => !team.isPersonal);
+        typeof page.props.scopeLabel === 'string'
+            ? page.props.scopeLabel
+            : null;
+    const facilities = (page.props.teams ?? []).filter(
+        (team) => !team.isPersonal,
+    );
     const currentTeam = page.props.currentTeam;
     const current =
         currentTeam && !currentTeam.isPersonal
             ? currentTeam
-            : (facilities.find((team) => team.isCurrent) ?? facilities[0] ?? null);
+            : (facilities.find((team) => team.isCurrent) ??
+              facilities[0] ??
+              null);
 
     if (scopeLabel) {
         return (
@@ -40,7 +46,9 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                         : 'truncate px-2 text-sm group-data-[collapsible=icon]:hidden'
                 }
             >
-                <span className="text-muted-foreground">{t('scope_prefix')}: </span>
+                <span className="text-muted-foreground">
+                    {t('scope_prefix')}:{' '}
+                </span>
                 <span className="font-medium">{scopeLabel}</span>
             </p>
         );

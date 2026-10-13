@@ -63,14 +63,21 @@ export default function CommandSector({
         <CommandShell
             title={title}
             scope={scope}
-            tabs={<SegmentedTabs label={t('nav_registered')} tabs={registeredTabs} />}
+            tabs={
+                <SegmentedTabs
+                    label={t('nav_registered')}
+                    tabs={registeredTabs}
+                />
+            }
             filters={filters}
             options={options}
             show={show}
             labels={labels}
             links={links}
         >
-            {hasReturns ? null : <p className="text-sm text-muted-foreground">{labels.empty}</p>}
+            {hasReturns ? null : (
+                <p className="text-sm text-muted-foreground">{labels.empty}</p>
+            )}
 
             <DistrictTable
                 columns={columns}
@@ -104,7 +111,9 @@ function isSectorKey(key: string): key is SectorKey {
 
 function sectorTabs(
     screens: CommandScreenLink[],
-    groups: { items: { key: string; children: { key: string; label: string }[] }[] }[],
+    groups: {
+        items: { key: string; children: { key: string; label: string }[] }[];
+    }[],
 ): PageTab[] {
     const registered = groups
         .flatMap((group) => group.items)
@@ -115,7 +124,9 @@ function sectorTabs(
             return [];
         }
 
-        const child = registered?.children.find((item) => item.key === screen.key);
+        const child = registered?.children.find(
+            (item) => item.key === screen.key,
+        );
 
         return [
             {

@@ -10,8 +10,6 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\FacilitySeeder;
 use Database\Seeders\LoginSeeder;
-use DateTimeInterface;
-use RuntimeException;
 
 test('facility seeder opens sindh test sites for the login accounts', function () {
     $this->app['env'] = 'local';

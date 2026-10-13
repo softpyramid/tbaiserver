@@ -93,7 +93,9 @@ export default function SuspectIndex({
                                 >
                                     <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                                         {row.date}
-                                        {row.draft ? <SuspectDraftBadge /> : null}
+                                        {row.draft ? (
+                                            <SuspectDraftBadge />
+                                        ) : null}
                                     </span>
                                     {row.patientName || row.registerNumber ? (
                                         <span className="text-base font-semibold text-foreground">

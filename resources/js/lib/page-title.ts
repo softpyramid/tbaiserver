@@ -9,5 +9,7 @@ export const SITE_TITLE = 'TB-AI | TB register and decision support';
  * "Log in") never survives a visit; each page's own <Head> replaces it.
  */
 export function pageTitle(title: string): string {
-    return title && title !== SITE_TITLE ? `${title} - ${APP_NAME}` : SITE_TITLE;
+    return title && title !== SITE_TITLE
+        ? `${title} - ${APP_NAME}`
+        : SITE_TITLE;
 }

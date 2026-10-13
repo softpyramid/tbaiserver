@@ -198,7 +198,7 @@ export default function AccessRequest({
                                             aria-required="true"
                                             aria-invalid={Boolean(
                                                 clientErrors[field.name] ||
-                                                    errors[field.name],
+                                                errors[field.name],
                                             )}
                                             aria-describedby={
                                                 clientErrors[field.name] ||
@@ -231,7 +231,7 @@ export default function AccessRequest({
                                                         aria-required="true"
                                                         aria-invalid={Boolean(
                                                             clientErrors.consent ||
-                                                                errors.consent,
+                                                            errors.consent,
                                                         )}
                                                         aria-describedby={
                                                             clientErrors.consent ||
@@ -251,8 +251,7 @@ export default function AccessRequest({
                                                             className="cursor-pointer"
                                                         >
                                                             We use this only to
-                                                            review your
-                                                            request.
+                                                            review your request.
                                                         </label>{' '}
                                                         See{' '}
                                                         <Link

@@ -28,27 +28,27 @@ export function NavFooter({
                         const external = url.startsWith('http');
 
                         return (
-                        <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton
-                                asChild
-                                className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
-                            >
-                                <a
-                                    href={url}
-                                    {...(external
-                                        ? {
-                                              target: '_blank',
-                                              rel: 'noopener noreferrer',
-                                          }
-                                        : {})}
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                    asChild
+                                    className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
                                 >
-                                    {item.icon && (
-                                        <item.icon className="h-5 w-5" />
-                                    )}
-                                    <span>{item.title}</span>
-                                </a>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
+                                    <a
+                                        href={url}
+                                        {...(external
+                                            ? {
+                                                  target: '_blank',
+                                                  rel: 'noopener noreferrer',
+                                              }
+                                            : {})}
+                                    >
+                                        {item.icon && (
+                                            <item.icon className="h-5 w-5" />
+                                        )}
+                                        <span>{item.title}</span>
+                                    </a>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
                         );
                     })}
                 </SidebarMenu>

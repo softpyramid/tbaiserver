@@ -13,8 +13,7 @@ const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
 const HEAD = { fontSize: 22, letterSpacing: '.5px' } as const;
 const NAVY = '#10205a';
 
-const decimal = (n: number) =>
-    Number.isInteger(n) ? String(n) : n.toFixed(1);
+const decimal = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 const fmtRate = (v: number) => `${decimal(v)} per 100,000`;
 
 type YearPoint = {
@@ -68,9 +67,10 @@ export function IncidencePage() {
     }
 
     const y = Math.min(
-        sel ?? (points.findIndex((p) => p.year === body.defaults.year) >= 0
-            ? points.findIndex((p) => p.year === body.defaults.year)
-            : points.length - 1),
+        sel ??
+            (points.findIndex((p) => p.year === body.defaults.year) >= 0
+                ? points.findIndex((p) => p.year === body.defaults.year)
+                : points.length - 1),
         points.length - 1,
     );
     const selected = points[y];
@@ -99,7 +99,11 @@ export function IncidencePage() {
             {i ? (
                 <>
                     Change vs {points[i - 1].year}:{' '}
-                    <b>{signed((p.estimate ?? 0) - (points[i - 1].estimate ?? 0))}</b>
+                    <b>
+                        {signed(
+                            (p.estimate ?? 0) - (points[i - 1].estimate ?? 0),
+                        )}
+                    </b>
                 </>
             ) : (
                 'Baseline year'

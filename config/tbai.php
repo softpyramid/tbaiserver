@@ -34,6 +34,29 @@ $areaFlag = static function (string $key) use ($flag, $areaDefaults): bool {
     return $flag($key);
 };
 
+/*
+ * The simulated AI diagnosis demo. On by default in local, dev, staging and
+ * testing so the demo and its tests run without setup; off in production
+ * and in any environment not listed here unless TBAI_AI_DEMO says true.
+ */
+$aiDemoDefaults = [
+    'local' => true,
+    'dev' => true,
+    'staging' => true,
+    'testing' => true,
+    'production' => false,
+];
+
+$aiDemo = (static function () use ($flag, $aiDemoDefaults): bool {
+    $value = env('TBAI_AI_DEMO');
+
+    if ($value === null || $value === '') {
+        return $aiDemoDefaults[(string) env('APP_ENV', 'production')] ?? false;
+    }
+
+    return $flag('TBAI_AI_DEMO');
+})();
+
 $interventions = (static function () use ($flag, $areaFlag): bool {
     $value = env('TBAI_SHOW_INTERVENTIONS');
 
@@ -79,6 +102,8 @@ return [
     | ai_tests: AI Assisted Testing page and every AI-assisted figure.
     | suspect_screening: the Suspect-Finding questionnaire, API, and rule sets.
     | patients: patient records, treatment follow-up, and missed-visit reminders.
+    | ai_demo: the simulated AI diagnosis demo on a patient record. Never a real
+    | analysis. Follows ai_demo_defaults (also on in testing), not area_defaults.
     |
     | drivers, interventions, incidence, ai_tests, suspect_screening, and patients are on in local, dev, and
     | staging and off in production (and in any environment not listed in
@@ -89,6 +114,8 @@ return [
 
     'area_defaults' => $areaDefaults,
 
+    'ai_demo_defaults' => $aiDemoDefaults,
+
     'features' => [
         'screening' => $flag('TBAI_SHOW_SCREENING'),
         'drivers' => $areaFlag('TBAI_SHOW_DRIVERS'),
@@ -97,6 +124,7 @@ return [
         'ai_tests' => $areaFlag('TBAI_SHOW_AI_TESTS'),
         'suspect_screening' => $areaFlag('TBAI_SHOW_SUSPECT_SCREENING'),
         'patients' => $areaFlag('TBAI_PATIENTS'),
+        'ai_demo' => $aiDemo,
     ],
 
     /*
@@ -133,6 +161,22 @@ return [
         'max_kilobytes' => 10240,
         'max_per_upload' => 10,
         'thumbnail_width' => 480,
+    ],
+
+    /*
+    | Simulated AI diagnosis demo (features.ai_demo). The engine key picks the
+    | DiagnosisEngine bound in AppServiceProvider; 'simulated' is the only one
+    | today. Samples are bundled demo images under public/, chosen by key only,
+    | and copied to the private disk when used so each record is self-contained.
+    */
+    'diagnosis' => [
+        'engine' => env('TBAI_DIAGNOSIS_ENGINE', 'simulated'),
+        'disk' => env('TBAI_DIAGNOSIS_DISK', 'slides'),
+        'max_kilobytes' => 10240,
+        'samples' => [
+            'zn-1' => 'demo/slides/slide-zn-1.jpg',
+            'slide-2' => 'demo/slides/slide-2.jpg',
+        ],
     ],
 
     'development_notice' => 'TB-AI is in development. It is decision support, not a diagnostic device. The microscopist makes the final call.',

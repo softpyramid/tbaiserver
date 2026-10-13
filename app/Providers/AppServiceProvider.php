@@ -17,6 +17,8 @@ use App\Support\CommandApi\CommandData;
 use App\Support\CommandCache;
 use App\Support\CommandReturnQuery;
 use App\Support\DataScope;
+use App\Support\Diagnosis\DiagnosisEngine;
+use App\Support\Diagnosis\SimulatedDiagnosisEngine;
 use App\Support\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Logout;
@@ -32,6 +34,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use InvalidArgumentException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -43,6 +46,24 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(DataScope::class);
         $this->app->scoped(CommandData::class);
         $this->app->scoped(CommandReturnQuery::class);
+        $this->registerDiagnosisEngine();
+    }
+
+    /**
+     * The diagnosis engine named by tbai.diagnosis.engine. Add a real engine
+     * here under its own key; an unknown key fails loudly instead of
+     * quietly falling back to the simulated one.
+     */
+    protected function registerDiagnosisEngine(): void
+    {
+        $this->app->bind(DiagnosisEngine::class, function ($app): DiagnosisEngine {
+            $engine = (string) config('tbai.diagnosis.engine', 'simulated');
+
+            return match ($engine) {
+                'simulated' => $app->make(SimulatedDiagnosisEngine::class),
+                default => throw new InvalidArgumentException("Unknown diagnosis engine [{$engine}]."),
+            };
+        });
     }
 
     /**

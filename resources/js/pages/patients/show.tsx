@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Pencil, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Microscope, Pencil, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import EntryScreen from '@/components/entry-screen';
 import {
@@ -54,6 +54,18 @@ type Screening = {
     href: string;
 };
 
+type Diagnosis = {
+    id: string;
+    date: string;
+    testLabel: string;
+    result: 'positive' | 'negative' | 'indeterminate';
+    resultLabel: string;
+    grade: string | null;
+    simulated: boolean;
+    thumbnailUrl: string | null;
+    href: string;
+};
+
 type Props = {
     facilityName: string;
     dateLabel: string;
@@ -69,6 +81,8 @@ type Props = {
         informedAt: string | null;
     };
     screenings: Screening[];
+    diagnoses: Diagnosis[];
+    newDiagnosisUrl: string | null;
     activeTreatment: Treatment | null;
     pastTreatments: Treatment[];
     options: {
@@ -97,6 +111,8 @@ export default function PatientShow({
     today,
     patient,
     screenings,
+    diagnoses,
+    newDiagnosisUrl,
     activeTreatment,
     pastTreatments,
     options,
@@ -267,6 +283,13 @@ export default function PatientShow({
                     )}
                 </section>
 
+                {newDiagnosisUrl ? (
+                    <DiagnosisList
+                        diagnoses={diagnoses}
+                        newUrl={newDiagnosisUrl}
+                    />
+                ) : null}
+
                 <Button
                     asChild
                     variant="outline"
@@ -279,6 +302,78 @@ export default function PatientShow({
                 </Button>
             </EntryScreen>
         </>
+    );
+}
+
+function DiagnosisList({
+    diagnoses,
+    newUrl,
+}: {
+    diagnoses: Diagnosis[];
+    newUrl: string;
+}) {
+    const { t } = useEntryI18n();
+
+    return (
+        <section
+            className="flex flex-col gap-2 rounded-xl border bg-card p-4"
+            data-test="patient-diagnoses"
+        >
+            <h2 className="text-base font-semibold">
+                {t('diagnosis_list_title')}
+            </h2>
+            <Button asChild className="h-12 w-full text-base">
+                <Link href={newUrl} data-test="diagnosis-new">
+                    <Microscope aria-hidden="true" />
+                    {t('diagnosis_new')}
+                </Link>
+            </Button>
+            {diagnoses.length === 0 ? (
+                <p className="text-base text-muted-foreground">
+                    {t('diagnosis_list_empty')}
+                </p>
+            ) : (
+                <ul className="flex flex-col gap-2">
+                    {diagnoses.map((diagnosis) => (
+                        <li key={diagnosis.id}>
+                            <Link
+                                href={diagnosis.href}
+                                className="flex items-center gap-3 rounded-lg border p-3 text-base hover:bg-accent focus-visible:ring-2 focus-visible:ring-[#14294c] focus-visible:outline-none"
+                            >
+                                {diagnosis.thumbnailUrl ? (
+                                    <img
+                                        src={diagnosis.thumbnailUrl}
+                                        alt=""
+                                        className="size-12 shrink-0 rounded object-cover"
+                                    />
+                                ) : null}
+                                <span className="flex flex-col">
+                                    <span className="font-medium">
+                                        {diagnosis.testLabel}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {diagnosis.date}
+                                    </span>
+                                </span>
+                                <span
+                                    className={cn(
+                                        'ml-auto rounded-md border px-2 py-0.5 text-sm font-semibold',
+                                        diagnosis.result === 'positive'
+                                            ? 'border-red-700 bg-red-700 text-white'
+                                            : 'border-border',
+                                    )}
+                                >
+                                    {diagnosis.resultLabel}
+                                    {diagnosis.grade
+                                        ? ` · ${diagnosis.grade}`
+                                        : ''}
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
     );
 }
 

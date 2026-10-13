@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SavePatientRequest;
+use App\Models\Diagnosis;
 use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\SuspectAssessment;
@@ -10,6 +11,7 @@ use App\Models\Team;
 use App\Models\Treatment;
 use App\Models\User;
 use App\Support\AuditLogger;
+use App\Support\Diagnosis\DiagnosisPresenter;
 use App\Support\EntryDate;
 use App\Support\Patients\PatientAccess;
 use App\Support\Patients\PatientIdentifiers;
@@ -30,6 +32,7 @@ class PatientController extends Controller
     public function __construct(
         private readonly PatientAccess $access,
         private readonly PatientPresenter $presenter,
+        private readonly DiagnosisPresenter $diagnoses,
     ) {}
 
     public function index(Request $request, Team $current_team): Response
@@ -141,6 +144,8 @@ class PatientController extends Controller
         $treatments = $patient->treatments()->with('visits')->orderByDesc('start_date')->orderByDesc('id')->get();
         $active = $treatments->first(fn (Treatment $treatment): bool => $treatment->isActive());
 
+        $aiDemo = (bool) config('tbai.features.ai_demo');
+
         $audit->write($user, 'patient.viewed', $patient);
 
         return Inertia::render('patients/show', [
@@ -156,6 +161,15 @@ class PatientController extends Controller
                 ->reject(fn (Treatment $treatment): bool => $treatment->isActive())
                 ->map(fn (Treatment $treatment): array => $this->presenter->treatment($treatment, $patient, $current_team, $today))
                 ->values()->all(),
+            'diagnoses' => $aiDemo
+                ? $patient->diagnoses()->latest('analysed_at')->latest('id')->get()
+                    ->each(fn (Diagnosis $diagnosis) => $diagnosis->setRelation('patient', $patient))
+                    ->map(fn (Diagnosis $diagnosis): array => $this->diagnoses->listItem($diagnosis, $current_team))
+                    ->values()->all()
+                : [],
+            'newDiagnosisUrl' => $aiDemo
+                ? route('patients.diagnoses.create', ['current_team' => $current_team->slug, 'patient' => $patient->uuid])
+                : null,
             'options' => $this->presenter->options(),
             'startTreatmentUrl' => route('patients.treatments.store', ['current_team' => $current_team->slug, 'patient' => $patient->uuid]),
             'editUrl' => route('patients.edit', ['current_team' => $current_team->slug, 'patient' => $patient->uuid]),

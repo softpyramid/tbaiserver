@@ -41,6 +41,7 @@ use Illuminate\Support\Str;
  * @property-read Treatment|null $activeTreatment
  * @property-read Collection<int, Treatment> $treatments
  * @property-read Collection<int, SuspectAssessment> $screenings
+ * @property-read Collection<int, Diagnosis> $diagnoses
  */
 #[Fillable([
     'uuid', 'facility_id', 'name', 'cnic', 'phone', 'gender', 'age', 'register_number',
@@ -118,5 +119,13 @@ class Patient extends Model
     public function screenings(): HasMany
     {
         return $this->hasMany(SuspectAssessment::class);
+    }
+
+    /**
+     * @return HasMany<Diagnosis, $this>
+     */
+    public function diagnoses(): HasMany
+    {
+        return $this->hasMany(Diagnosis::class);
     }
 }

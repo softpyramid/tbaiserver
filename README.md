@@ -25,5 +25,5 @@ Copy `.env.example` to `.env` if needed (the setup script does this when `.env` 
 
 ## Credits
 
-- **Fakhar Khan** — [https://github.com/fakharkhan](https://github.com/fakharkhan)
+- **Fakhar Khan** — [https://fakhar-khan.com](https://fakhar-khan.com)
 - **Hira** — [https://www.tb-ai.org](https://www.tb-ai.org)
